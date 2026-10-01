@@ -1,1 +1,21 @@
-<Solution />
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Api/">
+    <Project Path="src/Api/RastreadorHabitos.Api/RastreadorHabitos.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Core/">
+    <Project Path="src/Core/RastreadorHabitos.Core.Auditoria/RastreadorHabitos.Core.Auditoria.csproj" />
+    <Project Path="src/Core/RastreadorHabitos.Core.ControlAcceso/RastreadorHabitos.Core.ControlAcceso.csproj" />
+    <Project Path="src/Core/RastreadorHabitos.Core.Documentos/RastreadorHabitos.Core.Documentos.csproj" />
+    <Project Path="src/Core/RastreadorHabitos.Core.GestionPermisos/RastreadorHabitos.Core.GestionPermisos.csproj" />
+    <Project Path="src/Core/RastreadorHabitos.Core.Notificaciones/RastreadorHabitos.Core.Notificaciones.csproj" />
+    <Project Path="src/Core/RastreadorHabitos.Core.Reportes/RastreadorHabitos.Core.Reportes.csproj" />
+  </Folder>
+  <Folder Name="/src/Negocio/">
+    <Project Path="src/Negocio/RastreadorHabitos.Modulo.Habitos/RastreadorHabitos.Modulo.Habitos.csproj" />
+    <Project Path="src/Negocio/RastreadorHabitos.Modulo.Metas/RastreadorHabitos.Modulo.Metas.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/RastreadorHabitos.Tests/RastreadorHabitos.Tests.csproj" />
+  </Folder>
+</Solution>
