@@ -37,3 +37,7 @@ Authorization: Bearer PEGUE_AQUI_EL_TOKEN
 ### Cierre de sesion: despues, el mismo token se rechaza [RF-CA-18]
 POST {{RastreadorHabitos.Api_HostAddress}}/api/sesion/cerrar
 Authorization: Bearer PEGUE_AQUI_EL_TOKEN
+
+### Listado de usuarios con rol y estado: solo Administrador [RF-CA-21]
+GET {{RastreadorHabitos.Api_HostAddress}}/api/usuarios
+Authorization: Bearer PEGUE_AQUI_EL_TOKEN_DE_UN_ADMINISTRADOR

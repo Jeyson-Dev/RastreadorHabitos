@@ -28,6 +28,8 @@ public static class ExigenciasDeRol
         ["Sesion.Iniciar"] = Exigencia.Anonimo,
         ["Sesion.UsuarioAutenticado"] = Exigencia.Autenticado,
         ["Sesion.Cerrar"] = Exigencia.Autenticado,
+
+        ["Usuarios.Listar"] = Exigencia.Administrador,
     };
 
     public static Exigencia De(string controlador, string accion) =>
