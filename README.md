@@ -42,6 +42,7 @@ entorno. Aquí se documenta el nombre y el propósito de cada una, nunca su valo
 | Variable | Obligatoria | Para qué sirve |
 |---|---|---|
 | `ConnectionStrings__RastreadorHabitos` | Sí | Cadena de conexión a SQL Server. La base de datos se crea sola al arrancar. Sin esta variable la aplicación no arranca y lo indica en la consola. |
+| `Jwt__Clave` | Sí (para la API) | Clave secreta, de 32 caracteres o más, con la que se firman las credenciales de sesión. Sin ella, o si es más corta, la API no arranca. El enviador de correos no la necesita. |
 | `App__UrlBase` | No | URL pública de la aplicación, sin barra final, con la que se arman los enlaces de activación de los correos. Si no se configura, se usa `http://localhost:5003`, que es la dirección con la que arranca la aplicación. |
 | `Smtp__Host` | Para enviar correos | Servidor SMTP (por ejemplo `smtp.gmail.com`). |
 | `Smtp__Puerto` | Para enviar correos | Puerto del servidor SMTP (por ejemplo `587`). |
@@ -54,6 +55,12 @@ Las variables `Smtp__*` solo las usa el enviador de correos (ver más abajo). La
 sin ellas: los correos quedan pendientes en la cola hasta que se ejecute el enviador con un
 servidor SMTP disponible.
 
+Para generar un valor aleatorio para `Jwt__Clave` en PowerShell:
+
+```powershell
+[Convert]::ToBase64String((1..48 | ForEach-Object { Get-Random -Maximum 256 }))
+```
+
 ### Opción A — PowerShell (para la ventana actual)
 
 Reemplazar lo que está entre `< >`. Las variables duran mientras la ventana esté abierta, así
@@ -61,6 +68,7 @@ que la API y el enviador deben ejecutarse desde ventanas donde estén configurad
 
 ```powershell
 $env:ConnectionStrings__RastreadorHabitos = "Server=<servidor\instancia>;Database=RastreadorHabitos;Trusted_Connection=True;TrustServerCertificate=True"
+$env:Jwt__Clave = "<clave-aleatoria-de-32-caracteres-o-mas>"
 $env:Smtp__Host = "smtp.gmail.com"
 $env:Smtp__Puerto = "587"
 $env:Smtp__Usuario = "<tu-correo@gmail.com>"
@@ -75,6 +83,7 @@ usuario de Windows (una sola vez) y **cerrar y volver a abrir Visual Studio**:
 
 ```powershell
 [Environment]::SetEnvironmentVariable('ConnectionStrings__RastreadorHabitos', 'Server=<servidor\instancia>;Database=RastreadorHabitos;Trusted_Connection=True;TrustServerCertificate=True', 'User')
+[Environment]::SetEnvironmentVariable('Jwt__Clave', '<clave-aleatoria-de-32-caracteres-o-mas>', 'User')
 [Environment]::SetEnvironmentVariable('Smtp__Host', 'smtp.gmail.com', 'User')
 [Environment]::SetEnvironmentVariable('Smtp__Puerto', '587', 'User')
 [Environment]::SetEnvironmentVariable('Smtp__Usuario', '<tu-correo@gmail.com>', 'User')
