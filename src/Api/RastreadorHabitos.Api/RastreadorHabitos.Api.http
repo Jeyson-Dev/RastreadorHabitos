@@ -66,3 +66,13 @@ Content-Type: application/json
 {
   "email": "tu-correo@example.com"
 }
+
+### Restablecer con el codigo recibido por correo: un solo uso, vence en 30 minutos [RF-CA-10, RF-CA-11, RF-CA-12]
+POST {{RastreadorHabitos.Api_HostAddress}}/api/contrasena/restablecer
+Content-Type: application/json
+
+{
+  "email": "tu-correo@example.com",
+  "codigo": "PEGUE-AQUI",
+  "contrasenaNueva": "Nueva2026x"
+}

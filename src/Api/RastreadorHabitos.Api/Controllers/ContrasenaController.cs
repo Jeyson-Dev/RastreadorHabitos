@@ -24,4 +24,11 @@ public class ContrasenaController : ControllerBase
         await _contrasenaService.SolicitarRecuperacionAsync(solicitud);
         return Ok(new { mensaje = "Si el correo está registrado, recibirá un código para restablecer la contraseña." });
     }
+
+    [HttpPost("restablecer")]
+    public async Task<IActionResult> Restablecer([FromBody] RestablecimientoSolicitudDto solicitud)
+    {
+        await _contrasenaService.RestablecerAsync(solicitud);
+        return Ok(new { mensaje = "Contraseña restablecida. Inicie sesión con la contraseña nueva." });
+    }
 }
