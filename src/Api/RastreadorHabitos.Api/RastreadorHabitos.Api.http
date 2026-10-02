@@ -50,3 +50,11 @@ Content-Type: application/json
 {
   "rol": "Administrador"
 }
+
+### Desactivar un usuario: cierra sus sesiones abiertas; nunca a uno mismo [RF-CA-20]
+POST {{RastreadorHabitos.Api_HostAddress}}/api/usuarios/PEGUE_AQUI_EL_ID_DEL_USUARIO/desactivar
+Authorization: Bearer PEGUE_AQUI_EL_TOKEN_DE_UN_ADMINISTRADOR
+
+### Reactivar un usuario [RF-CA-20]
+POST {{RastreadorHabitos.Api_HostAddress}}/api/usuarios/PEGUE_AQUI_EL_ID_DEL_USUARIO/reactivar
+Authorization: Bearer PEGUE_AQUI_EL_TOKEN_DE_UN_ADMINISTRADOR

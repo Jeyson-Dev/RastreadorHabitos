@@ -31,6 +31,20 @@ public class UsuariosController : ControllerBase
         return Ok(new { mensaje = "Rol actualizado." });
     }
 
+    [HttpPost("{id:guid}/desactivar")]
+    public async Task<IActionResult> Desactivar(Guid id)
+    {
+        await _administracion.DesactivarAsync(id, UsuarioActual());
+        return Ok(new { mensaje = "Usuario desactivado. Sus sesiones abiertas se cerraron." });
+    }
+
+    [HttpPost("{id:guid}/reactivar")]
+    public async Task<IActionResult> Reactivar(Guid id)
+    {
+        await _administracion.ReactivarAsync(id);
+        return Ok(new { mensaje = "Usuario reactivado." });
+    }
+
     // Id del Administrador que hace la petición; la autenticación ya validó su sesión.
     private Guid UsuarioActual() =>
         Guid.Parse(User.FindFirst(OpcionesSesion.ClaimUsuario)!.Value);
