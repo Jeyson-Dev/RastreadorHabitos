@@ -1,6 +1,22 @@
 @RastreadorHabitos.Api_HostAddress = http://localhost:5003
 
-GET {{RastreadorHabitos.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### Registro [RF-CA-01, RF-CA-02, RF-CA-14, RF-CA-15]
+POST {{RastreadorHabitos.Api_HostAddress}}/api/cuentas/registro
+Content-Type: application/json
 
-###
+{
+  "email": "tu-correo@example.com",
+  "contrasena": "Habitos2026",
+  "nombreCompleto": "Tu Nombre"
+}
+
+### Activacion con el token del enlace recibido por correo [RF-CA-16]
+GET {{RastreadorHabitos.Api_HostAddress}}/api/cuentas/activar?token=PEGUE_AQUI_EL_TOKEN_DEL_CORREO
+
+### Reenvio del enlace de activacion: misma respuesta exista o no el correo [RF-CA-17]
+POST {{RastreadorHabitos.Api_HostAddress}}/api/cuentas/reenviar-activacion
+Content-Type: application/json
+
+{
+  "email": "tu-correo@example.com"
+}

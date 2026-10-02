@@ -2,15 +2,30 @@
 
 Rastreador de hábitos con metas — Programación III · TDS-007 · ITLA · 2026-C-3
 
+## Estado de la Práctica 1 — Control de acceso
+
+| Funcionalidad | Requisitos | Estado |
+|---|---|---|
+| Registro y activación | RF-CA-01, 02, 14, 15, 16, 17 · RF-NOT-08, 09, 12, 13 · RD-05, 07, 08, 09, 10 | ✅ Implementado |
+| Sesión | RF-CA-03, 07, 18, 19 | Pendiente |
+| Roles y administración | RF-CA-04, 05, 06, 08, 20, 21 · RD-06 | Pendiente (los dos roles ya existen) |
+| Contraseñas | RF-CA-09 a 13, 22 | Pendiente |
+
+Enunciado completo: [`docs/practica1-control-acceso.md`](docs/practica1-control-acceso.md).
+
 ## Stack
-- Backend: C# / ASP.NET Core (.NET)
-- Frontend: HTML, CSS y JavaScript
-- Base de datos: SQL Server
+
+- C# / ASP.NET Core Web API (.NET 10)
+- SQL Server con Entity Framework Core
 
 ## Requisitos previos
-- .NET SDK (8.0 o superior)
-- SQL Server (local o instancia accesible)
-- Visual Studio 2022 (recomendado) o VS Code
+
+- [.NET SDK 10](https://dotnet.microsoft.com/download) o superior.
+- SQL Server (local o una instancia accesible) con permiso para crear bases de datos.
+- Un servidor SMTP para que los correos lleguen de verdad. Sirve una cuenta de Gmail con una
+  [contraseña de aplicación](https://myaccount.google.com/apppasswords) (requiere tener
+  activada la verificación en dos pasos), o un servidor de pruebas como
+  [smtp4dev](https://github.com/rnwood/smtp4dev).
 
 ## Clonar el repositorio
 
@@ -19,30 +34,201 @@ git clone https://github.com/Jeyson-Dev/RastreadorHabitos.git
 cd RastreadorHabitos
 ```
 
-## Restaurar dependencias
+## Variables de entorno
 
-```bash
-dotnet restore
+El repositorio no contiene cadenas de conexión ni credenciales: todo llega por variables de
+entorno. Aquí se documenta el nombre y el propósito de cada una, nunca su valor.
+
+| Variable | Obligatoria | Para qué sirve |
+|---|---|---|
+| `ConnectionStrings__RastreadorHabitos` | Sí | Cadena de conexión a SQL Server. La base de datos se crea sola al arrancar. Sin esta variable la aplicación no arranca y lo indica en la consola. |
+| `App__UrlBase` | No | URL pública de la aplicación, sin barra final, con la que se arman los enlaces de activación de los correos. Si no se configura, se usa `http://localhost:5003`, que es la dirección con la que arranca la aplicación. |
+| `Smtp__Host` | Para enviar correos | Servidor SMTP (por ejemplo `smtp.gmail.com`). |
+| `Smtp__Puerto` | Para enviar correos | Puerto del servidor SMTP (por ejemplo `587`). |
+| `Smtp__Remitente` | Para enviar correos | Dirección que aparece como remitente. Con Gmail debe ser la misma cuenta. |
+| `Smtp__Usuario` | Si el servidor pide autenticación | Usuario de la cuenta SMTP. |
+| `Smtp__Contrasena` | Si el servidor pide autenticación | Contraseña de la cuenta SMTP (con Gmail, la contraseña de aplicación). |
+| `Smtp__UsarSsl` | No (por defecto `true`) | Usa STARTTLS. Ponerla en `false` solo con servidores de prueba sin cifrado, como smtp4dev. |
+
+Las variables `Smtp__*` solo las usa el enviador de correos (ver más abajo). La API funciona
+sin ellas: los correos quedan pendientes en la cola hasta que se ejecute el enviador con un
+servidor SMTP disponible.
+
+### Opción A — PowerShell (para la ventana actual)
+
+Reemplazar lo que está entre `< >`. Las variables duran mientras la ventana esté abierta, así
+que la API y el enviador deben ejecutarse desde ventanas donde estén configuradas.
+
+```powershell
+$env:ConnectionStrings__RastreadorHabitos = "Server=<servidor\instancia>;Database=RastreadorHabitos;Trusted_Connection=True;TrustServerCertificate=True"
+$env:Smtp__Host = "smtp.gmail.com"
+$env:Smtp__Puerto = "587"
+$env:Smtp__Usuario = "<tu-correo@gmail.com>"
+$env:Smtp__Contrasena = "<tu-contraseña-de-aplicación>"
+$env:Smtp__Remitente = "<tu-correo@gmail.com>"
 ```
 
-## Configurar la base de datos
+### Opción B — Visual Studio
 
-1. Copia `appsettings.json` (o crea `appsettings.Development.json`) y ajusta la cadena de conexión a tu instancia de SQL Server.
-2. Aplica las migraciones (si el proyecto ya las tiene):
+Visual Studio no ve las variables de una ventana de PowerShell. Hay que guardarlas en el
+usuario de Windows (una sola vez) y **cerrar y volver a abrir Visual Studio**:
 
-```bash
-dotnet ef database update
+```powershell
+[Environment]::SetEnvironmentVariable('ConnectionStrings__RastreadorHabitos', 'Server=<servidor\instancia>;Database=RastreadorHabitos;Trusted_Connection=True;TrustServerCertificate=True', 'User')
+[Environment]::SetEnvironmentVariable('Smtp__Host', 'smtp.gmail.com', 'User')
+[Environment]::SetEnvironmentVariable('Smtp__Puerto', '587', 'User')
+[Environment]::SetEnvironmentVariable('Smtp__Usuario', '<tu-correo@gmail.com>', 'User')
+[Environment]::SetEnvironmentVariable('Smtp__Contrasena', '<tu-contraseña-de-aplicación>', 'User')
+[Environment]::SetEnvironmentVariable('Smtp__Remitente', '<tu-correo@gmail.com>', 'User')
 ```
 
-## Ejecutar el proyecto
+No configurarlas en las propiedades de depuración de Visual Studio: se guardan en
+`Properties/launchSettings.json`, que forma parte del repositorio.
+
+## Ejecutar la API
 
 ```bash
-dotnet build
-dotnet run --project RastreadorHabitos
+dotnet run --project src/Api/RastreadorHabitos.Api
 ```
 
-La aplicación quedará disponible en la URL que indique la consola (por defecto `https://localhost:5001` o similar).
+En Visual Studio: abrir `RastreadorHabitos.slnx`, elegir el perfil **`http`** y ejecutar.
 
-## Estructura del proyecto
+- Al arrancar se aplican automáticamente las migraciones: no hace falta `dotnet ef`.
+- La API queda en `http://localhost:5003`.
+- Peticiones de ejemplo: `src/Api/RastreadorHabitos.Api/RastreadorHabitos.Api.http`.
 
-Ver [`docs/estructura-proyecto.md`](docs/estructura-proyecto.md) para el diagrama de componentes y la descripción de cada módulo.
+## Enviar los correos pendientes (enviador de la cola)
+
+Las operaciones que generan correos (registro y reenvío del enlace) **no los envían**: los
+registran en la tabla `Notificaciones.CorreosEnCola` en estado `Pendiente` y responden de
+inmediato, aunque el servidor SMTP no esté disponible (RF-NOT-08).
+
+Los envía un **comando independiente** (RF-NOT-09). Se ejecuta desde la raíz del
+repositorio, en una ventana con las variables configuradas; puede ejecutarse mientras la API
+está corriendo:
+
+```bash
+dotnet run --no-build --project src/Api/RastreadorHabitos.Api -- enviar-correos
+```
+
+(`--no-build` usa la compilación existente; si la API nunca se compiló, ejecutar antes
+`dotnet build`.)
+
+El comando envía todos los correos `Pendiente` por SMTP, marca cada uno como `Enviado` en
+cuanto sale y termina mostrando un resumen:
+
+| Salida | Significado | Código de salida |
+|---|---|---|
+| `Correos enviados: N. Pendientes: 0.` | Se enviaron todos los pendientes | 0 |
+| `Correos enviados: 0. Pendientes: 0.` | No había nada que enviar | 0 |
+| `SMTP sin configurar (variables Smtp__*): N correo(s) siguen pendientes.` | Faltan las variables SMTP | 1 |
+| `No se pudo enviar: <motivo>. Correos enviados: X. Pendientes: Y.` | El servidor SMTP no respondió o rechazó el envío; los no enviados siguen pendientes | 1 |
+
+**Ejecutarlo dos veces no duplica envíos (RF-NOT-12):** el enviador solo toma correos en
+estado `Pendiente`, y cada correo se marca `Enviado` inmediatamente después de salir.
+
+Consultar la cola:
+
+```sql
+SELECT Destinatario, Estado, FechaCreacionUtc, FechaEnvioUtc
+FROM Notificaciones.CorreosEnCola ORDER BY FechaCreacionUtc;
+```
+
+## Endpoints
+
+| Método | Ruta | Cuerpo | Respuesta |
+|---|---|---|---|
+| `POST` | `/api/cuentas/registro` | `{ "email", "contrasena", "nombreCompleto" }` | `201` registrado · `400` dato inválido · `409` correo ya registrado |
+| `GET` | `/api/cuentas/activar?token=…` | — | `200` cuenta activada · `400` enlace inválido, usado o vencido |
+| `POST` | `/api/cuentas/reenviar-activacion` | `{ "email" }` | `200` siempre la misma respuesta · `400` correo vacío o mal formado |
+
+Las respuestas son JSON: `{ "mensaje": "…" }` en los éxitos y `{ "error": "…" }` en los
+rechazos. Ningún error expone trazas ni detalles de la base de datos (RD-08).
+
+## Cómo provocar cada criterio de aceptación — Registro y activación
+
+En el orden de la sección 4 del enunciado. Las peticiones pueden hacerse con Postman, `curl`
+o el archivo `.http`; las consultas SQL se ejecutan contra la base `RastreadorHabitos`.
+
+**1. Registrarse con el propio correo (RF-CA-01, RF-CA-15, RF-NOT-08, RF-NOT-09).**
+`POST /api/cuentas/registro` con un correo real y una contraseña válida (por ejemplo
+`Habitos2026`) → `201`. Ejecutar el enviador → `Correos enviados: 1`. Llega el correo con el
+enlace de activación, de un solo uso y con vencimiento de 24 horas. Mientras no se abra, el
+usuario queda con `CorreoConfirmado = 0`:
+
+```sql
+SELECT Email, CorreoConfirmado, CuentaHabilitada FROM ControlAcceso.Usuarios;
+```
+
+**2. Intentar iniciar sesión antes de activar (RF-CA-15).** Pendiente: el inicio de sesión
+llega con la funcionalidad de Sesión.
+
+**3. Abrir el enlace recibido (RF-CA-16).** → «Cuenta activada. Ya puede iniciar sesión.» El
+usuario pasa a `CorreoConfirmado = 1`.
+
+**4. Abrir el enlace por segunda vez (RF-CA-16).** → `400` «El enlace de activación no es
+válido, ya fue usado o venció.» El estado no cambia.
+
+**5. Registrar el mismo correo otra vez (RF-CA-01).** → `409` «Ya existe una cuenta
+registrada con este correo.» También con mayúsculas o espacios alrededor.
+
+**6. Contraseña de 5 caracteres y correo mal formado (RF-CA-14, RD-07).**
+- Contraseña `abc12` → `400` «La contraseña debe tener al menos 8 caracteres e incluir letras y números.»
+- Correo `correo-sin-arroba` → `400` «El correo no tiene un formato válido.»
+- Correo vacío → `400` «El correo es obligatorio.»
+- JSON mal formado o cuerpo vacío → `400` «La solicitud no tiene un formato válido.»
+
+**7. Leer el almacenamiento (RF-CA-02, RD-05).** Registrar dos usuarios con la misma
+contraseña. La contraseña no aparece y los dos valores almacenados (BCrypt, con sal propia)
+son distintos. Los tokens de activación tampoco se guardan en claro, solo su hash SHA-256:
+
+```sql
+SELECT Email, PasswordHash FROM ControlAcceso.Usuarios;
+SELECT UsuarioId, TokenHash, FechaExpiracionUtc, FechaUsoUtc, FechaRevocacionUtc FROM ControlAcceso.TokensUsuario;
+```
+
+**8. Apagar el servidor SMTP y ejecutar el enviador dos veces (RF-NOT-08, RF-NOT-12).**
+1. Con un servidor SMTP inalcanzable (por ejemplo `Smtp__Host` o `Smtp__Puerto` apuntando a
+   algo que no responde) o sin las variables `Smtp__*`, registrar un usuario → `201`
+   igualmente, y el correo queda `Pendiente`.
+2. Ejecutar el enviador → informa que no pudo enviar; el correo sigue `Pendiente`.
+3. Con el servidor SMTP disponible, ejecutar el enviador → `Correos enviados: 1`.
+4. Ejecutarlo otra vez → `Correos enviados: 0`. El correo llega una sola vez y su
+   `FechaEnvioUtc` no cambia.
+
+**9. Reiniciar la aplicación (RD-09).** Detener y volver a arrancar la API: los usuarios
+siguen en `ControlAcceso.Usuarios`.
+
+**10. Credenciales fuera del repositorio (RD-10, RF-NOT-13).** `git ls-files` y
+`git log -p` no contienen cadenas de conexión ni credenciales SMTP.
+
+**Además:**
+
+- **Enlace vencido (RF-CA-16).** Registrar otro usuario, vencer su enlace con la consulta de
+  abajo y abrirlo → `400`; el usuario sigue sin confirmar.
+
+  ```sql
+  UPDATE t SET FechaExpiracionUtc = DATEADD(DAY, -1, SYSUTCDATETIME())
+  FROM ControlAcceso.TokensUsuario t JOIN ControlAcceso.Usuarios u ON u.Id = t.UsuarioId
+  WHERE u.Email = '<correo-del-usuario>';
+  ```
+
+- **Reenvío del enlace (RF-CA-17).** `POST /api/cuentas/reenviar-activacion` con un correo
+  registrado pendiente, con uno inexistente y con uno ya activado: las tres respuestas son
+  idénticas (`200`, mismo mensaje). Solo el pendiente genera un correo nuevo (ejecutar el
+  enviador), y el enlace anterior deja de servir.
+
+## Pruebas unitarias
+
+```bash
+dotnet test
+```
+
+## Arquitectura
+
+Monolito modular por proyectos sobre el diagrama de componentes de
+[`Estructura.md`](Estructura.md): cada pieza del Core y del módulo de negocio es su propio
+`.csproj`, de forma que una referencia de proyecto indebida no compila. Control de acceso no
+conoce a Notificaciones: declara la interfaz `ISolicitudCorreoSaliente` y la Api la conecta
+con la cola. Cada pieza guarda sus tablas en su propio esquema SQL (`ControlAcceso`,
+`Notificaciones`). Detalles en [`AGENTS.md`](AGENTS.md).

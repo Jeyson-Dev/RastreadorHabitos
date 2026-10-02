@@ -18,4 +18,8 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Core\RastreadorHabitos.Core.ControlAcceso\RastreadorHabitos.Core.ControlAcceso.csproj" />
+  </ItemGroup>
+
 </Project>
