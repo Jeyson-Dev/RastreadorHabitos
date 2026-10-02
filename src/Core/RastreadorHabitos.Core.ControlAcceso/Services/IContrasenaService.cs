@@ -11,4 +11,8 @@ public interface IContrasenaService
     // Con un código válido define la contraseña nueva; las sesiones abiertas antes dejan de ser
     // válidas [RF-CA-10, RF-CA-11, RF-CA-12].
     Task RestablecerAsync(RestablecimientoSolicitudDto solicitud);
+
+    // Exige la contraseña actual; aplican la política y el cierre de todas las sesiones,
+    // incluida la que hace el cambio [RF-CA-22, RF-CA-14, RF-CA-12].
+    Task CambiarAsync(Guid usuarioId, CambioContrasenaSolicitudDto solicitud);
 }

@@ -74,6 +74,26 @@ public class ContrasenaService : IContrasenaService
         await _context.SaveChangesAsync();
     }
 
+    public async Task CambiarAsync(Guid usuarioId, CambioContrasenaSolicitudDto solicitud)
+    {
+        var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId)
+            ?? throw new RechazoControlAccesoException(MotivoRechazo.NoAutenticado, "Se requiere una sesión válida.");
+
+        if (string.IsNullOrEmpty(solicitud.ContrasenaActual)
+            || !BCrypt.Net.BCrypt.Verify(solicitud.ContrasenaActual, usuario.PasswordHash))
+        {
+            throw new RechazoControlAccesoException(MotivoRechazo.DatosInvalidos,
+                "La contraseña actual es incorrecta."); // [RF-CA-22]
+        }
+
+        ValidarPolitica(solicitud.ContrasenaNueva); // [RF-CA-14]
+
+        // Todas las sesiones abiertas antes del cambio dejan de ser válidas, también la actual [RF-CA-12].
+        usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(solicitud.ContrasenaNueva, CuentaService.FactorTrabajoBCrypt);
+        await _context.CerrarSesionesAbiertasAsync(usuario.Id, DateTime.UtcNow);
+        await _context.SaveChangesAsync();
+    }
+
     private static void ValidarPolitica(string? contrasena)
     {
         var incumplimiento = PoliticaContrasena.Validar(contrasena);
