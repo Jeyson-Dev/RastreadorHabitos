@@ -29,3 +29,7 @@ Content-Type: application/json
   "email": "tu-correo@example.com",
   "contrasena": "Habitos2026"
 }
+
+### Usuario autenticado y su rol: pegar el token que devuelve el inicio de sesion [RF-CA-07]
+GET {{RastreadorHabitos.Api_HostAddress}}/api/sesion/usuario
+Authorization: Bearer PEGUE_AQUI_EL_TOKEN
