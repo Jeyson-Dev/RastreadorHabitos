@@ -20,3 +20,12 @@ Content-Type: application/json
 {
   "email": "tu-correo@example.com"
 }
+
+### Inicio de sesion: entrega la credencial de sesion [RF-CA-03, RF-CA-19]
+POST {{RastreadorHabitos.Api_HostAddress}}/api/sesion/iniciar
+Content-Type: application/json
+
+{
+  "email": "tu-correo@example.com",
+  "contrasena": "Habitos2026"
+}

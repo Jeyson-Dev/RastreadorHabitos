@@ -1,15 +1,91 @@
 using Microsoft.EntityFrameworkCore;
+using RastreadorHabitos.Core.ControlAcceso.Configuracion;
 using RastreadorHabitos.Core.ControlAcceso.Data;
+using RastreadorHabitos.Core.ControlAcceso.DTOs;
+using RastreadorHabitos.Core.ControlAcceso.Entities;
+using RastreadorHabitos.Core.ControlAcceso.Reglas;
 
 namespace RastreadorHabitos.Core.ControlAcceso.Services;
 
 public class SesionService : ISesionService
 {
-    private readonly ControlAccesoDbContext _context;
+    // Se compara contra este hash cuando el correo no existe, para que la respuesta tarde lo
+    // mismo que con una contraseña incorrecta y el tiempo no revele qué correos existen.
+    private static readonly Lazy<string> HashRelleno =
+        new(() => BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString(), CuentaService.FactorTrabajoBCrypt));
 
-    public SesionService(ControlAccesoDbContext context)
+    private readonly ControlAccesoDbContext _context;
+    private readonly OpcionesSesion _opcionesSesion;
+    private readonly IEmisorCredencialSesion _emisorCredencial;
+
+    public SesionService(ControlAccesoDbContext context, OpcionesSesion opcionesSesion,
+                         IEmisorCredencialSesion emisorCredencial)
     {
         _context = context;
+        _opcionesSesion = opcionesSesion;
+        _emisorCredencial = emisorCredencial;
+    }
+
+    public async Task<CredencialSesionDto> IniciarAsync(InicioSesionSolicitudDto solicitud)
+    {
+        var email = solicitud.Email?.Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(solicitud.Contrasena))
+        {
+            throw new RechazoControlAccesoException(MotivoRechazo.DatosInvalidos,
+                "El correo y la contraseña son obligatorios.");
+        }
+
+        var usuario = await _context.Usuarios
+            .Include(u => u.Rol)
+            .FirstOrDefaultAsync(u => u.Email == email);
+
+        if (usuario is null)
+        {
+            BCrypt.Net.BCrypt.Verify(solicitud.Contrasena, HashRelleno.Value);
+            throw CredencialesIncorrectas();
+        }
+
+        // Durante el bloqueo se rechaza aun con la contraseña correcta, sin contar el intento [RF-CA-19].
+        var ahoraUtc = DateTime.UtcNow;
+        if (PoliticaBloqueo.EstaBloqueado(usuario, ahoraUtc))
+        {
+            throw new RechazoControlAccesoException(MotivoRechazo.Bloqueado,
+                PoliticaBloqueo.MensajeBloqueo(usuario, ahoraUtc));
+        }
+
+        if (!BCrypt.Net.BCrypt.Verify(solicitud.Contrasena, usuario.PasswordHash))
+        {
+            PoliticaBloqueo.RegistrarFallo(usuario, ahoraUtc);
+            await _context.SaveChangesAsync();
+            throw CredencialesIncorrectas();
+        }
+
+        // Estos avisos solo llegan a quien conoce la contraseña.
+        if (!usuario.CorreoConfirmado)
+        {
+            throw new RechazoControlAccesoException(MotivoRechazo.NoPermitido,
+                "La cuenta no está activa. Revise su correo para activarla."); // [RF-CA-15]
+        }
+        if (!usuario.CuentaHabilitada)
+        {
+            throw new RechazoControlAccesoException(MotivoRechazo.NoPermitido, "La cuenta está desactivada.");
+        }
+
+        PoliticaBloqueo.RegistrarExito(usuario);
+        var sesion = new SesionUsuario
+        {
+            UsuarioId = usuario.Id,
+            FechaInicioUtc = ahoraUtc,
+            FechaExpiracionUtc = ahoraUtc.Add(_opcionesSesion.Duracion)
+        };
+        _context.SesionesUsuario.Add(sesion);
+        await _context.SaveChangesAsync();
+
+        return new CredencialSesionDto
+        {
+            Token = _emisorCredencial.Emitir(sesion, usuario.Rol.Nombre),
+            ExpiraUtc = sesion.FechaExpiracionUtc
+        };
     }
 
     public async Task<bool> EstaAbiertaAsync(Guid sesionId)
@@ -26,4 +102,8 @@ public class SesionService : ISesionService
                && sesion.Usuario.CorreoConfirmado
                && sesion.Usuario.CuentaHabilitada;
     }
+
+    // El mismo rechazo para correo inexistente y contraseña incorrecta [RF-CA-03].
+    private static RechazoControlAccesoException CredencialesIncorrectas() =>
+        new(MotivoRechazo.NoAutenticado, "Correo o contraseña incorrectos.");
 }
