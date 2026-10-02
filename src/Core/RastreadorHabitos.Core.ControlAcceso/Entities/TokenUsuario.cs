@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+
 namespace RastreadorHabitos.Core.ControlAcceso.Entities;
 
 public class TokenUsuario
@@ -22,4 +25,8 @@ public class TokenUsuario
 
     public bool EsValido(DateTime ahoraUtc) =>
         FechaUsoUtc is null && FechaRevocacionUtc is null && FechaExpiracionUtc > ahoraUtc;
+
+    // Único cálculo del hash para todo tipo de token: quien lea la base no puede usarlos.
+    public static string CalcularHash(string valorPlano) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(valorPlano)));
 }

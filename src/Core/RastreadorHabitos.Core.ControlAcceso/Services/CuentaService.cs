@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Mail;
 using System.Security.Cryptography;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 using RastreadorHabitos.Core.ControlAcceso.Configuracion;
 using RastreadorHabitos.Core.ControlAcceso.Data;
@@ -83,7 +82,7 @@ public class CuentaService : ICuentaService
         TokenUsuario? tokenUsuario = null;
         if (!string.IsNullOrWhiteSpace(token))
         {
-            var tokenHash = CalcularHashToken(token.Trim());
+            var tokenHash = TokenUsuario.CalcularHash(token.Trim());
             tokenUsuario = await _context.TokensUsuario
                 .Include(t => t.Usuario)
                 .FirstOrDefaultAsync(t => t.TokenHash == tokenHash && t.Tipo == TokenUsuario.TipoActivacionCuenta);
@@ -143,7 +142,7 @@ public class CuentaService : ICuentaService
         _context.TokensUsuario.Add(new TokenUsuario
         {
             UsuarioId = usuario.Id,
-            TokenHash = CalcularHashToken(tokenPlano),
+            TokenHash = TokenUsuario.CalcularHash(tokenPlano),
             Tipo = TokenUsuario.TipoActivacionCuenta,
             FechaExpiracionUtc = DateTime.UtcNow.Add(VigenciaEnlaceActivacion)
         });
@@ -222,8 +221,4 @@ public class CuentaService : ICuentaService
 
     private static RechazoControlAccesoException CorreoYaRegistrado() =>
         new(MotivoRechazo.Conflicto, "Ya existe una cuenta registrada con este correo.");
-
-    // Solo se guarda el hash del token: quien lea la base no puede usar los enlaces.
-    private static string CalcularHashToken(string tokenPlano) =>
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(tokenPlano)));
 }
