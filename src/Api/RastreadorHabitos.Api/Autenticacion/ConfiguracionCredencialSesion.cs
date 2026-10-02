@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -42,10 +43,23 @@ public static class ConfiguracionCredencialSesion
                         var sesionClaim = context.Principal?.FindFirst(OpcionesSesion.ClaimSesion)?.Value;
                         var sesiones = context.HttpContext.RequestServices.GetRequiredService<ISesionService>();
 
-                        if (!Guid.TryParse(sesionClaim, out var sesionId) || !await sesiones.EstaAbiertaAsync(sesionId))
+                        var rolVigente = Guid.TryParse(sesionClaim, out var sesionId)
+                            ? await sesiones.ObtenerRolDeSesionAbiertaAsync(sesionId)
+                            : null;
+                        if (rolVigente is null)
                         {
                             context.Fail("La sesión no está abierta.");
+                            return;
                         }
+
+                        // El rol que cuenta es el de la base, no el que quedó escrito en la credencial:
+                        // un cambio de rol se aplica desde la siguiente petición [RF-CA-08].
+                        var identidad = (ClaimsIdentity)context.Principal!.Identity!;
+                        foreach (var rolAnterior in identidad.FindAll(OpcionesSesion.ClaimRol).ToList())
+                        {
+                            identidad.RemoveClaim(rolAnterior);
+                        }
+                        identidad.AddClaim(new Claim(OpcionesSesion.ClaimRol, rolVigente));
                     },
 
                     // Cualquier rechazo responde lo mismo, sin revelar el motivo [RD-08].
@@ -54,11 +68,18 @@ public static class ConfiguracionCredencialSesion
                         context.HandleResponse();
                         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                         await context.Response.WriteAsJsonAsync(new { error = "Se requiere una sesión válida." });
+                    },
+
+                    // Sesión válida pero rol insuficiente: rechazo explícito del lado del servidor,
+                    // aunque la petición se construya a mano [RF-CA-06, RD-06].
+                    OnForbidden = async context =>
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        await context.Response.WriteAsJsonAsync(new { error = "No tiene permiso para realizar esta operación." });
                     }
                 };
             });
 
-        services.AddAuthorization();
         return services;
     }
 }

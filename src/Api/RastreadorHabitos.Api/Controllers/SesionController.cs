@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RastreadorHabitos.Core.ControlAcceso.Configuracion;
 using RastreadorHabitos.Core.ControlAcceso.DTOs;
@@ -25,8 +24,7 @@ public class SesionController : ControllerBase
         return Ok(credencial);
     }
 
-    // Sin sesión válida, la autenticación responde 401 antes de llegar aquí [RF-CA-07].
-    [Authorize]
+    // Exige sesión (ver ExigenciasDeRol): sin sesión válida se responde 401 antes de llegar aquí [RF-CA-07].
     [HttpGet("usuario")]
     public async Task<IActionResult> UsuarioAutenticado()
     {
@@ -35,7 +33,6 @@ public class SesionController : ControllerBase
     }
 
     // Después de cerrar, la misma credencial responde 401 [RF-CA-18].
-    [Authorize]
     [HttpPost("cerrar")]
     public async Task<IActionResult> Cerrar()
     {

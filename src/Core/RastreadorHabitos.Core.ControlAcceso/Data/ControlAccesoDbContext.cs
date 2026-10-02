@@ -33,8 +33,8 @@ public class ControlAccesoDbContext : DbContext
             // Dos roles [RF-CA-04]. El nombre va sin tilde porque se usa como identificador
             // en la credencial de sesión y en las políticas de autorización.
             builder.HasData(
-                new Rol { Id = Rol.IdAdministrador, Nombre = "Administrador", Descripcion = "Administrador del sistema" },
-                new Rol { Id = Rol.IdEstandar, Nombre = "Estandar", Descripcion = "Usuario estándar" });
+                new Rol { Id = Rol.IdAdministrador, Nombre = Rol.NombreAdministrador, Descripcion = "Administrador del sistema" },
+                new Rol { Id = Rol.IdEstandar, Nombre = Rol.NombreEstandar, Descripcion = "Usuario estándar" });
         });
 
         modelBuilder.Entity<Usuario>(builder =>

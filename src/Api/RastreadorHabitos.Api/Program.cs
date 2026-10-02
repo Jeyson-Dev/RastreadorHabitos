@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RastreadorHabitos.Api.Adaptadores;
 using RastreadorHabitos.Api.Autenticacion;
+using RastreadorHabitos.Api.Autorizacion;
 using RastreadorHabitos.Api.Errores;
 using RastreadorHabitos.Core.ControlAcceso.Configuracion;
 using RastreadorHabitos.Core.ControlAcceso.Data;
@@ -10,12 +11,21 @@ using RastreadorHabitos.Core.Notificaciones.Configuracion;
 using RastreadorHabitos.Core.Notificaciones.Data;
 using RastreadorHabitos.Core.Notificaciones.Services;
 
-// "dotnet run --project src/Api/RastreadorHabitos.Api -- enviar-correos" ejecuta solo el
-// enviador de la cola y termina, sin levantar el servidor web [RF-NOT-09].
+// Comandos independientes: se ejecutan una vez y terminan, sin levantar el servidor web.
+//   dotnet run --project src/Api/RastreadorHabitos.Api -- enviar-correos                  [RF-NOT-09]
+//   dotnet run --project src/Api/RastreadorHabitos.Api -- promover-administrador <correo>  [RF-CA-04]
 const string ComandoEnviarCorreos = "enviar-correos";
-var esComandoEnviarCorreos = args.Length > 0 && args[0] == ComandoEnviarCorreos;
+const string ComandoPromoverAdministrador = "promover-administrador";
+var comando = args.Length > 0 && args[0] is ComandoEnviarCorreos or ComandoPromoverAdministrador ? args[0] : null;
+var correoAPromover = comando == ComandoPromoverAdministrador && args.Length > 1 ? args[1] : null;
+var argumentosHost = comando switch
+{
+    ComandoEnviarCorreos => args[1..],
+    ComandoPromoverAdministrador => args.Skip(2).ToArray(),
+    _ => args
+};
 
-var builder = WebApplication.CreateBuilder(esComandoEnviarCorreos ? args[1..] : args);
+var builder = WebApplication.CreateBuilder(argumentosHost);
 
 // La cadena de conexión solo llega por variable de entorno [RD-10]; sin ella la app no arranca.
 const string NombreConexion = "RastreadorHabitos";
@@ -53,10 +63,11 @@ builder.Services.AddSingleton(new OpcionesEnlaces { UrlBase = urlBase.TrimEnd('/
 builder.Services.AddScoped<IColaCorreos, ColaCorreos>();
 builder.Services.AddScoped<ISolicitudCorreoSaliente, SolicitudCorreoSalientePorCola>();
 builder.Services.AddScoped<ICuentaService, CuentaService>();
+builder.Services.AddScoped<IAdministracionUsuariosService, AdministracionUsuariosService>();
 
 // Credencial de sesión: la clave para firmarla solo llega por variable de entorno [RD-10].
-// El comando enviar-correos no la necesita.
-if (!esComandoEnviarCorreos)
+// Los comandos independientes no la necesitan.
+if (comando is null)
 {
     var claveSesion = builder.Configuration["Jwt:Clave"];
     if (string.IsNullOrWhiteSpace(claveSesion) || claveSesion.Length < OpcionesSesion.LongitudMinimaClave)
@@ -65,6 +76,7 @@ if (!esComandoEnviarCorreos)
             $"Falta la variable de entorno Jwt__Clave (clave para firmar las credenciales de sesión) o tiene menos de {OpcionesSesion.LongitudMinimaClave} caracteres.");
     }
     builder.Services.AgregarCredencialSesion(new OpcionesSesion { Clave = claveSesion });
+    builder.Services.AgregarExigenciasDeRol();
 }
 
 // Credenciales SMTP solo por variables de entorno Smtp__* [RF-NOT-13, RD-10].
@@ -74,7 +86,12 @@ builder.Services.AddScoped<IEnviadorColaCorreos, EnviadorColaCorreos>();
 // Toda la validación de datos vive en los servicios, con mensajes en español [RD-07]:
 // por eso se desactiva el "required" implícito que .NET agrega a los string no anulables.
 builder.Services
-    .AddControllers(options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true)
+    .AddControllers(options =>
+    {
+        options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+        // La exigencia de rol de cada operación sale de un único punto [RF-CA-05].
+        options.Conventions.Add(new AplicarExigenciasDeRol());
+    })
     .ConfigureApiBehaviorOptions(options =>
         options.InvalidModelStateResponseFactory = _ =>
             new BadRequestObjectResult(new { error = "La solicitud no tiene un formato válido." }));
@@ -104,7 +121,7 @@ using (var scope = app.Services.CreateScope())
 
 // Comando independiente: envía los correos pendientes una vez y termina. Ejecutarlo dos veces
 // no duplica envíos [RF-NOT-12].
-if (esComandoEnviarCorreos)
+if (comando == ComandoEnviarCorreos)
 {
     using var scope = app.Services.CreateScope();
     var resultado = await scope.ServiceProvider.GetRequiredService<IEnviadorColaCorreos>().EnviarPendientesAsync();
@@ -126,11 +143,41 @@ if (esComandoEnviarCorreos)
     return;
 }
 
+// Comando independiente: convierte en Administrador a un usuario ya registrado. Así nace el
+// primer Administrador, sin credenciales en el repositorio ni en variables [RF-CA-04].
+if (comando == ComandoPromoverAdministrador)
+{
+    if (string.IsNullOrWhiteSpace(correoAPromover))
+    {
+        Console.WriteLine($"Uso: dotnet run --no-build --project src/Api/RastreadorHabitos.Api -- {ComandoPromoverAdministrador} <correo>");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    using var scope = app.Services.CreateScope();
+    try
+    {
+        await scope.ServiceProvider.GetRequiredService<IAdministracionUsuariosService>()
+            .PromoverAdministradorAsync(correoAPromover);
+        Console.WriteLine($"El usuario {correoAPromover.Trim().ToLowerInvariant()} ahora es Administrador.");
+    }
+    catch (RechazoControlAccesoException rechazo)
+    {
+        Console.WriteLine(rechazo.Message);
+        Environment.ExitCode = 1;
+    }
+    return;
+}
+
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Construye los endpoints ya, no en la primera petición: si alguna operación no declara su
+// exigencia de rol en ExigenciasDeRol, la API no arranca [RF-CA-05].
+_ = ((IEndpointRouteBuilder)app).DataSources.SelectMany(fuente => fuente.Endpoints).ToList();
 
 app.Run();

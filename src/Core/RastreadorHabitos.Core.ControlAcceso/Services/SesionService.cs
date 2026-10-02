@@ -119,19 +119,22 @@ public class SesionService : ISesionService
         await _context.SaveChangesAsync();
     }
 
-    public async Task<bool> EstaAbiertaAsync(Guid sesionId)
+    public async Task<string?> ObtenerRolDeSesionAbiertaAsync(Guid sesionId)
     {
         var sesion = await _context.SesionesUsuario
             .AsNoTracking()
             .Include(s => s.Usuario)
+            .ThenInclude(u => u.Rol)
             .FirstOrDefaultAsync(s => s.Id == sesionId);
 
         // Además de la sesión, se revisa al usuario: uno desactivado o sin correo confirmado
         // no puede seguir usando una credencial emitida antes.
-        return sesion is not null
-               && sesion.EstaAbierta(DateTime.UtcNow)
-               && sesion.Usuario.CorreoConfirmado
-               && sesion.Usuario.CuentaHabilitada;
+        var abierta = sesion is not null
+                      && sesion.EstaAbierta(DateTime.UtcNow)
+                      && sesion.Usuario.CorreoConfirmado
+                      && sesion.Usuario.CuentaHabilitada;
+
+        return abierta ? sesion!.Usuario.Rol.Nombre : null;
     }
 
     // El mismo rechazo para correo inexistente y contraseña incorrecta [RF-CA-03].

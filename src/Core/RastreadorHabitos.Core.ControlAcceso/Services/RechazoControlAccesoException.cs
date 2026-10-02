@@ -6,7 +6,8 @@ public enum MotivoRechazo
     Conflicto,
     NoAutenticado,
     NoPermitido,
-    Bloqueado
+    Bloqueado,
+    NoEncontrado
 }
 
 // Rechazo esperado de una regla de Control de acceso. Su mensaje está pensado para el
