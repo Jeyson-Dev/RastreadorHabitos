@@ -5,4 +5,5 @@ namespace RastreadorHabitos.Core.ControlAcceso.Services;
 public interface ICuentaService
 {
     Task RegistrarAsync(RegistroSolicitudDto solicitud);
+    Task ActivarAsync(string? token);
 }

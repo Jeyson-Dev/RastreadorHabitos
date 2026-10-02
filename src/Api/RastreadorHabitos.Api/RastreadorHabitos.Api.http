@@ -9,3 +9,6 @@ Content-Type: application/json
   "contrasena": "Habitos2026",
   "nombreCompleto": "Tu Nombre"
 }
+
+### Activacion con el token del enlace recibido por correo [RF-CA-16]
+GET {{RastreadorHabitos.Api_HostAddress}}/api/cuentas/activar?token=PEGUE_AQUI_EL_TOKEN_DEL_CORREO

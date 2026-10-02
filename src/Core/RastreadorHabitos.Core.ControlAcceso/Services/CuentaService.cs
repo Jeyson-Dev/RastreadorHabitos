@@ -78,6 +78,32 @@ public class CuentaService : ICuentaService
         await SolicitarCorreoActivacionAsync(usuario, tokenPlano);
     }
 
+    public async Task ActivarAsync(string? token)
+    {
+        TokenUsuario? tokenUsuario = null;
+        if (!string.IsNullOrWhiteSpace(token))
+        {
+            var tokenHash = CalcularHashToken(token.Trim());
+            tokenUsuario = await _context.TokensUsuario
+                .Include(t => t.Usuario)
+                .FirstOrDefaultAsync(t => t.TokenHash == tokenHash && t.Tipo == TokenUsuario.TipoActivacionCuenta);
+        }
+
+        // Un solo mensaje para inexistente, usado, revocado o vencido: no revela cuál falló [RF-CA-16].
+        var ahoraUtc = DateTime.UtcNow;
+        if (tokenUsuario is null || !tokenUsuario.EsValido(ahoraUtc))
+        {
+            throw new RechazoControlAccesoException(MotivoRechazo.DatosInvalidos,
+                "El enlace de activación no es válido, ya fue usado o venció.");
+        }
+
+        // Token consumido y correo confirmado en un solo guardado. CuentaHabilitada no se toca:
+        // la controla el Administrador [RF-CA-20].
+        tokenUsuario.FechaUsoUtc = ahoraUtc;
+        tokenUsuario.Usuario.CorreoConfirmado = true;
+        await _context.SaveChangesAsync();
+    }
+
     private string AgregarTokenActivacion(Usuario usuario)
     {
         var tokenPlano = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));

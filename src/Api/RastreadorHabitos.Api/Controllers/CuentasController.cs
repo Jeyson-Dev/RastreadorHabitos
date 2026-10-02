@@ -23,4 +23,12 @@ public class CuentasController : ControllerBase
         return StatusCode(StatusCodes.Status201Created,
             new { mensaje = "Registro exitoso. Revise su correo para activar la cuenta." });
     }
+
+    // GET porque se abre directamente desde el enlace del correo.
+    [HttpGet("activar")]
+    public async Task<IActionResult> Activar([FromQuery] string? token)
+    {
+        await _cuentaService.ActivarAsync(token);
+        return Ok(new { mensaje = "Cuenta activada. Ya puede iniciar sesión." });
+    }
 }
