@@ -14,4 +14,10 @@ public interface IAdministracionUsuariosService
 
     // Un Administrador no puede cambiar su propio rol [RF-CA-08].
     Task CambiarRolAsync(Guid usuarioId, Guid administradorId, CambioRolSolicitudDto solicitud);
+
+    // El usuario desactivado no inicia sesión y sus sesiones abiertas dejan de ser válidas.
+    // Un Administrador no puede desactivarse a sí mismo [RF-CA-20].
+    Task DesactivarAsync(Guid usuarioId, Guid administradorId);
+
+    Task ReactivarAsync(Guid usuarioId);
 }

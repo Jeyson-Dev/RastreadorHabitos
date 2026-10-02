@@ -75,6 +75,38 @@ public class AdministracionUsuariosService : IAdministracionUsuariosService
         await _context.SaveChangesAsync();
     }
 
+    public async Task DesactivarAsync(Guid usuarioId, Guid administradorId)
+    {
+        if (usuarioId == administradorId)
+        {
+            throw new RechazoControlAccesoException(MotivoRechazo.NoPermitido,
+                "Un Administrador no puede desactivarse a sí mismo.");
+        }
+
+        var usuario = await BuscarAsync(usuarioId);
+        usuario.CuentaHabilitada = false;
+
+        // Sus sesiones abiertas se cierran en el mismo guardado: dejan de ser válidas ya, y una
+        // reactivación posterior no revive credenciales emitidas antes.
+        var ahoraUtc = DateTime.UtcNow;
+        var sesionesAbiertas = await _context.SesionesUsuario
+            .Where(s => s.UsuarioId == usuarioId && s.FechaCierreUtc == null)
+            .ToListAsync();
+        foreach (var sesion in sesionesAbiertas)
+        {
+            sesion.FechaCierreUtc = ahoraUtc;
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task ReactivarAsync(Guid usuarioId)
+    {
+        var usuario = await BuscarAsync(usuarioId);
+        usuario.CuentaHabilitada = true;
+        await _context.SaveChangesAsync();
+    }
+
     private async Task<Usuario> BuscarAsync(Guid usuarioId) =>
         await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId)
         ?? throw new RechazoControlAccesoException(MotivoRechazo.NoEncontrado, "El usuario no existe.");
