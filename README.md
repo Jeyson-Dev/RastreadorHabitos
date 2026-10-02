@@ -8,7 +8,7 @@ Rastreador de hábitos con metas — Programación III · TDS-007 · ITLA · 202
 |---|---|---|
 | Registro y activación | RF-CA-01, 02, 14, 15, 16, 17 · RF-NOT-08, 09, 12, 13 · RD-05, 07, 08, 09, 10 | ✅ Implementado |
 | Sesión | RF-CA-03, 07, 18, 19 | ✅ Implementado |
-| Roles y administración | RF-CA-04, 05, 06, 08, 20, 21 · RD-06 | Pendiente (los dos roles ya existen) |
+| Roles y administración | RF-CA-04, 05, 06, 08, 20, 21 · RD-06 | ✅ Implementado |
 | Contraseñas | RF-CA-09 a 13, 22 | Pendiente |
 
 Enunciado completo: [`docs/practica1-control-acceso.md`](docs/practica1-control-acceso.md).
@@ -173,6 +173,16 @@ Administrador puede cambiar el rol de los demás desde la API.
 | `POST` | `/api/sesion/iniciar` | `{ "email", "contrasena" }` | `200 { "token", "expiraUtc" }` · `401` credenciales incorrectas · `403` cuenta no activa o desactivada · `423` cuenta bloqueada |
 | `GET` | `/api/sesion/usuario` | — (requiere sesión) | `200 { "email", "nombreCompleto", "rol" }` · `401` sin sesión válida |
 | `POST` | `/api/sesion/cerrar` | — (requiere sesión) | `200` sesión cerrada · `401` sin sesión válida |
+| `GET` | `/api/usuarios` | — (Administrador) | `200` lista con `id`, `email`, `nombreCompleto`, `rol` y `estado` |
+| `PUT` | `/api/usuarios/{id}/rol` | `{ "rol": "Administrador" \| "Estandar" }` (Administrador) | `200` rol actualizado · `400` rol inválido · `403` es el propio rol · `404` usuario inexistente |
+| `POST` | `/api/usuarios/{id}/desactivar` | — (Administrador) | `200` desactivado y sus sesiones cerradas · `403` es uno mismo · `404` usuario inexistente |
+| `POST` | `/api/usuarios/{id}/reactivar` | — (Administrador) | `200` reactivado · `404` usuario inexistente |
+
+Quién puede invocar cada operación (Anónimo, Autenticado o Administrador) está declarado en
+un único punto del código: `src/Api/RastreadorHabitos.Api/Autorizacion/ExigenciasDeRol.cs`
+(RF-CA-05). Si una operación no figura en esa tabla, la API no arranca. Un usuario Estándar que
+invoca una operación de Administrador recibe `403` «No tiene permiso para realizar esta
+operación.», aunque construya la petición a mano (RF-CA-06, RD-06).
 
 Las respuestas son JSON: `{ "mensaje": "…" }` en los éxitos y `{ "error": "…" }` en los
 rechazos. Ningún error expone trazas ni detalles de la base de datos (RD-08).
@@ -287,6 +297,46 @@ inicio de sesión correcto, `IntentosFallidosConsecutivos` vuelve a `0`. Para no
 `POST /api/sesion/cerrar` con `Authorization: Bearer <token>` → `200` «Sesión cerrada.»
 Usar ese mismo token después (en `GET /api/sesion/usuario` o al cerrar otra vez) → `401`.
 Las demás sesiones del usuario siguen abiertas.
+
+## Cómo provocar cada criterio de aceptación — Roles y administración
+
+En el orden de la sección 4 del enunciado. Se necesitan dos usuarios activados: uno que se
+convierte en Administrador con el comando `promover-administrador` (ver arriba) y otro que se
+queda como Estándar. Cada uno inicia sesión y usa su `token`; los `id` salen del listado.
+
+**0. Dos roles, un rol por usuario (RF-CA-04).** Todo usuario nace Estándar y tiene
+exactamente un rol (`ControlAcceso.Usuarios.RolId`, obligatorio):
+
+```sql
+SELECT u.Email, r.Nombre AS Rol FROM ControlAcceso.Usuarios u JOIN ControlAcceso.Roles r ON r.Id = u.RolId;
+```
+
+**1. Con sesión de Estándar, invocar una operación de Administrador construyendo la petición a
+mano (RF-CA-06, RD-06).** `GET /api/usuarios` (o cualquier `/api/usuarios/...`) con el token
+del Estándar → `403` «No tiene permiso para realizar esta operación.» Sin token → `401`.
+
+**2. Intentar cambiar el propio rol (RF-CA-08).** Con el token del Estándar,
+`PUT /api/usuarios/{su-id}/rol` con `{ "rol": "Administrador" }` → `403`. Un Estándar no puede
+cambiar ningún rol, ni el propio.
+
+**3. Como Administrador, listar usuarios (RF-CA-21).** `GET /api/usuarios` → `200` con cada
+usuario, su rol y su estado (`Activo`, `Pendiente de activación` o `Desactivado`). El listado
+nunca incluye hashes ni tokens.
+
+**4. Como Administrador, cambiar un rol (RF-CA-08).** `PUT /api/usuarios/{id}/rol` con
+`{ "rol": "Administrador" }` → `200`. Ese usuario tiene los permisos nuevos en su siguiente
+petición, sin volver a iniciar sesión; si se le devuelve a `Estandar`, los pierde igual de
+rápido. Un Administrador que intenta cambiar su propio rol → `403` «Un Administrador no puede
+cambiar su propio rol.»
+
+**5. Como Administrador, desactivar un usuario con sesión abierta y probar esa sesión
+(RF-CA-20).** Con el Estándar con sesión iniciada, `POST /api/usuarios/{id}/desactivar` →
+`200`. El token que tenía abierto → `401` en su siguiente petición, e iniciar sesión de nuevo
+→ `403` «La cuenta está desactivada.» `POST /api/usuarios/{id}/reactivar` → `200`: puede
+volver a iniciar sesión, pero sus credenciales anteriores siguen sin servir.
+
+**6. Intentar desactivarse a sí mismo (RF-CA-20).** `POST /api/usuarios/{su-propio-id}/desactivar`
+con el token del Administrador → `403` «Un Administrador no puede desactivarse a sí mismo.»
 
 ## Pruebas unitarias
 
