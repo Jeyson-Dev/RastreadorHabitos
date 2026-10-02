@@ -3,7 +3,10 @@ namespace RastreadorHabitos.Core.ControlAcceso.Services;
 public enum MotivoRechazo
 {
     DatosInvalidos,
-    Conflicto
+    Conflicto,
+    NoAutenticado,
+    NoPermitido,
+    Bloqueado
 }
 
 // Rechazo esperado de una regla de Control de acceso. Su mensaje está pensado para el

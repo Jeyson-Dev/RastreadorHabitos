@@ -15,6 +15,7 @@ public class ControlAccesoDbContext : DbContext
     public DbSet<Usuario> Usuarios => Set<Usuario>();
     public DbSet<Rol> Roles => Set<Rol>();
     public DbSet<TokenUsuario> TokensUsuario => Set<TokenUsuario>();
+    public DbSet<SesionUsuario> SesionesUsuario => Set<SesionUsuario>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -62,6 +63,19 @@ public class ControlAccesoDbContext : DbContext
             builder.HasOne(t => t.Usuario)
                 .WithMany()
                 .HasForeignKey(t => t.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SesionUsuario>(builder =>
+        {
+            builder.HasKey(s => s.Id);
+
+            // Para encontrar rápido las sesiones abiertas de un usuario al cerrarlas todas.
+            builder.HasIndex(s => new { s.UsuarioId, s.FechaCierreUtc });
+
+            builder.HasOne(s => s.Usuario)
+                .WithMany()
+                .HasForeignKey(s => s.UsuarioId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

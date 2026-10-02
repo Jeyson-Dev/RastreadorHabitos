@@ -19,5 +19,9 @@ public class Usuario
     public bool CorreoConfirmado { get; set; } = false;
     public bool CuentaHabilitada { get; set; } = true;
 
+    // Bloqueo temporal tras intentos fallidos consecutivos [RF-CA-19].
+    public int IntentosFallidosConsecutivos { get; set; } = 0;
+    public DateTime? BloqueadoHastaUtc { get; set; }
+
     public DateTime FechaCreacionUtc { get; set; } = DateTime.UtcNow;
 }

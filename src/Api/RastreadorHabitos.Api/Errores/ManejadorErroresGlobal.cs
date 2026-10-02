@@ -23,6 +23,9 @@ public class ManejadorErroresGlobal : IExceptionHandler
             httpContext.Response.StatusCode = rechazo.Motivo switch
             {
                 MotivoRechazo.Conflicto => StatusCodes.Status409Conflict,
+                MotivoRechazo.NoAutenticado => StatusCodes.Status401Unauthorized,
+                MotivoRechazo.NoPermitido => StatusCodes.Status403Forbidden,
+                MotivoRechazo.Bloqueado => StatusCodes.Status423Locked,
                 _ => StatusCodes.Status400BadRequest
             };
             await httpContext.Response.WriteAsJsonAsync(new { error = rechazo.Message }, cancellationToken);

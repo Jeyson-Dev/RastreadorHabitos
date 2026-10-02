@@ -20,3 +20,20 @@ Content-Type: application/json
 {
   "email": "tu-correo@example.com"
 }
+
+### Inicio de sesion: entrega la credencial de sesion [RF-CA-03, RF-CA-19]
+POST {{RastreadorHabitos.Api_HostAddress}}/api/sesion/iniciar
+Content-Type: application/json
+
+{
+  "email": "tu-correo@example.com",
+  "contrasena": "Habitos2026"
+}
+
+### Usuario autenticado y su rol: pegar el token que devuelve el inicio de sesion [RF-CA-07]
+GET {{RastreadorHabitos.Api_HostAddress}}/api/sesion/usuario
+Authorization: Bearer PEGUE_AQUI_EL_TOKEN
+
+### Cierre de sesion: despues, el mismo token se rechaza [RF-CA-18]
+POST {{RastreadorHabitos.Api_HostAddress}}/api/sesion/cerrar
+Authorization: Bearer PEGUE_AQUI_EL_TOKEN

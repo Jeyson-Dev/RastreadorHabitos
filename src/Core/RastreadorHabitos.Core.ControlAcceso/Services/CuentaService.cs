@@ -13,7 +13,7 @@ namespace RastreadorHabitos.Core.ControlAcceso.Services;
 
 public class CuentaService : ICuentaService
 {
-    private const int FactorTrabajoBCrypt = 12;
+    internal const int FactorTrabajoBCrypt = 12;
     private const int LongitudMaximaEmail = 256;
     private const int LongitudMaximaNombre = 150;
     private static readonly TimeSpan VigenciaEnlaceActivacion = TimeSpan.FromHours(24);

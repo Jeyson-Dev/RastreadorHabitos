@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RastreadorHabitos.Api.Adaptadores;
+using RastreadorHabitos.Api.Autenticacion;
 using RastreadorHabitos.Api.Errores;
 using RastreadorHabitos.Core.ControlAcceso.Configuracion;
 using RastreadorHabitos.Core.ControlAcceso.Data;
@@ -52,6 +53,19 @@ builder.Services.AddSingleton(new OpcionesEnlaces { UrlBase = urlBase.TrimEnd('/
 builder.Services.AddScoped<IColaCorreos, ColaCorreos>();
 builder.Services.AddScoped<ISolicitudCorreoSaliente, SolicitudCorreoSalientePorCola>();
 builder.Services.AddScoped<ICuentaService, CuentaService>();
+
+// Credencial de sesión: la clave para firmarla solo llega por variable de entorno [RD-10].
+// El comando enviar-correos no la necesita.
+if (!esComandoEnviarCorreos)
+{
+    var claveSesion = builder.Configuration["Jwt:Clave"];
+    if (string.IsNullOrWhiteSpace(claveSesion) || claveSesion.Length < OpcionesSesion.LongitudMinimaClave)
+    {
+        throw new InvalidOperationException(
+            $"Falta la variable de entorno Jwt__Clave (clave para firmar las credenciales de sesión) o tiene menos de {OpcionesSesion.LongitudMinimaClave} caracteres.");
+    }
+    builder.Services.AgregarCredencialSesion(new OpcionesSesion { Clave = claveSesion });
+}
 
 // Credenciales SMTP solo por variables de entorno Smtp__* [RF-NOT-13, RD-10].
 builder.Services.AddSingleton(builder.Configuration.GetSection("Smtp").Get<OpcionesSmtp>() ?? new OpcionesSmtp());
@@ -114,6 +128,8 @@ if (esComandoEnviarCorreos)
 
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 

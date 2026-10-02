@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RastreadorHabitos.Core.ControlAcceso.Data;
 
@@ -11,9 +12,11 @@ using RastreadorHabitos.Core.ControlAcceso.Data;
 namespace RastreadorHabitos.Core.ControlAcceso.Migrations
 {
     [DbContext(typeof(ControlAccesoDbContext))]
-    partial class ControlAccesoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261002104239_BloqueoPorIntentosFallidos")]
+    partial class BloqueoPorIntentosFallidos
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -61,31 +64,6 @@ namespace RastreadorHabitos.Core.ControlAcceso.Migrations
                             Descripcion = "Usuario estándar",
                             Nombre = "Estandar"
                         });
-                });
-
-            modelBuilder.Entity("RastreadorHabitos.Core.ControlAcceso.Entities.SesionUsuario", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("FechaCierreUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("FechaExpiracionUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("FechaInicioUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("UsuarioId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UsuarioId", "FechaCierreUtc");
-
-                    b.ToTable("SesionesUsuario", "ControlAcceso");
                 });
 
             modelBuilder.Entity("RastreadorHabitos.Core.ControlAcceso.Entities.TokenUsuario", b =>
@@ -176,17 +154,6 @@ namespace RastreadorHabitos.Core.ControlAcceso.Migrations
                     b.HasIndex("RolId");
 
                     b.ToTable("Usuarios", "ControlAcceso");
-                });
-
-            modelBuilder.Entity("RastreadorHabitos.Core.ControlAcceso.Entities.SesionUsuario", b =>
-                {
-                    b.HasOne("RastreadorHabitos.Core.ControlAcceso.Entities.Usuario", "Usuario")
-                        .WithMany()
-                        .HasForeignKey("UsuarioId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Usuario");
                 });
 
             modelBuilder.Entity("RastreadorHabitos.Core.ControlAcceso.Entities.TokenUsuario", b =>
