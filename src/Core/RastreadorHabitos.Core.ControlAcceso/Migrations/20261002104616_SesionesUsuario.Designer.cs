@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RastreadorHabitos.Core.ControlAcceso.Data;
 
@@ -11,9 +12,11 @@ using RastreadorHabitos.Core.ControlAcceso.Data;
 namespace RastreadorHabitos.Core.ControlAcceso.Migrations
 {
     [DbContext(typeof(ControlAccesoDbContext))]
-    partial class ControlAccesoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261002104616_SesionesUsuario")]
+    partial class SesionesUsuario
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
