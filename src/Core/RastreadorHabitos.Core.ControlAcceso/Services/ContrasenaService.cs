@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using RastreadorHabitos.Core.ControlAcceso.Data;
 using RastreadorHabitos.Core.ControlAcceso.DTOs;
@@ -92,6 +93,24 @@ public class ContrasenaService : IContrasenaService
         usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(solicitud.ContrasenaNueva, CuentaService.FactorTrabajoBCrypt);
         await _context.CerrarSesionesAbiertasAsync(usuario.Id, DateTime.UtcNow);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task ForzarRestablecimientoAsync(Guid usuarioId)
+    {
+        var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId)
+            ?? throw new RechazoControlAccesoException(MotivoRechazo.NoEncontrado, "El usuario no existe.");
+
+        // La contraseña anterior se reemplaza por una aleatoria que nadie conoce: deja de servir,
+        // y la única forma de volver a entrar es el código enviado al correo del usuario.
+        var ahoraUtc = DateTime.UtcNow;
+        var contrasenaDescartable = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(contrasenaDescartable, CuentaService.FactorTrabajoBCrypt);
+        await _context.CerrarSesionesAbiertasAsync(usuario.Id, ahoraUtc); // [RF-CA-12]
+        var codigo = await PrepararCodigoAsync(usuario.Id, ahoraUtc);
+        await _context.SaveChangesAsync();
+
+        await EnviarCodigoAsync(usuario, codigo,
+            "Un Administrador restableció tu contraseña en Rastreador de hábitos. Tu contraseña anterior ya no sirve; define una nueva con este código.");
     }
 
     private static void ValidarPolitica(string? contrasena)
