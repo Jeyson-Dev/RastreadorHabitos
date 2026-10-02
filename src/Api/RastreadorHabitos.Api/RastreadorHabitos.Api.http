@@ -76,3 +76,13 @@ Content-Type: application/json
   "codigo": "PEGUE-AQUI",
   "contrasenaNueva": "Nueva2026x"
 }
+
+### Cambiar la propia contrasena con sesion: exige la actual y cierra todas las sesiones [RF-CA-22, RF-CA-12]
+POST {{RastreadorHabitos.Api_HostAddress}}/api/contrasena/cambiar
+Authorization: Bearer PEGUE_AQUI_EL_TOKEN
+Content-Type: application/json
+
+{
+  "contrasenaActual": "Habitos2026",
+  "contrasenaNueva": "Nueva2026x"
+}

@@ -31,6 +31,7 @@ public static class ExigenciasDeRol
 
         ["Contrasena.SolicitarRecuperacion"] = Exigencia.Anonimo,
         ["Contrasena.Restablecer"] = Exigencia.Anonimo,
+        ["Contrasena.Cambiar"] = Exigencia.Autenticado,
 
         ["Usuarios.Listar"] = Exigencia.Administrador,
         ["Usuarios.CambiarRol"] = Exigencia.Administrador,

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using RastreadorHabitos.Core.ControlAcceso.Configuracion;
 using RastreadorHabitos.Core.ControlAcceso.DTOs;
 using RastreadorHabitos.Core.ControlAcceso.Services;
 
@@ -30,5 +31,14 @@ public class ContrasenaController : ControllerBase
     {
         await _contrasenaService.RestablecerAsync(solicitud);
         return Ok(new { mensaje = "Contraseña restablecida. Inicie sesión con la contraseña nueva." });
+    }
+
+    // Cierra todas las sesiones, también la que hace el cambio: hay que volver a iniciar sesión.
+    [HttpPost("cambiar")]
+    public async Task<IActionResult> Cambiar([FromBody] CambioContrasenaSolicitudDto solicitud)
+    {
+        var usuarioId = Guid.Parse(User.FindFirst(OpcionesSesion.ClaimUsuario)!.Value);
+        await _contrasenaService.CambiarAsync(usuarioId, solicitud);
+        return Ok(new { mensaje = "Contraseña actualizada. Inicie sesión de nuevo con la contraseña nueva." });
     }
 }
