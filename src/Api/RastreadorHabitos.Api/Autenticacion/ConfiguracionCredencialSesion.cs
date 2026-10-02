@@ -54,6 +54,14 @@ public static class ConfiguracionCredencialSesion
                         context.HandleResponse();
                         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                         await context.Response.WriteAsJsonAsync(new { error = "Se requiere una sesión válida." });
+                    },
+
+                    // Sesión válida pero rol insuficiente: rechazo explícito del lado del servidor,
+                    // aunque la petición se construya a mano [RF-CA-06, RD-06].
+                    OnForbidden = async context =>
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        await context.Response.WriteAsJsonAsync(new { error = "No tiene permiso para realizar esta operación." });
                     }
                 };
             });
