@@ -17,6 +17,21 @@ public class ControlAccesoDbContext : DbContext
     public DbSet<TokenUsuario> TokensUsuario => Set<TokenUsuario>();
     public DbSet<SesionUsuario> SesionesUsuario => Set<SesionUsuario>();
 
+    // Marca como cerradas todas las sesiones abiertas de un usuario, sin guardar: quien llama
+    // guarda junto con su propio cambio, así las dos cosas ocurren o ninguna. La usan la
+    // desactivación [RF-CA-20] y todo cambio de contraseña [RF-CA-12].
+    public async Task CerrarSesionesAbiertasAsync(Guid usuarioId, DateTime ahoraUtc)
+    {
+        var sesionesAbiertas = await SesionesUsuario
+            .Where(s => s.UsuarioId == usuarioId && s.FechaCierreUtc == null)
+            .ToListAsync();
+
+        foreach (var sesion in sesionesAbiertas)
+        {
+            sesion.FechaCierreUtc = ahoraUtc;
+        }
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
