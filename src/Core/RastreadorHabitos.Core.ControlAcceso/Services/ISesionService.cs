@@ -11,6 +11,8 @@ public interface ISesionService
     // La credencial cerrada deja de servir: usarla después se rechaza [RF-CA-18].
     Task CerrarAsync(Guid sesionId);
 
-    // Una credencial bien firmada solo sirve si su sesión sigue abierta [RF-CA-18].
-    Task<bool> EstaAbiertaAsync(Guid sesionId);
+    // Una credencial bien firmada solo sirve si su sesión sigue abierta [RF-CA-18]. Devuelve el
+    // rol vigente del usuario, o null si la sesión no está abierta: un cambio de rol se aplica
+    // en la siguiente petición, sin esperar a que venza la sesión [RF-CA-08].
+    Task<string?> ObtenerRolDeSesionAbiertaAsync(Guid sesionId);
 }

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -42,10 +43,23 @@ public static class ConfiguracionCredencialSesion
                         var sesionClaim = context.Principal?.FindFirst(OpcionesSesion.ClaimSesion)?.Value;
                         var sesiones = context.HttpContext.RequestServices.GetRequiredService<ISesionService>();
 
-                        if (!Guid.TryParse(sesionClaim, out var sesionId) || !await sesiones.EstaAbiertaAsync(sesionId))
+                        var rolVigente = Guid.TryParse(sesionClaim, out var sesionId)
+                            ? await sesiones.ObtenerRolDeSesionAbiertaAsync(sesionId)
+                            : null;
+                        if (rolVigente is null)
                         {
                             context.Fail("La sesión no está abierta.");
+                            return;
                         }
+
+                        // El rol que cuenta es el de la base, no el que quedó escrito en la credencial:
+                        // un cambio de rol se aplica desde la siguiente petición [RF-CA-08].
+                        var identidad = (ClaimsIdentity)context.Principal!.Identity!;
+                        foreach (var rolAnterior in identidad.FindAll(OpcionesSesion.ClaimRol).ToList())
+                        {
+                            identidad.RemoveClaim(rolAnterior);
+                        }
+                        identidad.AddClaim(new Claim(OpcionesSesion.ClaimRol, rolVigente));
                     },
 
                     // Cualquier rechazo responde lo mismo, sin revelar el motivo [RD-08].
