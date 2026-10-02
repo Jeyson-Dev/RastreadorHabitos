@@ -143,6 +143,26 @@ SELECT Destinatario, Estado, FechaCreacionUtc, FechaEnvioUtc
 FROM Notificaciones.CorreosEnCola ORDER BY FechaCreacionUtc;
 ```
 
+## Crear el primer Administrador
+
+Todo usuario nace con el rol Estándar (RF-CA-04). Para convertir en Administrador a un usuario
+ya registrado se usa este comando, desde la raíz del repositorio y en una ventana con
+`ConnectionStrings__RastreadorHabitos` configurada (no necesita `Jwt__Clave` ni las `Smtp__*`;
+puede ejecutarse con la API corriendo):
+
+```bash
+dotnet run --no-build --project src/Api/RastreadorHabitos.Api -- promover-administrador <correo>
+```
+
+| Salida | Código de salida |
+|---|---|
+| `El usuario <correo> ahora es Administrador.` | 0 |
+| `No existe un usuario registrado con ese correo.` | 1 |
+
+El cambio se aplica de inmediato: una sesión ya abierta de ese usuario obtiene los permisos
+de Administrador en su siguiente petición, sin volver a iniciar sesión. A partir de ahí, ese
+Administrador puede cambiar el rol de los demás desde la API.
+
 ## Endpoints
 
 | Método | Ruta | Cuerpo | Respuesta |
