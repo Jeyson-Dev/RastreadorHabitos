@@ -166,7 +166,7 @@ public class CuentaService : ICuentaService
         return _correoSaliente.SolicitarEnvioAsync(usuario.Email, "Activa tu cuenta - Rastreador de hábitos", cuerpoHtml);
     }
 
-    private static string ValidarEmail(string? email)
+    internal static string ValidarEmail(string? email)
     {
         var valor = email?.Trim();
 
