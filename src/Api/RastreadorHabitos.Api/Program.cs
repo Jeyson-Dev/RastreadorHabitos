@@ -29,6 +29,24 @@ builder.Services.AddScoped<ISolicitudCorreoSaliente, SolicitudCorreoSalientePorC
 
 var app = builder.Build();
 
+// Cada pieza aplica sus propias migraciones; la base se crea si no existe [RD-09].
+using (var scope = app.Services.CreateScope())
+{
+    var servicios = scope.ServiceProvider;
+    try
+    {
+        await servicios.GetRequiredService<ControlAccesoDbContext>().Database.MigrateAsync();
+        await servicios.GetRequiredService<NotificacionesDbContext>().Database.MigrateAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogCritical(ex,
+            "No se pudieron aplicar las migraciones. Revise la variable ConnectionStrings__{NombreConexion} y que SQL Server esté accesible.",
+            NombreConexion);
+        throw;
+    }
+}
+
 app.UseHttpsRedirection();
 
 app.Run();
