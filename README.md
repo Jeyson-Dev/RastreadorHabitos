@@ -7,7 +7,7 @@ Rastreador de hábitos con metas — Programación III · TDS-007 · ITLA · 202
 | Funcionalidad | Requisitos | Estado |
 |---|---|---|
 | Registro y activación | RF-CA-01, 02, 14, 15, 16, 17 · RF-NOT-08, 09, 12, 13 · RD-05, 07, 08, 09, 10 | ✅ Implementado |
-| Sesión | RF-CA-03, 07, 18, 19 | Pendiente |
+| Sesión | RF-CA-03, 07, 18, 19 | ✅ Implementado |
 | Roles y administración | RF-CA-04, 05, 06, 08, 20, 21 · RD-06 | Pendiente (los dos roles ya existen) |
 | Contraseñas | RF-CA-09 a 13, 22 | Pendiente |
 
@@ -150,9 +150,16 @@ FROM Notificaciones.CorreosEnCola ORDER BY FechaCreacionUtc;
 | `POST` | `/api/cuentas/registro` | `{ "email", "contrasena", "nombreCompleto" }` | `201` registrado · `400` dato inválido · `409` correo ya registrado |
 | `GET` | `/api/cuentas/activar?token=…` | — | `200` cuenta activada · `400` enlace inválido, usado o vencido |
 | `POST` | `/api/cuentas/reenviar-activacion` | `{ "email" }` | `200` siempre la misma respuesta · `400` correo vacío o mal formado |
+| `POST` | `/api/sesion/iniciar` | `{ "email", "contrasena" }` | `200 { "token", "expiraUtc" }` · `401` credenciales incorrectas · `403` cuenta no activa o desactivada · `423` cuenta bloqueada |
+| `GET` | `/api/sesion/usuario` | — (requiere sesión) | `200 { "email", "nombreCompleto", "rol" }` · `401` sin sesión válida |
+| `POST` | `/api/sesion/cerrar` | — (requiere sesión) | `200` sesión cerrada · `401` sin sesión válida |
 
 Las respuestas son JSON: `{ "mensaje": "…" }` en los éxitos y `{ "error": "…" }` en los
 rechazos. Ningún error expone trazas ni detalles de la base de datos (RD-08).
+
+Los endpoints que requieren sesión se llaman con el header
+`Authorization: Bearer <token>`, usando el `token` que devuelve `/api/sesion/iniciar`. La
+sesión dura 8 horas, salvo que se cierre antes.
 
 ## Cómo provocar cada criterio de aceptación — Registro y activación
 
@@ -169,11 +176,12 @@ usuario queda con `CorreoConfirmado = 0`:
 SELECT Email, CorreoConfirmado, CuentaHabilitada FROM ControlAcceso.Usuarios;
 ```
 
-**2. Intentar iniciar sesión antes de activar (RF-CA-15).** Pendiente: el inicio de sesión
-llega con la funcionalidad de Sesión.
+**2. Intentar iniciar sesión antes de activar (RF-CA-15).** `POST /api/sesion/iniciar` con
+el correo y la contraseña correctos → `403` «La cuenta no está activa. Revise su correo para
+activarla.»
 
 **3. Abrir el enlace recibido (RF-CA-16).** → «Cuenta activada. Ya puede iniciar sesión.» El
-usuario pasa a `CorreoConfirmado = 1`.
+usuario pasa a `CorreoConfirmado = 1`. Iniciar sesión ahora → `200` con el `token`.
 
 **4. Abrir el enlace por segunda vez (RF-CA-16).** → `400` «El enlace de activación no es
 válido, ya fue usado o venció.» El estado no cambia.
@@ -226,6 +234,39 @@ siguen en `ControlAcceso.Usuarios`.
   registrado pendiente, con uno inexistente y con uno ya activado: las tres respuestas son
   idénticas (`200`, mismo mensaje). Solo el pendiente genera un correo nuevo (ejecutar el
   enviador), y el enlace anterior deja de servir.
+
+## Cómo provocar cada criterio de aceptación — Sesión
+
+En el orden de la sección 4 del enunciado. Se necesita un usuario ya activado (ver
+Registro y activación).
+
+**1. Contraseña incorrecta y correo inexistente (RF-CA-03).** `POST /api/sesion/iniciar` con
+el correo del usuario y una contraseña incorrecta, y después con un correo que no existe: las
+dos respuestas son idénticas, `401` «Correo o contraseña incorrectos.», sin revelar cuál de
+los dos datos falló. Con los datos correctos → `200` con `token` y `expiraUtc`.
+
+**2. Fallar cinco veces seguidas y luego usar la contraseña correcta (RF-CA-19).** Cinco
+intentos con contraseña incorrecta → `401` cada uno. El sexto, **con la contraseña
+correcta** → `423` «La cuenta está bloqueada temporalmente por intentos fallidos. Intente de
+nuevo en 15 minutos.» El bloqueo dura 15 minutos:
+
+```sql
+SELECT Email, IntentosFallidosConsecutivos, BloqueadoHastaUtc FROM ControlAcceso.Usuarios;
+```
+
+Un inicio de sesión correcto pone el contador en cero: con 1 a 4 fallos seguidos de un
+inicio de sesión correcto, `IntentosFallidosConsecutivos` vuelve a `0`. Para no esperar los
+15 minutos al probar, se puede desbloquear con
+`UPDATE ControlAcceso.Usuarios SET BloqueadoHastaUtc = NULL WHERE Email = '<correo>';`.
+
+**3. Consulta del usuario autenticado (RF-CA-07).** `GET /api/sesion/usuario`:
+- con `Authorization: Bearer <token>` → `200` con el correo, el nombre y el rol;
+- sin el header, o con un token inventado o modificado → `401` «Se requiere una sesión válida.»
+
+**4. Cerrar sesión y volver a usar la credencial cerrada (RF-CA-18).**
+`POST /api/sesion/cerrar` con `Authorization: Bearer <token>` → `200` «Sesión cerrada.»
+Usar ese mismo token después (en `GET /api/sesion/usuario` o al cerrar otra vez) → `401`.
+Las demás sesiones del usuario siguen abiertas.
 
 ## Pruebas unitarias
 
