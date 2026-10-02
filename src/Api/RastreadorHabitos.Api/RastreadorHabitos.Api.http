@@ -1,1 +1,11 @@
 @RastreadorHabitos.Api_HostAddress = http://localhost:5003
+
+### Registro [RF-CA-01, RF-CA-02, RF-CA-14, RF-CA-15]
+POST {{RastreadorHabitos.Api_HostAddress}}/api/cuentas/registro
+Content-Type: application/json
+
+{
+  "email": "tu-correo@example.com",
+  "contrasena": "Habitos2026",
+  "nombreCompleto": "Tu Nombre"
+}

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Diagnostics;
+using RastreadorHabitos.Core.ControlAcceso.Services;
 
 namespace RastreadorHabitos.Api.Errores;
 
@@ -16,6 +17,18 @@ public class ManejadorErroresGlobal : IExceptionHandler
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception,
                                                 CancellationToken cancellationToken)
     {
+        // Rechazo esperado de una regla: su mensaje sí está pensado para el usuario [RD-07].
+        if (exception is RechazoControlAccesoException rechazo)
+        {
+            httpContext.Response.StatusCode = rechazo.Motivo switch
+            {
+                MotivoRechazo.Conflicto => StatusCodes.Status409Conflict,
+                _ => StatusCodes.Status400BadRequest
+            };
+            await httpContext.Response.WriteAsJsonAsync(new { error = rechazo.Message }, cancellationToken);
+            return true;
+        }
+
         _logger.LogError(exception, "Error no controlado en {Metodo} {Ruta}.",
             httpContext.Request.Method, httpContext.Request.Path);
 

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RastreadorHabitos.Api.Adaptadores;
 using RastreadorHabitos.Api.Errores;
+using RastreadorHabitos.Core.ControlAcceso.Configuracion;
 using RastreadorHabitos.Core.ControlAcceso.Data;
 using RastreadorHabitos.Core.ControlAcceso.Services;
 using RastreadorHabitos.Core.Notificaciones.Data;
@@ -26,8 +27,25 @@ builder.Services.AddDbContext<NotificacionesDbContext>(options =>
     options.UseSqlServer(cadenaConexion,
         sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", NotificacionesDbContext.Esquema)));
 
+// Los enlaces de los correos se arman con esta URL y nunca con la cabecera Host de la petición.
+// Si no se configura, se usa la dirección con la que arranca la aplicación por defecto.
+const string UrlBasePorDefecto = "http://localhost:5003";
+var urlBase = builder.Configuration["App:UrlBase"];
+if (string.IsNullOrWhiteSpace(urlBase))
+{
+    urlBase = UrlBasePorDefecto;
+}
+if (!Uri.TryCreate(urlBase, UriKind.Absolute, out var uriBase)
+    || (uriBase.Scheme != Uri.UriSchemeHttp && uriBase.Scheme != Uri.UriSchemeHttps))
+{
+    throw new InvalidOperationException(
+        "La variable de entorno App__UrlBase no es una URL http(s) absoluta (por ejemplo http://localhost:5003).");
+}
+builder.Services.AddSingleton(new OpcionesEnlaces { UrlBase = urlBase.TrimEnd('/') });
+
 builder.Services.AddScoped<IColaCorreos, ColaCorreos>();
 builder.Services.AddScoped<ISolicitudCorreoSaliente, SolicitudCorreoSalientePorCola>();
+builder.Services.AddScoped<ICuentaService, CuentaService>();
 
 // Toda la validación de datos vive en los servicios, con mensajes en español [RD-07]:
 // por eso se desactiva el "required" implícito que .NET agrega a los string no anulables.
