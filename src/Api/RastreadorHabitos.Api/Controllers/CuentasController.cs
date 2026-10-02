@@ -31,4 +31,12 @@ public class CuentasController : ControllerBase
         await _cuentaService.ActivarAsync(token);
         return Ok(new { mensaje = "Cuenta activada. Ya puede iniciar sesión." });
     }
+
+    // Misma respuesta exista o no el correo [RF-CA-17].
+    [HttpPost("reenviar-activacion")]
+    public async Task<IActionResult> ReenviarActivacion([FromBody] ReenvioActivacionSolicitudDto solicitud)
+    {
+        await _cuentaService.ReenviarActivacionAsync(solicitud);
+        return Ok(new { mensaje = "Si el correo está registrado y pendiente de activación, recibirá un nuevo enlace." });
+    }
 }

@@ -12,3 +12,11 @@ Content-Type: application/json
 
 ### Activacion con el token del enlace recibido por correo [RF-CA-16]
 GET {{RastreadorHabitos.Api_HostAddress}}/api/cuentas/activar?token=PEGUE_AQUI_EL_TOKEN_DEL_CORREO
+
+### Reenvio del enlace de activacion: misma respuesta exista o no el correo [RF-CA-17]
+POST {{RastreadorHabitos.Api_HostAddress}}/api/cuentas/reenviar-activacion
+Content-Type: application/json
+
+{
+  "email": "tu-correo@example.com"
+}

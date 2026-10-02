@@ -6,4 +6,5 @@ public interface ICuentaService
 {
     Task RegistrarAsync(RegistroSolicitudDto solicitud);
     Task ActivarAsync(string? token);
+    Task ReenviarActivacionAsync(ReenvioActivacionSolicitudDto solicitud);
 }

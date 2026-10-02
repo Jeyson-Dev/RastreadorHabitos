@@ -104,6 +104,38 @@ public class CuentaService : ICuentaService
         await _context.SaveChangesAsync();
     }
 
+    public async Task ReenviarActivacionAsync(ReenvioActivacionSolicitudDto solicitud)
+    {
+        // Rechazar por formato no revela si el correo existe [RD-07].
+        var email = ValidarEmail(solicitud.Email);
+
+        // Inexistente o ya confirmado: se termina sin hacer nada y el controller responde
+        // lo mismo que en el caso real, así no se revela qué correos están registrados [RF-CA-17].
+        var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == email);
+        if (usuario is null || usuario.CorreoConfirmado)
+        {
+            return;
+        }
+
+        // El reenvío invalida el enlace anterior [RF-CA-17].
+        var ahoraUtc = DateTime.UtcNow;
+        var tokensVigentes = await _context.TokensUsuario
+            .Where(t => t.UsuarioId == usuario.Id
+                        && t.Tipo == TokenUsuario.TipoActivacionCuenta
+                        && t.FechaUsoUtc == null
+                        && t.FechaRevocacionUtc == null)
+            .ToListAsync();
+        foreach (var tokenAnterior in tokensVigentes)
+        {
+            tokenAnterior.FechaRevocacionUtc = ahoraUtc;
+        }
+
+        var tokenPlano = AgregarTokenActivacion(usuario);
+        await _context.SaveChangesAsync();
+
+        await SolicitarCorreoActivacionAsync(usuario, tokenPlano);
+    }
+
     private string AgregarTokenActivacion(Usuario usuario)
     {
         var tokenPlano = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
