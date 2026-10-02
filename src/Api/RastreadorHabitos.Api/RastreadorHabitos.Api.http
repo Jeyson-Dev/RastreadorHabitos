@@ -58,3 +58,11 @@ Authorization: Bearer PEGUE_AQUI_EL_TOKEN_DE_UN_ADMINISTRADOR
 ### Reactivar un usuario [RF-CA-20]
 POST {{RastreadorHabitos.Api_HostAddress}}/api/usuarios/PEGUE_AQUI_EL_ID_DEL_USUARIO/reactivar
 Authorization: Bearer PEGUE_AQUI_EL_TOKEN_DE_UN_ADMINISTRADOR
+
+### Recuperacion de contrasena: misma respuesta exista o no el correo [RF-CA-09, RF-CA-10]
+POST {{RastreadorHabitos.Api_HostAddress}}/api/contrasena/recuperar
+Content-Type: application/json
+
+{
+  "email": "tu-correo@example.com"
+}

@@ -64,6 +64,7 @@ builder.Services.AddScoped<IColaCorreos, ColaCorreos>();
 builder.Services.AddScoped<ISolicitudCorreoSaliente, SolicitudCorreoSalientePorCola>();
 builder.Services.AddScoped<ICuentaService, CuentaService>();
 builder.Services.AddScoped<IAdministracionUsuariosService, AdministracionUsuariosService>();
+builder.Services.AddScoped<IContrasenaService, ContrasenaService>();
 
 // Credencial de sesión: la clave para firmarla solo llega por variable de entorno [RD-10].
 // Los comandos independientes no la necesitan.

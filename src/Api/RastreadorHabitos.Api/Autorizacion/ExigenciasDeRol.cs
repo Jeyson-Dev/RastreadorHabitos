@@ -29,6 +29,8 @@ public static class ExigenciasDeRol
         ["Sesion.UsuarioAutenticado"] = Exigencia.Autenticado,
         ["Sesion.Cerrar"] = Exigencia.Autenticado,
 
+        ["Contrasena.SolicitarRecuperacion"] = Exigencia.Anonimo,
+
         ["Usuarios.Listar"] = Exigencia.Administrador,
         ["Usuarios.CambiarRol"] = Exigencia.Administrador,
         ["Usuarios.Desactivar"] = Exigencia.Administrador,
