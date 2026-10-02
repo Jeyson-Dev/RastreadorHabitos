@@ -88,6 +88,24 @@ public class SesionService : ISesionService
         };
     }
 
+    // Se resuelve a partir de la sesión, que ya se validó como abierta en esta petición [RF-CA-07].
+    public async Task<UsuarioAutenticadoDto> ObtenerUsuarioAutenticadoAsync(Guid sesionId)
+    {
+        var usuario = await _context.SesionesUsuario
+            .AsNoTracking()
+            .Where(s => s.Id == sesionId)
+            .Select(s => new UsuarioAutenticadoDto
+            {
+                Email = s.Usuario.Email,
+                NombreCompleto = s.Usuario.NombreCompleto,
+                Rol = s.Usuario.Rol.Nombre
+            })
+            .FirstOrDefaultAsync();
+
+        return usuario ?? throw new RechazoControlAccesoException(MotivoRechazo.NoAutenticado,
+            "Se requiere una sesión válida.");
+    }
+
     public async Task<bool> EstaAbiertaAsync(Guid sesionId)
     {
         var sesion = await _context.SesionesUsuario
