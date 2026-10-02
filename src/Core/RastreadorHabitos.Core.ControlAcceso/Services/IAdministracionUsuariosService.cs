@@ -11,4 +11,7 @@ public interface IAdministracionUsuariosService
 
     // Usuarios con su rol y su estado, sin datos sensibles [RF-CA-21].
     Task<IReadOnlyList<UsuarioListadoDto>> ListarAsync();
+
+    // Un Administrador no puede cambiar su propio rol [RF-CA-08].
+    Task CambiarRolAsync(Guid usuarioId, Guid administradorId, CambioRolSolicitudDto solicitud);
 }

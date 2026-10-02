@@ -51,6 +51,34 @@ public class AdministracionUsuariosService : IAdministracionUsuariosService
             .ToListAsync();
     }
 
+    public async Task CambiarRolAsync(Guid usuarioId, Guid administradorId, CambioRolSolicitudDto solicitud)
+    {
+        var rolId = solicitud.Rol?.Trim().ToLowerInvariant() switch
+        {
+            "administrador" => Rol.IdAdministrador,
+            "estandar" or "estándar" => Rol.IdEstandar,
+            _ => throw new RechazoControlAccesoException(MotivoRechazo.DatosInvalidos,
+                $"El rol debe ser {Rol.NombreAdministrador} o {Rol.NombreEstandar}.")
+        };
+
+        // Evita que el sistema se quede sin Administradores por error.
+        if (usuarioId == administradorId)
+        {
+            throw new RechazoControlAccesoException(MotivoRechazo.NoPermitido,
+                "Un Administrador no puede cambiar su propio rol.");
+        }
+
+        var usuario = await BuscarAsync(usuarioId);
+
+        // El cambio se aplica desde la siguiente petición del usuario: el rol se lee de la base.
+        usuario.RolId = rolId;
+        await _context.SaveChangesAsync();
+    }
+
+    private async Task<Usuario> BuscarAsync(Guid usuarioId) =>
+        await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId)
+        ?? throw new RechazoControlAccesoException(MotivoRechazo.NoEncontrado, "El usuario no existe.");
+
     private const string EstadoActivo = "Activo";
     private const string EstadoPendienteActivacion = "Pendiente de activación";
     private const string EstadoDesactivado = "Desactivado";
