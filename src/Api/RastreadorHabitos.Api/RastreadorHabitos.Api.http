@@ -86,3 +86,7 @@ Content-Type: application/json
   "contrasenaActual": "Habitos2026",
   "contrasenaNueva": "Nueva2026x"
 }
+
+### Restablecimiento forzado por un Administrador: la contrasena anterior deja de servir [RF-CA-13]
+POST {{RastreadorHabitos.Api_HostAddress}}/api/usuarios/PEGUE_AQUI_EL_ID_DEL_USUARIO/restablecer-contrasena
+Authorization: Bearer PEGUE_AQUI_EL_TOKEN_DE_UN_ADMINISTRADOR
