@@ -34,6 +34,15 @@ public class SesionController : ControllerBase
         return Ok(usuario);
     }
 
+    // Después de cerrar, la misma credencial responde 401 [RF-CA-18].
+    [Authorize]
+    [HttpPost("cerrar")]
+    public async Task<IActionResult> Cerrar()
+    {
+        await _sesionService.CerrarAsync(SesionActual());
+        return Ok(new { mensaje = "Sesión cerrada." });
+    }
+
     // Id de la sesión que viaja en la credencial; la autenticación ya verificó que está abierta.
     private Guid SesionActual() =>
         Guid.Parse(User.FindFirst(OpcionesSesion.ClaimSesion)!.Value);
