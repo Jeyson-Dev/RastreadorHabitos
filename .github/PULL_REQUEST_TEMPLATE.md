@@ -7,4 +7,4 @@
 ## Cómo probarlo
 
 
-## Qué NO incluye# Plantilla de Pull Request
+## Qué NO incluye
