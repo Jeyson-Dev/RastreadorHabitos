@@ -106,6 +106,19 @@ public class SesionService : ISesionService
             "Se requiere una sesión válida.");
     }
 
+    public async Task CerrarAsync(Guid sesionId)
+    {
+        var sesion = await _context.SesionesUsuario.FirstOrDefaultAsync(s => s.Id == sesionId);
+        if (sesion is null || sesion.FechaCierreUtc is not null)
+        {
+            return;
+        }
+
+        // Desde aquí EstaAbiertaAsync devuelve false y la credencial se rechaza en cada petición.
+        sesion.FechaCierreUtc = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+    }
+
     public async Task<bool> EstaAbiertaAsync(Guid sesionId)
     {
         var sesion = await _context.SesionesUsuario
