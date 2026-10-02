@@ -58,7 +58,6 @@ public static class ConfiguracionCredencialSesion
                 };
             });
 
-        services.AddAuthorization();
         return services;
     }
 }

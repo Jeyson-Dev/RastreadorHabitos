@@ -4,6 +4,8 @@ public class Rol
 {
     public const int IdAdministrador = 1;
     public const int IdEstandar = 2;
+    public const string NombreAdministrador = "Administrador";
+    public const string NombreEstandar = "Estandar";
 
     public int Id { get; set; }
     public string Nombre { get; set; } = string.Empty;

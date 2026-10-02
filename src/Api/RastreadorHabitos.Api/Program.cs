@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RastreadorHabitos.Api.Adaptadores;
 using RastreadorHabitos.Api.Autenticacion;
+using RastreadorHabitos.Api.Autorizacion;
 using RastreadorHabitos.Api.Errores;
 using RastreadorHabitos.Core.ControlAcceso.Configuracion;
 using RastreadorHabitos.Core.ControlAcceso.Data;
@@ -65,6 +66,7 @@ if (!esComandoEnviarCorreos)
             $"Falta la variable de entorno Jwt__Clave (clave para firmar las credenciales de sesión) o tiene menos de {OpcionesSesion.LongitudMinimaClave} caracteres.");
     }
     builder.Services.AgregarCredencialSesion(new OpcionesSesion { Clave = claveSesion });
+    builder.Services.AgregarExigenciasDeRol();
 }
 
 // Credenciales SMTP solo por variables de entorno Smtp__* [RF-NOT-13, RD-10].
@@ -74,7 +76,12 @@ builder.Services.AddScoped<IEnviadorColaCorreos, EnviadorColaCorreos>();
 // Toda la validación de datos vive en los servicios, con mensajes en español [RD-07]:
 // por eso se desactiva el "required" implícito que .NET agrega a los string no anulables.
 builder.Services
-    .AddControllers(options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true)
+    .AddControllers(options =>
+    {
+        options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+        // La exigencia de rol de cada operación sale de un único punto [RF-CA-05].
+        options.Conventions.Add(new AplicarExigenciasDeRol());
+    })
     .ConfigureApiBehaviorOptions(options =>
         options.InvalidModelStateResponseFactory = _ =>
             new BadRequestObjectResult(new { error = "La solicitud no tiene un formato válido." }));
@@ -132,5 +139,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Construye los endpoints ya, no en la primera petición: si alguna operación no declara su
+// exigencia de rol en ExigenciasDeRol, la API no arranca [RF-CA-05].
+_ = ((IEndpointRouteBuilder)app).DataSources.SelectMany(fuente => fuente.Endpoints).ToList();
 
 app.Run();
