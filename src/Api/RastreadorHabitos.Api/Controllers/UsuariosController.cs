@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using RastreadorHabitos.Core.ControlAcceso.Configuracion;
+using RastreadorHabitos.Core.ControlAcceso.DTOs;
 using RastreadorHabitos.Core.ControlAcceso.Services;
 
 namespace RastreadorHabitos.Api.Controllers;
@@ -21,4 +23,15 @@ public class UsuariosController : ControllerBase
     {
         return Ok(await _administracion.ListarAsync());
     }
+
+    [HttpPut("{id:guid}/rol")]
+    public async Task<IActionResult> CambiarRol(Guid id, [FromBody] CambioRolSolicitudDto solicitud)
+    {
+        await _administracion.CambiarRolAsync(id, UsuarioActual(), solicitud);
+        return Ok(new { mensaje = "Rol actualizado." });
+    }
+
+    // Id del Administrador que hace la petición; la autenticación ya validó su sesión.
+    private Guid UsuarioActual() =>
+        Guid.Parse(User.FindFirst(OpcionesSesion.ClaimUsuario)!.Value);
 }

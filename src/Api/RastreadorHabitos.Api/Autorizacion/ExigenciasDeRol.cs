@@ -30,6 +30,7 @@ public static class ExigenciasDeRol
         ["Sesion.Cerrar"] = Exigencia.Autenticado,
 
         ["Usuarios.Listar"] = Exigencia.Administrador,
+        ["Usuarios.CambiarRol"] = Exigencia.Administrador,
     };
 
     public static Exigencia De(string controlador, string accion) =>

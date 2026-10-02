@@ -41,3 +41,12 @@ Authorization: Bearer PEGUE_AQUI_EL_TOKEN
 ### Listado de usuarios con rol y estado: solo Administrador [RF-CA-21]
 GET {{RastreadorHabitos.Api_HostAddress}}/api/usuarios
 Authorization: Bearer PEGUE_AQUI_EL_TOKEN_DE_UN_ADMINISTRADOR
+
+### Cambio de rol de un usuario: solo Administrador, nunca el propio [RF-CA-08]
+PUT {{RastreadorHabitos.Api_HostAddress}}/api/usuarios/PEGUE_AQUI_EL_ID_DEL_USUARIO/rol
+Authorization: Bearer PEGUE_AQUI_EL_TOKEN_DE_UN_ADMINISTRADOR
+Content-Type: application/json
+
+{
+  "rol": "Administrador"
+}
