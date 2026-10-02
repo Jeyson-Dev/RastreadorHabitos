@@ -6,6 +6,7 @@ namespace RastreadorHabitos.Core.ControlAcceso.Entities;
 public class TokenUsuario
 {
     public const string TipoActivacionCuenta = "ActivacionCuenta";
+    public const string TipoRecuperacionContrasena = "RecuperacionContrasena";
 
     public Guid Id { get; set; } = Guid.NewGuid();
 
