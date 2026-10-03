@@ -177,6 +177,14 @@ Administrador puede cambiar el rol de los demás desde la API.
 | `PUT` | `/api/usuarios/{id}/rol` | `{ "rol": "Administrador" \| "Estandar" }` (Administrador) | `200` rol actualizado · `400` rol inválido · `403` es el propio rol · `404` usuario inexistente |
 | `POST` | `/api/usuarios/{id}/desactivar` | — (Administrador) | `200` desactivado y sus sesiones cerradas · `403` es uno mismo · `404` usuario inexistente |
 | `POST` | `/api/usuarios/{id}/reactivar` | — (Administrador) | `200` reactivado · `404` usuario inexistente |
+| `POST` | `/api/usuarios/{id}/restablecer-contrasena` | — (Administrador) | `200` contraseña anterior inutilizada, sesiones cerradas y código enviado por la cola · `404` usuario inexistente |
+| `POST` | `/api/contrasena/recuperar` | `{ "email" }` | `200` siempre la misma respuesta · `400` correo vacío o mal formado |
+| `POST` | `/api/contrasena/restablecer` | `{ "email", "codigo", "contrasenaNueva" }` | `200` contraseña cambiada y sesiones cerradas · `400` código inválido, usado o vencido, o contraseña que no cumple la política |
+| `POST` | `/api/contrasena/cambiar` | `{ "contrasenaActual", "contrasenaNueva" }` (requiere sesión) | `200` contraseña cambiada y todas las sesiones cerradas · `400` contraseña actual incorrecta o nueva que no cumple la política |
+
+El código de recuperación tiene 8 caracteres (por ejemplo `K7Q2-M9XP`), es de un solo uso,
+vence a los 30 minutos y llega por la cola de correos (hay que ejecutar el enviador). Se
+acepta con o sin guion y en minúsculas. Pedir un código nuevo invalida el anterior.
 
 Quién puede invocar cada operación (Anónimo, Autenticado o Administrador) está declarado en
 un único punto del código: `src/Api/RastreadorHabitos.Api/Autorizacion/ExigenciasDeRol.cs`
