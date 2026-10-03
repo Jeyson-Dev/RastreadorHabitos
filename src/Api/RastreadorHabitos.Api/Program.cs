@@ -114,6 +114,7 @@ using (var scope = app.Services.CreateScope())
     {
         await servicios.GetRequiredService<ControlAccesoDbContext>().Database.MigrateAsync();
         await servicios.GetRequiredService<NotificacionesDbContext>().Database.MigrateAsync();
+        await servicios.GetRequiredService<MetasDbContext>().Database.MigrateAsync();
     }
     catch (Exception ex)
     {
