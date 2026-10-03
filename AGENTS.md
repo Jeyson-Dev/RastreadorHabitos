@@ -36,8 +36,8 @@ anteriores**. A partir de la Práctica 2 se recalifica lo entregado en la Práct
 - Si un identificador (RF-CA-XX, RF-NOT-XX, RF-NEG-XX, RD-XX) aparece citado sin su texto
   —por ejemplo RD-04, RD-06 o RD-10 en la Práctica 1—, pide su texto antes de asumir qué
   exige.
-- Si falta información para una parte (como la entidad y los estados del módulo de negocio
-  para la sección 1.6 de la Práctica 1), pregunta; no la deduzcas.
+- Si falta información para una parte (por ejemplo, una regla de negocio que ningún
+  documento define), pregunta; no la deduzcas.
 
 ## 2. Práctica 1 — Control de acceso (cumplimiento estricto)
 
@@ -126,7 +126,7 @@ src/
     └── RastreadorHabitos.Tests/                 → referencia los proyectos que vaya cubriendo
 ```
 
-Referencias actuales: Api → ControlAcceso, Notificaciones · Tests → ControlAcceso.
+Referencias actuales: Api → ControlAcceso, Notificaciones, Modulo.Metas · Tests → ControlAcceso.
 
 **Fronteras entre piezas** (derivadas del diagrama de `Estructura.md`):
 - El módulo de negocio (Hábitos y Metas) solo habla con Control de acceso para identidad y
@@ -143,7 +143,7 @@ Referencias actuales: Api → ControlAcceso, Notificaciones · Tests → Control
 
 **Datos y configuración:**
 - Una sola base de datos; cada pieza en su propio esquema SQL (`ControlAcceso`,
-  `Notificaciones`) con su propio historial de migraciones. Las migraciones viven en el
+  `Notificaciones`, `Metas`) con su propio historial de migraciones. Las migraciones viven en el
   proyecto de cada pieza y se aplican al arrancar la Api.
 - La cadena de conexión también llega por variable de entorno
   (`ConnectionStrings__RastreadorHabitos`); sin ella la Api no arranca. Es más estricto que
@@ -152,6 +152,22 @@ Referencias actuales: Api → ControlAcceso, Notificaciones · Tests → Control
   nunca con la cabecera `Host` de la petición.
 - Errores: un único manejador global; los rechazos de negocio usan una excepción propia de
   cada pieza, y cualquier otra excepción responde un 500 genérico.
+
+**Módulo de negocio — la Meta y su máquina de estados** (definidas con el usuario para la
+sección 1.6 de la Práctica 1; la tabla completa está en `docs/maquina-de-estados.md`):
+- Una **Meta** agrupa uno o más hábitos de un usuario y se cumple al sumar un objetivo de
+  cumplimientos (1 o más) antes de que termine el día de su fecha límite.
+- Cuatro estados, declarados solo en `Entities/EstadoMeta.cs`: **Pendiente** (inicial),
+  **En progreso**, **Completada** y **Fallida** (estas dos, terminales).
+- Las transiciones se declaran solo en `Reglas/TransicionesMeta.cs`, y la entidad cambia de
+  estado solo con `Meta.CambiarEstado`, que rechaza las no permitidas. Permitidas, todas
+  ejecutadas por el sistema: Pendiente → En progreso (primer cumplimiento), En progreso →
+  Completada (alcanza el objetivo a tiempo), En progreso → Fallida y Pendiente → Fallida
+  (vence la fecha límite sin alcanzarlo). Prohibidas explícitas: Pendiente → Completada,
+  En progreso → Pendiente, reabrir una meta terminada y cambiar su resultado.
+- La Meta guarda solo el `UsuarioId` de su dueño, sin relación con las tablas de Control de
+  acceso. `Habito`, `MetaHabito` e `HistorialEstadoMeta` (del diagrama) todavía no existen:
+  se construyen cuando una práctica los pida.
 
 **Pendiente: Docker.** El profesor anunció que el proyecto deberá correr con Docker en su
 máquina, sin dar detalles todavía. No construir nada de Docker hasta que haya una indicación
@@ -179,13 +195,15 @@ Docker hará falta autenticación SQL, con las credenciales también por variabl
 
 Revisa cómo está organizada la carpeta de esa pieza y sigue el patrón que ya exista
 (`Entities/`, `Data/`, `DTOs/`, `Services/`, `Reglas/`, `Configuracion/`, `Migrations/` en
-el Core; `Controllers/`, `Adaptadores/`, `Errores/` en la Api). Si la pieza todavía no tiene
+el Core y en el módulo de negocio; `Controllers/`, `Adaptadores/`, `Autenticacion/`,
+`Autorizacion/`, `Errores/` en la Api). Si la pieza todavía no tiene
 ninguna clase de ese tipo, pregunta antes de decidir la carpeta.
 
 ## 7. Documentos del repositorio
 
 - `Estructura.md`: diagrama de componentes de la semana 2, base de todo el proyecto.
 - `docs/practica1-control-acceso.md`: enunciado de la Práctica 1 (transcripción literal).
-- `docs/maquina-de-estados.md`: pendiente; lo exige la sección 1.6 de la Práctica 1.
+- `docs/maquina-de-estados.md`: estados y tabla de transiciones de la Meta (sección 1.6 de la
+  Práctica 1).
 - `docs/bitacora-asignacion-1.md`: bitácora de una entrega anterior; no es requisito de
   ninguna práctica.
