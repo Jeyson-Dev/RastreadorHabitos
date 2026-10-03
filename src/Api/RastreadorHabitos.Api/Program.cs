@@ -10,6 +10,7 @@ using RastreadorHabitos.Core.ControlAcceso.Services;
 using RastreadorHabitos.Core.Notificaciones.Configuracion;
 using RastreadorHabitos.Core.Notificaciones.Data;
 using RastreadorHabitos.Core.Notificaciones.Services;
+using RastreadorHabitos.Modulo.Metas.Data;
 
 // Comandos independientes: se ejecutan una vez y terminan, sin levantar el servidor web.
 //   dotnet run --project src/Api/RastreadorHabitos.Api -- enviar-correos                  [RF-NOT-09]
@@ -43,6 +44,9 @@ builder.Services.AddDbContext<ControlAccesoDbContext>(options =>
 builder.Services.AddDbContext<NotificacionesDbContext>(options =>
     options.UseSqlServer(cadenaConexion,
         sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", NotificacionesDbContext.Esquema)));
+builder.Services.AddDbContext<MetasDbContext>(options =>
+    options.UseSqlServer(cadenaConexion,
+        sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", MetasDbContext.Esquema)));
 
 // Los enlaces de los correos se arman con esta URL y nunca con la cabecera Host de la petición.
 // Si no se configura, se usa la dirección con la que arranca la aplicación por defecto.
@@ -110,6 +114,7 @@ using (var scope = app.Services.CreateScope())
     {
         await servicios.GetRequiredService<ControlAccesoDbContext>().Database.MigrateAsync();
         await servicios.GetRequiredService<NotificacionesDbContext>().Database.MigrateAsync();
+        await servicios.GetRequiredService<MetasDbContext>().Database.MigrateAsync();
     }
     catch (Exception ex)
     {

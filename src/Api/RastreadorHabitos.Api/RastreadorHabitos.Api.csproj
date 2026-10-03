@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Core\RastreadorHabitos.Core.ControlAcceso\RastreadorHabitos.Core.ControlAcceso.csproj" />
     <ProjectReference Include="..\..\Core\RastreadorHabitos.Core.Notificaciones\RastreadorHabitos.Core.Notificaciones.csproj" />
+    <ProjectReference Include="..\..\Negocio\RastreadorHabitos.Modulo.Metas\RastreadorHabitos.Modulo.Metas.csproj" />
   </ItemGroup>
 
   <ItemGroup>
