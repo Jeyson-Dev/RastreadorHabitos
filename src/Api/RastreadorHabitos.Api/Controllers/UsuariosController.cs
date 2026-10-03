@@ -12,10 +12,12 @@ namespace RastreadorHabitos.Api.Controllers;
 public class UsuariosController : ControllerBase
 {
     private readonly IAdministracionUsuariosService _administracion;
+    private readonly IContrasenaService _contrasenas;
 
-    public UsuariosController(IAdministracionUsuariosService administracion)
+    public UsuariosController(IAdministracionUsuariosService administracion, IContrasenaService contrasenas)
     {
         _administracion = administracion;
+        _contrasenas = contrasenas;
     }
 
     [HttpGet]
@@ -43,6 +45,13 @@ public class UsuariosController : ControllerBase
     {
         await _administracion.ReactivarAsync(id);
         return Ok(new { mensaje = "Usuario reactivado." });
+    }
+
+    [HttpPost("{id:guid}/restablecer-contrasena")]
+    public async Task<IActionResult> ForzarRestablecimientoContrasena(Guid id)
+    {
+        await _contrasenas.ForzarRestablecimientoAsync(id);
+        return Ok(new { mensaje = "Contraseña restablecida. El usuario recibirá por correo un código para definir una nueva." });
     }
 
     // Id del Administrador que hace la petición; la autenticación ya validó su sesión.

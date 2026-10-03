@@ -1,0 +1,167 @@
+using System.Net;
+using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore;
+using RastreadorHabitos.Core.ControlAcceso.Data;
+using RastreadorHabitos.Core.ControlAcceso.DTOs;
+using RastreadorHabitos.Core.ControlAcceso.Entities;
+using RastreadorHabitos.Core.ControlAcceso.Reglas;
+
+namespace RastreadorHabitos.Core.ControlAcceso.Services;
+
+public class ContrasenaService : IContrasenaService
+{
+    private readonly ControlAccesoDbContext _context;
+    private readonly ISolicitudCorreoSaliente _correoSaliente;
+
+    public ContrasenaService(ControlAccesoDbContext context, ISolicitudCorreoSaliente correoSaliente)
+    {
+        _context = context;
+        _correoSaliente = correoSaliente;
+    }
+
+    public async Task SolicitarRecuperacionAsync(RecuperacionSolicitudDto solicitud)
+    {
+        // Rechazar por formato no revela si el correo existe [RD-07].
+        var email = CuentaService.ValidarEmail(solicitud.Email);
+
+        var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == email);
+        if (usuario is null)
+        {
+            return; // Misma respuesta que si existiera [RF-CA-09].
+        }
+
+        var codigo = await PrepararCodigoAsync(usuario.Id, DateTime.UtcNow);
+        await _context.SaveChangesAsync();
+
+        // Sale por la cola, después de guardar el código [RF-CA-10, RF-NOT-08].
+        await EnviarCodigoAsync(usuario, codigo,
+            "Recibimos una solicitud para restablecer tu contraseña en Rastreador de hábitos.");
+    }
+
+    public async Task RestablecerAsync(RestablecimientoSolicitudDto solicitud)
+    {
+        // La política se valida antes de mirar el código, así un error no lo gasta [RF-CA-14].
+        ValidarPolitica(solicitud.ContrasenaNueva);
+
+        var email = solicitud.Email?.Trim().ToLowerInvariant();
+        var usuario = string.IsNullOrEmpty(email)
+            ? null
+            : await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == email);
+
+        var codigoHash = TokenUsuario.CalcularHash(CodigoRecuperacion.Normalizar(solicitud.Codigo));
+        var codigo = usuario is null
+            ? null
+            : await _context.TokensUsuario.FirstOrDefaultAsync(t =>
+                t.UsuarioId == usuario.Id
+                && t.Tipo == TokenUsuario.TipoRecuperacionContrasena
+                && t.TokenHash == codigoHash);
+
+        // Un solo mensaje para inexistente, usado, revocado o vencido; la contraseña no cambia [RF-CA-10].
+        var ahoraUtc = DateTime.UtcNow;
+        if (usuario is null || codigo is null || !codigo.EsValido(ahoraUtc))
+        {
+            throw new RechazoControlAccesoException(MotivoRechazo.DatosInvalidos,
+                "El código no es válido, ya fue usado o venció.");
+        }
+
+        // Todo en un solo guardado: contraseña nueva con hash, código consumido y sesiones cerradas.
+        usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(solicitud.ContrasenaNueva, CuentaService.FactorTrabajoBCrypt); // [RF-CA-11]
+        codigo.FechaUsoUtc = ahoraUtc;
+        await _context.CerrarSesionesAbiertasAsync(usuario.Id, ahoraUtc); // [RF-CA-12]
+
+        // Quien demuestra que controla el correo no sigue bloqueado por intentos con la contraseña vieja.
+        PoliticaBloqueo.RegistrarExito(usuario);
+
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task CambiarAsync(Guid usuarioId, CambioContrasenaSolicitudDto solicitud)
+    {
+        var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId)
+            ?? throw new RechazoControlAccesoException(MotivoRechazo.NoAutenticado, "Se requiere una sesión válida.");
+
+        if (string.IsNullOrEmpty(solicitud.ContrasenaActual)
+            || !BCrypt.Net.BCrypt.Verify(solicitud.ContrasenaActual, usuario.PasswordHash))
+        {
+            throw new RechazoControlAccesoException(MotivoRechazo.DatosInvalidos,
+                "La contraseña actual es incorrecta."); // [RF-CA-22]
+        }
+
+        ValidarPolitica(solicitud.ContrasenaNueva); // [RF-CA-14]
+
+        // Todas las sesiones abiertas antes del cambio dejan de ser válidas, también la actual [RF-CA-12].
+        usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(solicitud.ContrasenaNueva, CuentaService.FactorTrabajoBCrypt);
+        await _context.CerrarSesionesAbiertasAsync(usuario.Id, DateTime.UtcNow);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task ForzarRestablecimientoAsync(Guid usuarioId)
+    {
+        var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId)
+            ?? throw new RechazoControlAccesoException(MotivoRechazo.NoEncontrado, "El usuario no existe.");
+
+        // La contraseña anterior se reemplaza por una aleatoria que nadie conoce: deja de servir,
+        // y la única forma de volver a entrar es el código enviado al correo del usuario.
+        var ahoraUtc = DateTime.UtcNow;
+        var contrasenaDescartable = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(contrasenaDescartable, CuentaService.FactorTrabajoBCrypt);
+        await _context.CerrarSesionesAbiertasAsync(usuario.Id, ahoraUtc); // [RF-CA-12]
+        var codigo = await PrepararCodigoAsync(usuario.Id, ahoraUtc);
+        await _context.SaveChangesAsync();
+
+        await EnviarCodigoAsync(usuario, codigo,
+            "Un Administrador restableció tu contraseña en Rastreador de hábitos. Tu contraseña anterior ya no sirve; define una nueva con este código.");
+    }
+
+    private static void ValidarPolitica(string? contrasena)
+    {
+        var incumplimiento = PoliticaContrasena.Validar(contrasena);
+        if (incumplimiento is not null)
+        {
+            throw new RechazoControlAccesoException(MotivoRechazo.DatosInvalidos, incumplimiento);
+        }
+    }
+
+    // Revoca los códigos de recuperación vigentes del usuario y agrega uno nuevo, sin guardar:
+    // así solo el último código enviado sirve. Devuelve el código en claro para el correo.
+    private async Task<string> PrepararCodigoAsync(Guid usuarioId, DateTime ahoraUtc)
+    {
+        var vigentes = await _context.TokensUsuario
+            .Where(t => t.UsuarioId == usuarioId
+                        && t.Tipo == TokenUsuario.TipoRecuperacionContrasena
+                        && t.FechaUsoUtc == null
+                        && t.FechaRevocacionUtc == null)
+            .ToListAsync();
+        foreach (var anterior in vigentes)
+        {
+            anterior.FechaRevocacionUtc = ahoraUtc;
+        }
+
+        var codigo = CodigoRecuperacion.Generar();
+        _context.TokensUsuario.Add(new TokenUsuario
+        {
+            UsuarioId = usuarioId,
+            TokenHash = TokenUsuario.CalcularHash(CodigoRecuperacion.Normalizar(codigo)),
+            Tipo = TokenUsuario.TipoRecuperacionContrasena,
+            FechaCreacionUtc = ahoraUtc,
+            FechaExpiracionUtc = ahoraUtc.Add(CodigoRecuperacion.Vigencia)
+        });
+
+        return codigo;
+    }
+
+    private Task EnviarCodigoAsync(Usuario usuario, string codigo, string motivo)
+    {
+        var nombre = WebUtility.HtmlEncode(usuario.NombreCompleto);
+        var cuerpoHtml = $"""
+            <p>Hola {nombre}:</p>
+            <p>{motivo}</p>
+            <p>Tu código para definir una contraseña nueva es: <strong>{codigo}</strong></p>
+            <p>Vence en {CodigoRecuperacion.Vigencia.TotalMinutes} minutos y solo puede usarse una vez.
+            Si no lo solicitaste, ignora este correo.</p>
+            """;
+
+        return _correoSaliente.SolicitarEnvioAsync(usuario.Email,
+            "Código para restablecer tu contraseña - Rastreador de hábitos", cuerpoHtml);
+    }
+}

@@ -29,10 +29,15 @@ public static class ExigenciasDeRol
         ["Sesion.UsuarioAutenticado"] = Exigencia.Autenticado,
         ["Sesion.Cerrar"] = Exigencia.Autenticado,
 
+        ["Contrasena.SolicitarRecuperacion"] = Exigencia.Anonimo,
+        ["Contrasena.Restablecer"] = Exigencia.Anonimo,
+        ["Contrasena.Cambiar"] = Exigencia.Autenticado,
+
         ["Usuarios.Listar"] = Exigencia.Administrador,
         ["Usuarios.CambiarRol"] = Exigencia.Administrador,
         ["Usuarios.Desactivar"] = Exigencia.Administrador,
         ["Usuarios.Reactivar"] = Exigencia.Administrador,
+        ["Usuarios.ForzarRestablecimientoContrasena"] = Exigencia.Administrador,
     };
 
     public static Exigencia De(string controlador, string accion) =>

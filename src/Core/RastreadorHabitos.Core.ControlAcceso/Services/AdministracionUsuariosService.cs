@@ -88,14 +88,7 @@ public class AdministracionUsuariosService : IAdministracionUsuariosService
 
         // Sus sesiones abiertas se cierran en el mismo guardado: dejan de ser válidas ya, y una
         // reactivación posterior no revive credenciales emitidas antes.
-        var ahoraUtc = DateTime.UtcNow;
-        var sesionesAbiertas = await _context.SesionesUsuario
-            .Where(s => s.UsuarioId == usuarioId && s.FechaCierreUtc == null)
-            .ToListAsync();
-        foreach (var sesion in sesionesAbiertas)
-        {
-            sesion.FechaCierreUtc = ahoraUtc;
-        }
+        await _context.CerrarSesionesAbiertasAsync(usuarioId, DateTime.UtcNow);
 
         await _context.SaveChangesAsync();
     }
