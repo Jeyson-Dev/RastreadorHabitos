@@ -10,6 +10,7 @@ Rastreador de hábitos con metas — Programación III · TDS-007 · ITLA · 202
 | Sesión | RF-CA-03, 07, 18, 19 | ✅ Implementado |
 | Roles y administración | RF-CA-04, 05, 06, 08, 20, 21 · RD-06 | ✅ Implementado |
 | Contraseñas | RF-CA-09 a 13, 22 | ✅ Implementado |
+| Máquina de estados de negocio (`Meta`) | RF-NEG-03, 04, 05 · RD-04 | ✅ Estructura declarada (las pruebas llegan en la semana 8) |
 
 Enunciado completo: [`docs/practica1-control-acceso.md`](docs/practica1-control-acceso.md).
 
@@ -392,6 +393,30 @@ Con el token de un Estándar → `403`.
 - datos correctos → `200`: todas las sesiones, incluida la que hizo el cambio, dejan de ser
   válidas (RF-CA-12), y hay que iniciar sesión con la contraseña nueva.
 
+## Máquina de estados de negocio — `Meta`
+
+La entidad central del módulo de negocio es **Meta**: agrupa uno o más hábitos y se cumple al
+sumar un objetivo de cumplimientos antes de su fecha límite. Tiene cuatro estados:
+**Pendiente**, **En progreso**, **Completada** y **Fallida**; los dos últimos son terminales.
+
+| Qué localizar | Dónde |
+|---|---|
+| Los estados, declarados en un solo lugar (RF-NEG-03) | `src/Negocio/RastreadorHabitos.Modulo.Metas/Entities/EstadoMeta.cs` |
+| Las transiciones permitidas, en un solo lugar (RD-04), con las prohibidas explícitas (RF-NEG-04) y los estados terminales (RF-NEG-05) | `src/Negocio/RastreadorHabitos.Modulo.Metas/Reglas/TransicionesMeta.cs` |
+| La entidad con su atributo de estado | `src/Negocio/RastreadorHabitos.Modulo.Metas/Entities/Meta.cs` |
+| La tabla de transiciones (desde, hacia, quién la ejecuta, condición) | [`docs/maquina-de-estados.md`](docs/maquina-de-estados.md) |
+
+La entidad existe en el modelo de datos: la API crea al arrancar la tabla `Metas.Metas`, con
+la columna `Estado`:
+
+```sql
+SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA = 'Metas' AND TABLE_NAME = 'Metas';
+```
+
+Por ahora es solo la estructura que pide la sección 1.6: todavía no hay endpoints de metas
+ni pruebas de la máquina de estados (llegan en la semana 8).
+
 ## Pruebas unitarias
 
 ```bash
@@ -405,4 +430,4 @@ Monolito modular por proyectos sobre el diagrama de componentes de
 `.csproj`, de forma que una referencia de proyecto indebida no compila. Control de acceso no
 conoce a Notificaciones: declara la interfaz `ISolicitudCorreoSaliente` y la Api la conecta
 con la cola. Cada pieza guarda sus tablas en su propio esquema SQL (`ControlAcceso`,
-`Notificaciones`). Detalles en [`AGENTS.md`](AGENTS.md).
+`Notificaciones`, `Metas`). Detalles en [`AGENTS.md`](AGENTS.md).
