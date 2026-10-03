@@ -9,7 +9,7 @@ Rastreador de hábitos con metas — Programación III · TDS-007 · ITLA · 202
 | Registro y activación | RF-CA-01, 02, 14, 15, 16, 17 · RF-NOT-08, 09, 12, 13 · RD-05, 07, 08, 09, 10 | ✅ Implementado |
 | Sesión | RF-CA-03, 07, 18, 19 | ✅ Implementado |
 | Roles y administración | RF-CA-04, 05, 06, 08, 20, 21 · RD-06 | ✅ Implementado |
-| Contraseñas | RF-CA-09 a 13, 22 | Pendiente |
+| Contraseñas | RF-CA-09 a 13, 22 | ✅ Implementado |
 
 Enunciado completo: [`docs/practica1-control-acceso.md`](docs/practica1-control-acceso.md).
 
@@ -345,6 +345,52 @@ volver a iniciar sesión, pero sus credenciales anteriores siguen sin servir.
 
 **6. Intentar desactivarse a sí mismo (RF-CA-20).** `POST /api/usuarios/{su-propio-id}/desactivar`
 con el token del Administrador → `403` «Un Administrador no puede desactivarse a sí mismo.»
+
+## Cómo provocar cada criterio de aceptación — Contraseñas
+
+En el orden de la sección 4 del enunciado. Se necesita un usuario activado; los códigos llegan
+por la cola, así que después de cada solicitud hay que ejecutar el enviador.
+
+**1. Pedir recuperación con un correo inexistente y con uno existente (RF-CA-09).**
+`POST /api/contrasena/recuperar` con los dos correos: las dos respuestas son idénticas
+(`200`, mismo mensaje). Solo el existente recibe un correo. Un correo mal formado → `400`.
+
+**2. Usar el código, volver a usarlo (RF-CA-10, RF-CA-11).** Antes, iniciar sesión con la
+contraseña actual y guardar ese `token` (credencial emitida antes del cambio).
+`POST /api/contrasena/restablecer` con el correo, el código recibido y una contraseña nueva
+→ `200`. Repetir con el mismo código → `400` «El código no es válido, ya fue usado o venció.»,
+y la contraseña no cambia. Un código vencido también se rechaza:
+
+```sql
+UPDATE t SET FechaExpiracionUtc = DATEADD(MINUTE, -1, SYSUTCDATETIME())
+FROM ControlAcceso.TokensUsuario t JOIN ControlAcceso.Usuarios u ON u.Id = t.UsuarioId
+WHERE u.Email = '<correo>' AND t.Tipo = 'RecuperacionContrasena';
+```
+
+**3. Iniciar sesión con la contraseña vieja y con la nueva (RF-CA-11).** La vieja → `401`;
+la nueva → `200`.
+
+**4. Probar una credencial emitida antes del cambio (RF-CA-12).** El `token` guardado en el
+paso 2 → `401` en `GET /api/sesion/usuario`. Todas las sesiones abiertas antes del cambio
+quedaron cerradas:
+
+```sql
+SELECT FechaInicioUtc, FechaCierreUtc FROM ControlAcceso.SesionesUsuario s
+JOIN ControlAcceso.Usuarios u ON u.Id = s.UsuarioId WHERE u.Email = '<correo>';
+```
+
+**5. Forzar el restablecimiento de un usuario como Administrador (RF-CA-13).**
+`POST /api/usuarios/{id}/restablecer-contrasena` con el token de un Administrador → `200`. La
+contraseña anterior del usuario deja de servir (`401`), sus sesiones abiertas se cierran y
+recibe por la cola un correo con el código para definir una nueva (usarlo como en el paso 2).
+Con el token de un Estándar → `403`.
+
+**6. Cambiar la contraseña con sesión indicando una actual incorrecta (RF-CA-22).**
+`POST /api/contrasena/cambiar` con `Authorization: Bearer <token>`:
+- contraseña actual incorrecta → `400` «La contraseña actual es incorrecta.»;
+- contraseña nueva que no cumple la política → `400` (RF-CA-14);
+- datos correctos → `200`: todas las sesiones, incluida la que hizo el cambio, dejan de ser
+  válidas (RF-CA-12), y hay que iniciar sesión con la contraseña nueva.
 
 ## Pruebas unitarias
 
