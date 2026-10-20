@@ -74,6 +74,7 @@ builder.Services.AddScoped<ISolicitudCorreoSaliente, SolicitudCorreoSalientePorC
 builder.Services.AddScoped<ICuentaService, CuentaService>();
 builder.Services.AddScoped<IAdministracionUsuariosService, AdministracionUsuariosService>();
 builder.Services.AddScoped<IContrasenaService, ContrasenaService>();
+builder.Services.AddScoped<IAplicadorPermiso, AplicadorPermisoPorControlAcceso>();
 builder.Services.AddScoped<ISolicitudesPermisoService, SolicitudesPermisoService>();
 
 // Credencial de sesión: la clave para firmarla solo llega por variable de entorno [RD-10].
