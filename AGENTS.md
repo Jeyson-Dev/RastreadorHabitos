@@ -19,7 +19,8 @@ Es un proyecto largo que se construye por prácticas, todas sobre el mismo dise�
 
 | Práctica | Enunciado | Qué define | Estado |
 |---|---|---|---|
-| 1 | `docs/practica1-control-acceso.md` (`practica1-p3.pdf`) | Control de acceso completo (pieza 1) · cola mínima de correos (RF-NOT-08, 09, 12, 13) · estructura de la máquina de estados del negocio (sección 1.6) | En curso |
+| 1 | `docs/practica1-control-acceso.md` (`practica1-p3.pdf`) | Control de acceso completo (pieza 1) · cola mínima de correos (RF-NOT-08, 09, 12, 13) · estructura de la máquina de estados del negocio (sección 1.6) | Entregada (tag `practica-1`) |
+| Asignación 2 | `docs/asignacion2-gestion-permisos.md` | Gestión de permisos (pieza 2): RF-GP-01 a 07 · suite de pruebas (RD-12) · bitácora `docs/bitacora-asignacion-2.md` | En curso (tag `asignacion-2`) |
 
 **Cuando llegue una práctica nueva:** agregar su transcripción literal a `docs/`, añadir su
 fila a esta tabla y adaptar el proyecto a ella **sin romper lo que exigen las prácticas
@@ -126,7 +127,10 @@ src/
     └── RastreadorHabitos.Tests/                 → referencia los proyectos que vaya cubriendo
 ```
 
-Referencias actuales: Api → ControlAcceso, Notificaciones, Modulo.Metas · Tests → ControlAcceso.
+Referencias actuales: Api → ControlAcceso, Notificaciones, GestionPermisos, Modulo.Metas ·
+Tests → ControlAcceso, GestionPermisos. Gestión de permisos no referencia a ControlAcceso:
+declara el puerto `IAplicadorPermiso` y la Api lo conecta con el cambio de rol. Las pruebas
+viven en `tests/RastreadorHabitos.Tests/`, en la raíz.
 
 **Fronteras entre piezas** (derivadas del diagrama de `Estructura.md`):
 - El módulo de negocio (Hábitos y Metas) solo habla con Control de acceso para identidad y
@@ -207,3 +211,6 @@ ninguna clase de ese tipo, pregunta antes de decidir la carpeta.
   Práctica 1).
 - `docs/bitacora-asignacion-1.md`: bitácora de una entrega anterior; no es requisito de
   ninguna práctica.
+- `docs/asignacion2-gestion-permisos.md`: enunciado de la Asignación 2 (Gestión de permisos).
+- `docs/bitacora-asignacion-2.md`: bitácora con el agente que exige la sección 1.3 de la
+  Asignación 2.
