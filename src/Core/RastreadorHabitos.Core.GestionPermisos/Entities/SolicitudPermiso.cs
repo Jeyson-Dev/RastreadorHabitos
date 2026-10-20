@@ -40,6 +40,7 @@ public class SolicitudPermiso
     // no se registra nada.
     public void Aprobar(Guid administradorId, DateTime ahoraUtc)
     {
+        RechazarSiEsPropia(administradorId);
         CambiarEstado(EstadoSolicitud.Aprobada);
         ResueltaPorId = administradorId;
         FechaResolucionUtc = ahoraUtc;
@@ -48,6 +49,7 @@ public class SolicitudPermiso
     // Sin motivo escrito, el rechazo no se completa [RF-GP-04].
     public void Rechazar(Guid administradorId, string? motivo, DateTime ahoraUtc)
     {
+        RechazarSiEsPropia(administradorId);
         if (string.IsNullOrWhiteSpace(motivo))
         {
             throw new RechazoGestionPermisosException(TipoRechazoGestionPermisos.DatosInvalidos,
@@ -64,6 +66,16 @@ public class SolicitudPermiso
     public void MarcarAplicada()
     {
         CambiarEstado(EstadoSolicitud.Aplicada);
+    }
+
+    // Nadie resuelve su propia solicitud [RF-GP-07].
+    private void RechazarSiEsPropia(Guid administradorId)
+    {
+        if (administradorId == SolicitanteId)
+        {
+            throw new RechazoGestionPermisosException(TipoRechazoGestionPermisos.NoPermitido,
+                "Nadie puede resolver su propia solicitud.");
+        }
     }
 
     // Único punto donde cambia el estado: resuelve cada transición contra TransicionesSolicitud
