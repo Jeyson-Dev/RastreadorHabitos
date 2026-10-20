@@ -14,7 +14,7 @@ public class CreacionSolicitudTests
     {
         // Preparar
         var baseEnMemoria = new BaseEnMemoria();
-        var servicio = new SolicitudesPermisoService(baseEnMemoria.NuevoContexto());
+        var servicio = baseEnMemoria.NuevoServicio();
         var solicitanteId = Guid.NewGuid();
 
         // Actuar
@@ -36,7 +36,7 @@ public class CreacionSolicitudTests
     {
         // Preparar
         var baseEnMemoria = new BaseEnMemoria();
-        var servicio = new SolicitudesPermisoService(baseEnMemoria.NuevoContexto());
+        var servicio = baseEnMemoria.NuevoServicio();
 
         // Actuar
         var rechazo = await Assert.ThrowsAsync<RechazoGestionPermisosException>(() =>
@@ -52,14 +52,31 @@ public class CreacionSolicitudTests
     {
         // Preparar
         var baseEnMemoria = new BaseEnMemoria();
-        var servicio = new SolicitudesPermisoService(baseEnMemoria.NuevoContexto());
+        var servicio = baseEnMemoria.NuevoServicio();
         var deUno = await servicio.CrearAsync(Guid.NewGuid(), new CreacionSolicitudPermisoDto { Permiso = "Administrador" });
         var deOtro = await servicio.CrearAsync(Guid.NewGuid(), new CreacionSolicitudPermisoDto { Permiso = "Administrador" });
 
         // Actuar
-        var pendientes = await new SolicitudesPermisoService(baseEnMemoria.NuevoContexto()).ListarPendientesAsync();
+        var pendientes = await baseEnMemoria.NuevoServicio().ListarPendientesAsync();
 
         // Verificar
         Assert.Equal(new[] { deUno.Id, deOtro.Id }.Order(), pendientes.Select(s => s.Id).Order());
+    }
+
+    [Fact]
+    public async Task ListarPendientes_NoIncluyeLasSolicitudesYaResueltas()
+    {
+        // Preparar
+        var baseEnMemoria = new BaseEnMemoria();
+        var servicio = baseEnMemoria.NuevoServicio();
+        var pendiente = await servicio.CrearAsync(Guid.NewGuid(), new CreacionSolicitudPermisoDto { Permiso = "Administrador" });
+        var resuelta = await servicio.CrearAsync(Guid.NewGuid(), new CreacionSolicitudPermisoDto { Permiso = "Administrador" });
+        await servicio.AprobarAsync(resuelta.Id, Guid.NewGuid());
+
+        // Actuar
+        var pendientes = await baseEnMemoria.NuevoServicio().ListarPendientesAsync();
+
+        // Verificar
+        Assert.Equal(pendiente.Id, Assert.Single(pendientes).Id);
     }
 }

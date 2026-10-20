@@ -19,6 +19,8 @@ Enunciado completo: [`docs/practica1-control-acceso.md`](docs/practica1-control-
 | Funcionalidad | Requisitos | Estado |
 |---|---|---|
 | Crear y consultar solicitudes | RF-GP-01, 02 · RD-06, 07, 09 | ✅ Implementado |
+| Resolver solicitudes (aprobar, aplicar y rechazar) | RF-GP-03, 04, 05, 06, 07 · RD-04, 06, 07, 09 | ✅ Implementado |
+| Suite de pruebas | RD-12 · RF-GP-03, 04, 06 | ✅ [Pruebas](#pruebas) |
 
 Enunciado completo: [`docs/asignacion2-gestion-permisos.md`](docs/asignacion2-gestion-permisos.md).
 Cómo provocar cada criterio: [Gestión de permisos](#gestión-de-permisos--asignación-2).
@@ -446,6 +448,21 @@ Todos requieren el header `Authorization: Bearer <token>` (el `token` de `/api/s
 |---|---|---|---|---|
 | `POST` | `/api/solicitudes-permiso` | `{ "permiso": "Administrador" }` | Cualquier usuario con sesión | `201` la solicitud creada, con `estado: "Pendiente"` · `400` permiso vacío o inválido |
 | `GET` | `/api/solicitudes-permiso/pendientes` | — | Administrador | `200` lista de las solicitudes `Pendiente` de todos los usuarios · `403` Estándar |
+| `POST` | `/api/solicitudes-permiso/{id}/aprobar` | — | Administrador | `200` la solicitud con `estado: "Aplicada"`, `resueltaPorId` y `fechaResolucionUtc` · `403` Estándar, o es su propia solicitud · `404` no existe · `409` transición no permitida |
+| `POST` | `/api/solicitudes-permiso/{id}/rechazar` | `{ "motivo": "…" }` | Administrador | `200` la solicitud con `estado: "Rechazada"` y `motivoRechazo` · `400` sin motivo · `403` Estándar, o es su propia solicitud · `404` no existe · `409` transición no permitida |
+
+Las transiciones válidas son **Pendiente → Aprobada → Aplicada** y **Pendiente → Rechazada**, y
+se resuelven en un solo punto del código (RD-04):
+
+| Qué localizar | Dónde |
+|---|---|
+| Los estados | `src/Core/RastreadorHabitos.Core.GestionPermisos/Entities/EstadoSolicitud.cs` |
+| La tabla de transiciones permitidas | `src/Core/RastreadorHabitos.Core.GestionPermisos/Reglas/TransicionesSolicitud.cs` |
+| El único método que cambia el estado (`CambiarEstado`), usado por `Aprobar`, `MarcarAplicada` y `Rechazar` | `src/Core/RastreadorHabitos.Core.GestionPermisos/Entities/SolicitudPermiso.cs` |
+
+Aprobar hace las dos transiciones en la misma operación: Pendiente → Aprobada, le pide a Control
+de acceso que aplique el permiso (cambia el rol del solicitante a Administrador) y Aprobada →
+Aplicada. Si la aplicación falla, no se guarda nada y la solicitud sigue Pendiente.
 
 Cada solicitud se devuelve como
 `{ "id", "solicitanteId", "permiso", "estado", "fechaCreacionUtc", "resueltaPorId", "fechaResolucionUtc", "motivoRechazo" }`.
@@ -457,6 +474,7 @@ Se necesitan usuarios activados (ver [Registro y activación](#cómo-provocar-ca
 - **A**: Administrador, convertido con el comando `promover-administrador` (ver
   [Crear el primer Administrador](#crear-el-primer-administrador)).
 - **E1**: Estándar.
+- **E2**: Estándar (para el rechazo).
 
 Cada uno inicia sesión con `POST /api/sesion/iniciar` y usa su `token`. El `id` de cada
 usuario sale de `GET /api/usuarios` con el token de A.
@@ -488,9 +506,58 @@ FROM GestionPermisos.SolicitudesPermiso ORDER BY FechaCreacionUtc;
 
 Ninguna respuesta expone trazas ni detalles de la base de datos.
 
+**RF-GP-04 — Rechazar indicando el motivo; sin motivo no se completa.** Con el token de E2,
+crear otra solicitud (`POST /api/solicitudes-permiso`, `{ "permiso": "Administrador" }`) y
+guardar su `id` como **S2**. Con el token de A:
+- `POST /api/solicitudes-permiso/S2/rechazar` con `{}` o con `{ "motivo": "   " }` → `400`
+  «El motivo del rechazo es obligatorio.» S2 sigue `Pendiente` (consulta SQL de arriba).
+- `POST /api/solicitudes-permiso/S2/rechazar` con
+  `{ "motivo": "No necesita administrar usuarios." }` → `200` con `"estado": "Rechazada"`, el
+  `motivoRechazo` escrito, y `resueltaPorId` y `fechaResolucionUtc` de A.
+
+**RF-GP-03 — Aprobar; queda registrado quién aprobó y cuándo.** Con el token de A,
+`POST /api/solicitudes-permiso/S1/aprobar` → `200` con `"resueltaPorId"` igual al id de A y
+`"fechaResolucionUtc"` con la fecha y hora (UTC) de la aprobación. En la base quedan las
+columnas `ResueltaPorId` y `FechaResolucionUtc`.
+
+**RF-GP-05 — Al aprobar, el permiso se aplica solo.** Hacer en este orden, alrededor del paso
+anterior:
+1. **Antes** de aprobar S1, con el token de E1, `GET /api/usuarios` (operación de
+   Administrador) → `403`.
+2. Aprobar S1 como en RF-GP-03 → `200` con `"estado": "Aplicada"`: ya no queda en Aprobada.
+3. **Después**, con el **mismo token** de E1, sin cerrar ni volver a iniciar sesión,
+   `GET /api/usuarios` → `200`. E1 ya puede ejecutar lo que pidió; su rol en
+   `GET /api/sesion/usuario` es `Administrador`. No hubo ninguna intervención manual.
+
+**RF-GP-06 — Solo las transiciones de la tabla.** Con el token de A:
+- **Aprobar dos veces la misma solicitud:** `POST /api/solicitudes-permiso/S1/aprobar` otra
+  vez → `409` «La solicitud está en estado Aplicada y no puede pasar a Aprobada.» S1 sigue
+  `Aplicada` y su `ResueltaPorId` no cambia (consulta SQL).
+- **De Rechazada a Aplicada:** `POST /api/solicitudes-permiso/S2/aprobar` (S2 está Rechazada;
+  aprobarla es el único camino hacia Aplicada) → `409` «La solicitud está en estado Rechazada y
+  no puede pasar a Aprobada.» S2 sigue `Rechazada` y E2 sigue siendo Estándar.
+- Rechazar una solicitud ya resuelta, por ejemplo `POST /api/solicitudes-permiso/S1/rechazar`
+  con un motivo → `409`.
+
+**RF-GP-07 — Nadie resuelve su propia solicitud.** Con el token de A, crear una solicitud
+propia (`POST /api/solicitudes-permiso`, `{ "permiso": "Administrador" }`) y guardar su `id`
+como **S3**. Después, con el mismo token de A:
+- `POST /api/solicitudes-permiso/S3/aprobar` → `403` «Nadie puede resolver su propia solicitud.»
+- `POST /api/solicitudes-permiso/S3/rechazar` con `{ "motivo": "propia" }` → `403`, el mismo
+  mensaje.
+
+S3 sigue `Pendiente`. Lo mismo vale para cualquier Administrador, incluido E1 tras RF-GP-05.
+
+**RD-06 — Autorización en el servidor.** Con el token de E2 (Estándar), construir a mano
+`POST /api/solicitudes-permiso/S3/aprobar` → `403` «No tiene permiso para realizar esta
+operación.»
+
 **RD-09 — Las solicitudes sobreviven a reiniciar la aplicación.** Detener la API (`Ctrl+C`) y
 volver a arrancarla. Iniciar sesión otra vez como A (la clave `Jwt__Clave` puede haber
-cambiado) y repetir `GET /api/solicitudes-permiso/pendientes` → S1 sigue ahí, en `Pendiente`.
+cambiado) y:
+- `GET /api/solicitudes-permiso/pendientes` → S3 sigue ahí, en `Pendiente`;
+- la consulta SQL muestra S1 `Aplicada`, S2 `Rechazada` con su motivo y S3 `Pendiente`;
+- `POST /api/solicitudes-permiso/S1/aprobar` → `409`: el estado guardado se respeta.
 
 ## Pruebas
 
@@ -509,7 +576,13 @@ cualquier orden y por separado. Cada prueba marca sus fases con los comentarios 
 
 | Archivo | Qué verifica |
 |---|---|
-| `CreacionSolicitudTests.cs` | La solicitud nace Pendiente (RF-GP-01), el rechazo de una entrada inválida (RD-07) y el listado de pendientes (RF-GP-02) |
+| `CreacionSolicitudTests.cs` | La solicitud nace Pendiente (RF-GP-01), el rechazo de una entrada inválida (RD-07) y el listado de pendientes, sin las ya resueltas (RF-GP-02) |
+| `TransicionValidaTests.cs` | **Transiciones válidas.** Aprobar deja la solicitud Aplicada y registra quién aprobó y cuándo (RF-GP-03); rechazar la deja Rechazada y registra el motivo (RF-GP-04); aprobar pide aplicar el permiso al solicitante (RF-GP-05) |
+| `TransicionProhibidaTests.cs` | **Transiciones prohibidas.** Aprobar dos veces, aprobar una Rechazada y pasar de Rechazada a Aplicada se rechazan y el estado no cambia (RF-GP-06); rechazar sin motivo no se completa (RF-GP-04); ninguna pareja fuera de la tabla está permitida (RD-04) |
+| `ResolucionPropiaTests.cs` | Un Administrador no aprueba ni rechaza su propia solicitud, y esta sigue Pendiente (RF-GP-07) |
+
+Control de acceso queda fuera de las pruebas de esta pieza: `AplicadorPermisoFalso` toma su
+lugar y registra qué permiso se pidió aplicar y a quién.
 
 Para ejecutar solo la suite de Gestión de permisos:
 

@@ -41,6 +41,8 @@ public static class ExigenciasDeRol
 
         ["SolicitudesPermiso.Crear"] = Exigencia.Autenticado,
         ["SolicitudesPermiso.ListarPendientes"] = Exigencia.Administrador,
+        ["SolicitudesPermiso.Aprobar"] = Exigencia.Administrador,
+        ["SolicitudesPermiso.Rechazar"] = Exigencia.Administrador,
     };
 
     public static Exigencia De(string controlador, string accion) =>

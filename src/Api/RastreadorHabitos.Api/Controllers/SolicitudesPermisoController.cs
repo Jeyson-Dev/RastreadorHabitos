@@ -32,6 +32,18 @@ public class SolicitudesPermisoController : ControllerBase
         return Ok(await _solicitudes.ListarPendientesAsync());
     }
 
+    [HttpPost("{id:guid}/aprobar")]
+    public async Task<IActionResult> Aprobar(Guid id)
+    {
+        return Ok(await _solicitudes.AprobarAsync(id, UsuarioActual()));
+    }
+
+    [HttpPost("{id:guid}/rechazar")]
+    public async Task<IActionResult> Rechazar(Guid id, [FromBody] RechazoSolicitudPermisoDto rechazo)
+    {
+        return Ok(await _solicitudes.RechazarAsync(id, UsuarioActual(), rechazo));
+    }
+
     // Id de quien hace la petición, que Control de acceso ya autenticó; esta pieza no autentica.
     private Guid UsuarioActual() =>
         Guid.Parse(User.FindFirst(OpcionesSesion.ClaimUsuario)!.Value);

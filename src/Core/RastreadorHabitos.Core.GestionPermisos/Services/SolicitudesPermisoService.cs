@@ -9,10 +9,12 @@ namespace RastreadorHabitos.Core.GestionPermisos.Services;
 public class SolicitudesPermisoService : ISolicitudesPermisoService
 {
     private readonly GestionPermisosDbContext _context;
+    private readonly IAplicadorPermiso _aplicador;
 
-    public SolicitudesPermisoService(GestionPermisosDbContext context)
+    public SolicitudesPermisoService(GestionPermisosDbContext context, IAplicadorPermiso aplicador)
     {
         _context = context;
+        _aplicador = aplicador;
     }
 
     public async Task<SolicitudPermisoDto> CrearAsync(Guid solicitanteId, CreacionSolicitudPermisoDto solicitud)
@@ -38,4 +40,35 @@ public class SolicitudesPermisoService : ISolicitudesPermisoService
 
         return pendientes.Select(SolicitudPermisoDto.Desde).ToList();
     }
+
+    public async Task<SolicitudPermisoDto> AprobarAsync(Guid solicitudId, Guid administradorId)
+    {
+        var solicitud = await BuscarAsync(solicitudId);
+
+        solicitud.Aprobar(administradorId, DateTime.UtcNow);
+
+        // Sin intervención manual: Control de acceso aplica el permiso y la solicitud queda
+        // Aplicada. Se guarda todo al final; si la aplicación falla, la solicitud sigue Pendiente.
+        await _aplicador.AplicarAsync(solicitud.SolicitanteId, solicitud.Permiso, administradorId);
+        solicitud.MarcarAplicada();
+
+        await _context.SaveChangesAsync();
+        return SolicitudPermisoDto.Desde(solicitud);
+    }
+
+    public async Task<SolicitudPermisoDto> RechazarAsync(Guid solicitudId, Guid administradorId,
+                                                          RechazoSolicitudPermisoDto rechazo)
+    {
+        var solicitud = await BuscarAsync(solicitudId);
+
+        solicitud.Rechazar(administradorId, rechazo.Motivo, DateTime.UtcNow);
+
+        await _context.SaveChangesAsync();
+        return SolicitudPermisoDto.Desde(solicitud);
+    }
+
+    private async Task<SolicitudPermiso> BuscarAsync(Guid solicitudId) =>
+        await _context.SolicitudesPermiso.FindAsync(solicitudId)
+        ?? throw new RechazoGestionPermisosException(TipoRechazoGestionPermisos.NoEncontrado,
+            "No existe una solicitud con ese id.");
 }
