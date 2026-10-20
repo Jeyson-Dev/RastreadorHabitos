@@ -8,6 +8,7 @@ using RastreadorHabitos.Core.ControlAcceso.Configuracion;
 using RastreadorHabitos.Core.ControlAcceso.Data;
 using RastreadorHabitos.Core.ControlAcceso.Services;
 using RastreadorHabitos.Core.GestionPermisos.Data;
+using RastreadorHabitos.Core.GestionPermisos.Services;
 using RastreadorHabitos.Core.Notificaciones.Configuracion;
 using RastreadorHabitos.Core.Notificaciones.Data;
 using RastreadorHabitos.Core.Notificaciones.Services;
@@ -73,6 +74,7 @@ builder.Services.AddScoped<ISolicitudCorreoSaliente, SolicitudCorreoSalientePorC
 builder.Services.AddScoped<ICuentaService, CuentaService>();
 builder.Services.AddScoped<IAdministracionUsuariosService, AdministracionUsuariosService>();
 builder.Services.AddScoped<IContrasenaService, ContrasenaService>();
+builder.Services.AddScoped<ISolicitudesPermisoService, SolicitudesPermisoService>();
 
 // Credencial de sesión: la clave para firmarla solo llega por variable de entorno [RD-10].
 // Los comandos independientes no la necesitan.
