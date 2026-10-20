@@ -48,9 +48,11 @@ En orden, durante la sesión:
     (`SolicitudPermiso.CambiarEstado`); aprobar, marcar aplicada, rechazar con motivo y la regla
     de no resolver la propia; el puerto `IAplicadorPermiso`, que la Api conecta con el cambio de
     rol que Control de acceso ya tenía (sin modificar esa pieza); endpoints, pruebas y README.
-- La suite: 4 archivos en `tests/RastreadorHabitos.Tests/GestionPermisos/`, con 14 métodos de
-  prueba (24 casos contando los `Theory`). Cada uno usa su propia base EF Core en memoria y
+- La suite: 5 archivos de pruebas en `tests/RastreadorHabitos.Tests/GestionPermisos/`, con 16
+  métodos (26 casos contando los `Theory`). Cada uno usa su propia base EF Core en memoria y
   marca sus fases con `// Preparar`, `// Actuar` y `// Verificar`.
+- Antes del tag le pedí que analizara todo como si fuera el profesor. Encontró el defecto del
+  caso 4 y lo corrigió en la rama `fix/gp-aprobacion-concurrente`.
 
 ## Casos en que el agente se equivocó
 
@@ -134,7 +136,63 @@ la primera línea aparecía cambiada solo por el BOM:
 quedó en `4 ++++` y el commit `fcaaebe` solo agrega líneas. De ahí en adelante editó los
 archivos existentes con la herramienta de edición en vez de scripts.
 
+### 4. Dos aprobaciones simultáneas de la misma solicitud pasaban las dos
+
+**Qué hizo mal.** El primer `AprobarAsync` leía la solicitud, comprobaba la transición, aplicaba
+el permiso y guardaba al final, sin control de concurrencia. Si dos peticiones leían la
+solicitud en `Pendiente` antes de que cualquiera guardara, las dos aprobaban. Con un aprobar y
+un rechazar simultáneos era peor: el rechazo podía ganar después de que el rol ya se había
+aplicado, y quedaba una solicitud `Rechazada` con el permiso aplicado. Las pruebas no lo veían,
+porque todas resolvían una petición después de la otra.
+
+**Cómo se detectó.** Le pedí al agente un análisis completo antes del tag. Él decidió probar
+casos borde contra la API real y lanzó 5 veces dos aprobaciones al mismo tiempo sobre la misma
+solicitud:
+
+```
+doble aprobación simultánea #1: códigos [200, 200]
+doble aprobación simultánea #2: códigos [200, 200]
+doble aprobación simultánea #3: códigos [200, 200]
+doble aprobación simultánea #4: códigos [200, 200]
+doble aprobación simultánea #5: códigos [200, 200]
+```
+
+RF-GP-06 dice que aprobar dos veces la misma solicitud se rechaza, así que la segunda debía
+recibir `409`.
+
+**Cómo se corrigió.** En la rama `fix/gp-aprobacion-concurrente`:
+
+- El estado pasó a ser **token de concurrencia** (`IsConcurrencyToken`, con su migración): SQL
+  Server solo guarda si el estado sigue siendo el que se leyó.
+- Aprobar se hace **dentro de una transacción**: guarda `Aprobada`, lo que bloquea la fila;
+  después aplica el permiso y confirma. Si la aplicación falla, se deshace todo y la solicitud
+  sigue `Pendiente`.
+- El conflicto se traduce a `409` «La solicitud ya fue resuelta por otra operación.».
+- Hay dos pruebas nuevas en `ResolucionSimultaneaTests.cs`. El agente comprobó que fallan si se
+  quita el token de concurrencia (`Failed: 2, Passed: 0`) y que pasan con él.
+
+La misma prueba contra SQL Server, después del arreglo:
+
+```
+== Doble aprobación simultánea
+[OK] #1: [200, 409] ['La solicitud ya fue resuelta por otra operación.']
+… (#2 a #5 igual)
+== Aprobar y rechazar simultáneos (el rol debe coincidir con el estado final)
+[OK] #1: aprobar=200 rechazar=409 ganó aprobar, rol del solicitante Administrador
+[OK] #3: aprobar=409 rechazar=200 ganó rechazar, rol del solicitante Estandar
+… (5 de 5 OK)
+```
+
+Al pasar el proveedor en memoria a la transacción también hubo un fallo: las pruebas se
+detuvieron con `TransactionIgnoredWarning` («Transactions are not supported by the in-memory
+store»). Se corrigió ignorando ese aviso solo en la base de pruebas, porque el bloqueo real lo
+da SQL Server y ahí se verificó.
+
 ## Otras incidencias de la sesión
+
+- **Cifras mal copiadas.** Al redactar la primera versión de esta bitácora, el agente escribió
+  «33 comprobaciones» y «25 commits». Antes de commitear contrastó esas cifras con las salidas
+  guardadas: eran 32 y 24, y las corrigió.
 
 - **Intento bloqueado.** Como `gh` no está instalado, el agente intentó leer la credencial de
   GitHub que guarda Git para abrir los pull requests por la API. El clasificador de seguridad
@@ -155,10 +213,11 @@ archivos existentes con la herramienta de edición en vez de scripts.
 
 ## Evidencia de verificación
 
-- **Suite.** `dotnet test` en un clon limpio de `feature/gp-resolver-solicitudes`, sin variables
-  de entorno: `Passed! - Failed: 0, Passed: 47, Skipped: 0, Total: 47` (23 pruebas de la
-  Práctica 1 y 24 casos de Gestión de permisos). Cada una de las 14 pruebas de Gestión de
-  permisos, ejecutada sola con `--filter`, también pasa.
+- **Suite.** Antes del arreglo del caso 4, un clon limpio de `main` desde GitHub, sin variables
+  de entorno, dio `Passed! - Failed: 0, Passed: 47, Skipped: 0, Total: 47`, y cada una de las 14
+  pruebas de Gestión de permisos ejecutada sola con `--filter` también pasaba. Con el arreglo:
+  `Passed! - Failed: 0, Passed: 49, Skipped: 0, Total: 49` (23 pruebas de la Práctica 1 y 26
+  casos de Gestión de permisos).
 - **Punta a punta.** Contra la API real con SQL Server, en la base de prueba
   `RastreadorHabitos_E2E`, un script recorrió RF-GP-01 a RF-GP-07 y RD-07 (32 comprobaciones,
   todas OK). Después se reinició la API con otra `Jwt__Clave` y se verificó RD-09: S1 `Aplicada`,

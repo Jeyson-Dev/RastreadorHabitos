@@ -448,8 +448,8 @@ Todos requieren el header `Authorization: Bearer <token>` (el `token` de `/api/s
 |---|---|---|---|---|
 | `POST` | `/api/solicitudes-permiso` | `{ "permiso": "Administrador" }` | Cualquier usuario con sesión | `201` la solicitud creada, con `estado: "Pendiente"` · `400` permiso vacío o inválido |
 | `GET` | `/api/solicitudes-permiso/pendientes` | — | Administrador | `200` lista de las solicitudes `Pendiente` de todos los usuarios · `403` Estándar |
-| `POST` | `/api/solicitudes-permiso/{id}/aprobar` | — | Administrador | `200` la solicitud con `estado: "Aplicada"`, `resueltaPorId` y `fechaResolucionUtc` · `403` Estándar, o es su propia solicitud · `404` no existe · `409` transición no permitida |
-| `POST` | `/api/solicitudes-permiso/{id}/rechazar` | `{ "motivo": "…" }` | Administrador | `200` la solicitud con `estado: "Rechazada"` y `motivoRechazo` · `400` sin motivo · `403` Estándar, o es su propia solicitud · `404` no existe · `409` transición no permitida |
+| `POST` | `/api/solicitudes-permiso/{id}/aprobar` | — | Administrador | `200` la solicitud con `estado: "Aplicada"`, `resueltaPorId` y `fechaResolucionUtc` · `403` Estándar, o es su propia solicitud · `404` no existe · `409` transición no permitida, o ya la resolvió otra operación al mismo tiempo |
+| `POST` | `/api/solicitudes-permiso/{id}/rechazar` | `{ "motivo": "…" }` | Administrador | `200` la solicitud con `estado: "Rechazada"` y `motivoRechazo` · `400` sin motivo · `403` Estándar, o es su propia solicitud · `404` no existe · `409` transición no permitida, o ya la resolvió otra operación al mismo tiempo |
 
 Las transiciones válidas son **Pendiente → Aprobada → Aplicada** y **Pendiente → Rechazada**, y
 se resuelven en un solo punto del código (RD-04):
@@ -463,6 +463,11 @@ se resuelven en un solo punto del código (RD-04):
 Aprobar hace las dos transiciones en la misma operación: Pendiente → Aprobada, le pide a Control
 de acceso que aplique el permiso (cambia el rol del solicitante a Administrador) y Aprobada →
 Aplicada. Si la aplicación falla, no se guarda nada y la solicitud sigue Pendiente.
+
+Dos resoluciones simultáneas de la misma solicitud (dos aprobaciones, o aprobar y rechazar a
+la vez) nunca pasan las dos: el estado es token de concurrencia y aprobar retiene la solicitud
+en una transacción mientras aplica el permiso. La que llega segunda recibe `409` «La solicitud
+ya fue resuelta por otra operación.» y no cambia nada (RF-GP-06).
 
 Cada solicitud se devuelve como
 `{ "id", "solicitanteId", "permiso", "estado", "fechaCreacionUtc", "resueltaPorId", "fechaResolucionUtc", "motivoRechazo" }`.
@@ -580,6 +585,7 @@ cualquier orden y por separado. Cada prueba marca sus fases con los comentarios 
 | `TransicionValidaTests.cs` | **Transiciones válidas.** Aprobar deja la solicitud Aplicada y registra quién aprobó y cuándo (RF-GP-03); rechazar la deja Rechazada y registra el motivo (RF-GP-04); aprobar pide aplicar el permiso al solicitante (RF-GP-05) |
 | `TransicionProhibidaTests.cs` | **Transiciones prohibidas.** Aprobar dos veces, aprobar una Rechazada y pasar de Rechazada a Aplicada se rechazan y el estado no cambia (RF-GP-06); rechazar sin motivo no se completa (RF-GP-04); ninguna pareja fuera de la tabla está permitida (RD-04) |
 | `ResolucionPropiaTests.cs` | Un Administrador no aprueba ni rechaza su propia solicitud, y esta sigue Pendiente (RF-GP-07) |
+| `ResolucionSimultaneaTests.cs` | Aprobar o rechazar una solicitud que otra operación aprobó después de leerla se rechaza y el estado no cambia (RF-GP-06) |
 
 Control de acceso queda fuera de las pruebas de esta pieza: `AplicadorPermisoFalso` toma su
 lugar y registra qué permiso se pidió aplicar y a quién.
