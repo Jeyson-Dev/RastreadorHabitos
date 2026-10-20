@@ -7,6 +7,8 @@ using RastreadorHabitos.Api.Errores;
 using RastreadorHabitos.Core.ControlAcceso.Configuracion;
 using RastreadorHabitos.Core.ControlAcceso.Data;
 using RastreadorHabitos.Core.ControlAcceso.Services;
+using RastreadorHabitos.Core.GestionPermisos.Data;
+using RastreadorHabitos.Core.GestionPermisos.Services;
 using RastreadorHabitos.Core.Notificaciones.Configuracion;
 using RastreadorHabitos.Core.Notificaciones.Data;
 using RastreadorHabitos.Core.Notificaciones.Services;
@@ -47,6 +49,9 @@ builder.Services.AddDbContext<NotificacionesDbContext>(options =>
 builder.Services.AddDbContext<MetasDbContext>(options =>
     options.UseSqlServer(cadenaConexion,
         sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", MetasDbContext.Esquema)));
+builder.Services.AddDbContext<GestionPermisosDbContext>(options =>
+    options.UseSqlServer(cadenaConexion,
+        sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", GestionPermisosDbContext.Esquema)));
 
 // Los enlaces de los correos se arman con esta URL y nunca con la cabecera Host de la petición.
 // Si no se configura, se usa la dirección con la que arranca la aplicación por defecto.
@@ -69,6 +74,7 @@ builder.Services.AddScoped<ISolicitudCorreoSaliente, SolicitudCorreoSalientePorC
 builder.Services.AddScoped<ICuentaService, CuentaService>();
 builder.Services.AddScoped<IAdministracionUsuariosService, AdministracionUsuariosService>();
 builder.Services.AddScoped<IContrasenaService, ContrasenaService>();
+builder.Services.AddScoped<ISolicitudesPermisoService, SolicitudesPermisoService>();
 
 // Credencial de sesión: la clave para firmarla solo llega por variable de entorno [RD-10].
 // Los comandos independientes no la necesitan.
@@ -115,6 +121,7 @@ using (var scope = app.Services.CreateScope())
         await servicios.GetRequiredService<ControlAccesoDbContext>().Database.MigrateAsync();
         await servicios.GetRequiredService<NotificacionesDbContext>().Database.MigrateAsync();
         await servicios.GetRequiredService<MetasDbContext>().Database.MigrateAsync();
+        await servicios.GetRequiredService<GestionPermisosDbContext>().Database.MigrateAsync();
     }
     catch (Exception ex)
     {

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics;
 using RastreadorHabitos.Core.ControlAcceso.Services;
+using RastreadorHabitos.Core.GestionPermisos.Services;
 
 namespace RastreadorHabitos.Api.Errores;
 
@@ -30,6 +31,19 @@ public class ManejadorErroresGlobal : IExceptionHandler
                 _ => StatusCodes.Status400BadRequest
             };
             await httpContext.Response.WriteAsJsonAsync(new { error = rechazo.Message }, cancellationToken);
+            return true;
+        }
+
+        if (exception is RechazoGestionPermisosException rechazoPermisos)
+        {
+            httpContext.Response.StatusCode = rechazoPermisos.Tipo switch
+            {
+                TipoRechazoGestionPermisos.NoPermitido => StatusCodes.Status403Forbidden,
+                TipoRechazoGestionPermisos.NoEncontrado => StatusCodes.Status404NotFound,
+                TipoRechazoGestionPermisos.TransicionNoPermitida => StatusCodes.Status409Conflict,
+                _ => StatusCodes.Status400BadRequest
+            };
+            await httpContext.Response.WriteAsJsonAsync(new { error = rechazoPermisos.Message }, cancellationToken);
             return true;
         }
 
