@@ -14,6 +14,15 @@ Rastreador de hábitos con metas — Programación III · TDS-007 · ITLA · 202
 
 Enunciado completo: [`docs/practica1-control-acceso.md`](docs/practica1-control-acceso.md).
 
+## Estado de la Asignación 2 — Gestión de permisos
+
+| Funcionalidad | Requisitos | Estado |
+|---|---|---|
+| Crear y consultar solicitudes | RF-GP-01, 02 · RD-06, 07, 09 | ✅ Implementado |
+
+Enunciado completo: [`docs/asignacion2-gestion-permisos.md`](docs/asignacion2-gestion-permisos.md).
+Cómo provocar cada criterio: [Gestión de permisos](#gestión-de-permisos--asignación-2).
+
 ## Stack
 
 - C# / ASP.NET Core Web API (.NET 10)
@@ -417,10 +426,95 @@ WHERE TABLE_SCHEMA = 'Metas' AND TABLE_NAME = 'Metas';
 Por ahora es solo la estructura que pide la sección 1.6: todavía no hay endpoints de metas
 ni pruebas de la máquina de estados (llegan en la semana 8).
 
-## Pruebas unitarias
+## Gestión de permisos — Asignación 2
+
+Un usuario pide un permiso con una **solicitud**, que un Administrador resuelve. El único
+permiso que se puede pedir es `Administrador`: Control de acceso solo tiene roles, así que al
+aplicarse el solicitante puede ejecutar las operaciones reservadas a ese rol.
+
+**Arranque de la pieza.** No necesita nada aparte: se ejecuta la API como se indica en
+[Ejecutar la API](#ejecutar-la-api), con las mismas variables de entorno. Al arrancar se crea
+la tabla `GestionPermisos.SolicitudesPermiso`. Quién puede invocar cada operación está en la
+misma tabla única de la Práctica 1, `Autorizacion/ExigenciasDeRol.cs`, y se verifica en el
+servidor (RD-06).
+
+### Endpoints
+
+Todos requieren el header `Authorization: Bearer <token>` (el `token` de `/api/sesion/iniciar`).
+
+| Método | Ruta | Cuerpo | Quién | Respuesta |
+|---|---|---|---|---|
+| `POST` | `/api/solicitudes-permiso` | `{ "permiso": "Administrador" }` | Cualquier usuario con sesión | `201` la solicitud creada, con `estado: "Pendiente"` · `400` permiso vacío o inválido |
+| `GET` | `/api/solicitudes-permiso/pendientes` | — | Administrador | `200` lista de las solicitudes `Pendiente` de todos los usuarios · `403` Estándar |
+
+Cada solicitud se devuelve como
+`{ "id", "solicitanteId", "permiso", "estado", "fechaCreacionUtc", "resueltaPorId", "fechaResolucionUtc", "motivoRechazo" }`.
+
+### Preparación
+
+Se necesitan usuarios activados (ver [Registro y activación](#cómo-provocar-cada-criterio-de-aceptación--registro-y-activación)):
+
+- **A**: Administrador, convertido con el comando `promover-administrador` (ver
+  [Crear el primer Administrador](#crear-el-primer-administrador)).
+- **E1**: Estándar.
+
+Cada uno inicia sesión con `POST /api/sesion/iniciar` y usa su `token`. El `id` de cada
+usuario sale de `GET /api/usuarios` con el token de A.
+
+Para ver lo guardado:
+
+```sql
+SELECT Id, SolicitanteId, Permiso, Estado, FechaCreacionUtc, ResueltaPorId, FechaResolucionUtc, MotivoRechazo
+FROM GestionPermisos.SolicitudesPermiso ORDER BY FechaCreacionUtc;
+```
+
+### Cómo provocar cada criterio de aceptación — Gestión de permisos
+
+**RF-GP-01 — Un Estándar crea una solicitud; nace Pendiente.** Con el token de E1,
+`POST /api/solicitudes-permiso` con `{ "permiso": "Administrador" }` → `201` con
+`"estado": "Pendiente"` y `"solicitanteId"` igual al id de E1. Guardar su `id` como **S1**.
+
+**RF-GP-02 — Un Administrador consulta las pendientes; un Estándar no ve las de otros.**
+- Con el token de A, `GET /api/solicitudes-permiso/pendientes` → `200`; la lista incluye S1.
+- Con el token de E1, la misma petición, construida a mano → `403` «No tiene permiso para
+  realizar esta operación.» Ninguna ruta recibe el id de un solicitante, así que un Estándar no
+  tiene forma de pedir las solicitudes de otros usuarios.
+- Sin token → `401` «Se requiere una sesión válida.»
+
+**RD-07 — Entrada inválida, rechazo controlado.** `POST /api/solicitudes-permiso`:
+- `{ "permiso": "" }`, `{}` o `{ "permiso": "SuperUsuario" }` → `400` «El permiso solicitado
+  debe ser Administrador.»
+- JSON mal formado o cuerpo vacío → `400` «La solicitud no tiene un formato válido.»
+
+Ninguna respuesta expone trazas ni detalles de la base de datos.
+
+**RD-09 — Las solicitudes sobreviven a reiniciar la aplicación.** Detener la API (`Ctrl+C`) y
+volver a arrancarla. Iniciar sesión otra vez como A (la clave `Jwt__Clave` puede haber
+cambiado) y repetir `GET /api/solicitudes-permiso/pendientes` → S1 sigue ahí, en `Pendiente`.
+
+## Pruebas
+
+Un solo comando, desde la raíz de un clon limpio del repositorio, ejecuta toda la suite. No
+necesita SQL Server, variables de entorno ni levantar la API:
 
 ```bash
 dotnet test
+```
+
+La suite de Gestión de permisos está en `tests/RastreadorHabitos.Tests/GestionPermisos/`. Ejercita
+la pieza directamente, sin levantar la aplicación (RD-12): cada prueba crea su propia base EF
+Core en memoria con un nombre único, así que las pruebas son independientes y pasan en
+cualquier orden y por separado. Cada prueba marca sus fases con los comentarios `// Preparar`,
+`// Actuar` y `// Verificar`, y su nombre dice qué comportamiento verifica.
+
+| Archivo | Qué verifica |
+|---|---|
+| `CreacionSolicitudTests.cs` | La solicitud nace Pendiente (RF-GP-01), el rechazo de una entrada inválida (RD-07) y el listado de pendientes (RF-GP-02) |
+
+Para ejecutar solo la suite de Gestión de permisos:
+
+```bash
+dotnet test --filter "FullyQualifiedName~GestionPermisos"
 ```
 
 ## Arquitectura
