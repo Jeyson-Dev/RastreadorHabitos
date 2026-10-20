@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RastreadorHabitos.Core.GestionPermisos.Data;
+using RastreadorHabitos.Core.GestionPermisos.Services;
 
 namespace RastreadorHabitos.Tests.GestionPermisos;
 
@@ -15,4 +16,7 @@ public sealed class BaseEnMemoria
     // Cada llamada entrega un contexto nuevo: verificar con uno distinto al que actuó
     // comprueba lo que quedó guardado, no lo que quedó en memoria.
     public GestionPermisosDbContext NuevoContexto() => new(_opciones);
+
+    public SolicitudesPermisoService NuevoServicio(IAplicadorPermiso? aplicador = null) =>
+        new(NuevoContexto(), aplicador ?? new AplicadorPermisoFalso());
 }
