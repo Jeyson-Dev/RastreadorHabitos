@@ -62,4 +62,21 @@ public class CreacionSolicitudTests
         // Verificar
         Assert.Equal(new[] { deUno.Id, deOtro.Id }.Order(), pendientes.Select(s => s.Id).Order());
     }
+
+    [Fact]
+    public async Task ListarPendientes_NoIncluyeLasSolicitudesYaResueltas()
+    {
+        // Preparar
+        var baseEnMemoria = new BaseEnMemoria();
+        var servicio = baseEnMemoria.NuevoServicio();
+        var pendiente = await servicio.CrearAsync(Guid.NewGuid(), new CreacionSolicitudPermisoDto { Permiso = "Administrador" });
+        var resuelta = await servicio.CrearAsync(Guid.NewGuid(), new CreacionSolicitudPermisoDto { Permiso = "Administrador" });
+        await servicio.AprobarAsync(resuelta.Id, Guid.NewGuid());
+
+        // Actuar
+        var pendientes = await baseEnMemoria.NuevoServicio().ListarPendientesAsync();
+
+        // Verificar
+        Assert.Equal(pendiente.Id, Assert.Single(pendientes).Id);
+    }
 }
