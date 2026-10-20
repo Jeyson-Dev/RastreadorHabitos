@@ -28,6 +28,10 @@ public class GestionPermisosDbContext : DbContext
             // El estado se guarda con su nombre ("Pendiente"), legible al consultar la base.
             builder.Property(s => s.Estado).HasConversion<string>().HasMaxLength(20).IsRequired();
 
+            // Token de concurrencia: se guarda solo si el estado sigue siendo el que se leyó. Así
+            // dos resoluciones simultáneas de la misma solicitud no pasan las dos [RF-GP-06].
+            builder.Property(s => s.Estado).IsConcurrencyToken();
+
             // Sin relación con las tablas de Control de acceso: solo los Id de solicitante y resolutor.
             // Para listar rápido las pendientes [RF-GP-02].
             builder.HasIndex(s => s.Estado);
