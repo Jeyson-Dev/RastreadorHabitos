@@ -7,6 +7,7 @@ using RastreadorHabitos.Api.Errores;
 using RastreadorHabitos.Core.ControlAcceso.Configuracion;
 using RastreadorHabitos.Core.ControlAcceso.Data;
 using RastreadorHabitos.Core.ControlAcceso.Services;
+using RastreadorHabitos.Core.GestionPermisos.Data;
 using RastreadorHabitos.Core.Notificaciones.Configuracion;
 using RastreadorHabitos.Core.Notificaciones.Data;
 using RastreadorHabitos.Core.Notificaciones.Services;
@@ -47,6 +48,9 @@ builder.Services.AddDbContext<NotificacionesDbContext>(options =>
 builder.Services.AddDbContext<MetasDbContext>(options =>
     options.UseSqlServer(cadenaConexion,
         sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", MetasDbContext.Esquema)));
+builder.Services.AddDbContext<GestionPermisosDbContext>(options =>
+    options.UseSqlServer(cadenaConexion,
+        sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", GestionPermisosDbContext.Esquema)));
 
 // Los enlaces de los correos se arman con esta URL y nunca con la cabecera Host de la petición.
 // Si no se configura, se usa la dirección con la que arranca la aplicación por defecto.
