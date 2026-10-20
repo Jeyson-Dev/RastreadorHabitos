@@ -47,12 +47,18 @@ public class SolicitudesPermisoService : ISolicitudesPermisoService
 
         solicitud.Aprobar(administradorId, DateTime.UtcNow);
 
-        // Sin intervención manual: Control de acceso aplica el permiso y la solicitud queda
-        // Aplicada. Se guarda todo al final; si la aplicación falla, la solicitud sigue Pendiente.
+        // Guardar Aprobada dentro de la transacción retiene la solicitud mientras se aplica el
+        // permiso: una resolución simultánea espera y después se rechaza [RF-GP-06]. Si la
+        // aplicación falla, se deshace todo y la solicitud sigue Pendiente.
+        await using var transaccion = await _context.Database.BeginTransactionAsync();
+        await GuardarAsync();
+
+        // Sin intervención manual: Control de acceso aplica el permiso y la solicitud queda Aplicada.
         await _aplicador.AplicarAsync(solicitud.SolicitanteId, solicitud.Permiso, administradorId);
         solicitud.MarcarAplicada();
+        await GuardarAsync();
 
-        await _context.SaveChangesAsync();
+        await transaccion.CommitAsync();
         return SolicitudPermisoDto.Desde(solicitud);
     }
 
@@ -63,8 +69,23 @@ public class SolicitudesPermisoService : ISolicitudesPermisoService
 
         solicitud.Rechazar(administradorId, rechazo.Motivo, DateTime.UtcNow);
 
-        await _context.SaveChangesAsync();
+        await GuardarAsync();
         return SolicitudPermisoDto.Desde(solicitud);
+    }
+
+    // Si otra operación resolvió la solicitud después de leerla, el estado guardado ya no es el
+    // leído: se rechaza como cualquier transición fuera de la tabla y no cambia nada [RF-GP-06].
+    private async Task GuardarAsync()
+    {
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new RechazoGestionPermisosException(TipoRechazoGestionPermisos.TransicionNoPermitida,
+                "La solicitud ya fue resuelta por otra operación.");
+        }
     }
 
     private async Task<SolicitudPermiso> BuscarAsync(Guid solicitudId) =>

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using RastreadorHabitos.Core.GestionPermisos.Data;
 using RastreadorHabitos.Core.GestionPermisos.Services;
 
@@ -11,6 +12,9 @@ public sealed class BaseEnMemoria
     private readonly DbContextOptions<GestionPermisosDbContext> _opciones =
         new DbContextOptionsBuilder<GestionPermisosDbContext>()
             .UseInMemoryDatabase($"GestionPermisos-{Guid.NewGuid()}")
+            // El proveedor en memoria no tiene transacciones: el bloqueo de la fila al aprobar lo da
+            // SQL Server. El token de concurrencia sí se comprueba aquí.
+            .ConfigureWarnings(avisos => avisos.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
 
     // Cada llamada entrega un contexto nuevo: verificar con uno distinto al que actuó
