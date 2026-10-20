@@ -22,5 +22,10 @@ public sealed class BaseEnMemoria
     public GestionPermisosDbContext NuevoContexto() => new(_opciones);
 
     public SolicitudesPermisoService NuevoServicio(IAplicadorPermiso? aplicador = null) =>
-        new(NuevoContexto(), aplicador ?? new AplicadorPermisoFalso());
+        NuevoServicio(NuevoContexto(), aplicador);
+
+    // Con un contexto dado: sirve para que el servicio trabaje sobre una lectura ya desactualizada.
+    public static SolicitudesPermisoService NuevoServicio(GestionPermisosDbContext contexto,
+                                                          IAplicadorPermiso? aplicador = null) =>
+        new(contexto, aplicador ?? new AplicadorPermisoFalso());
 }
