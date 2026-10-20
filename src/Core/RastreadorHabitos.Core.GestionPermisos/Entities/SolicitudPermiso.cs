@@ -45,6 +45,21 @@ public class SolicitudPermiso
         FechaResolucionUtc = ahoraUtc;
     }
 
+    // Sin motivo escrito, el rechazo no se completa [RF-GP-04].
+    public void Rechazar(Guid administradorId, string? motivo, DateTime ahoraUtc)
+    {
+        if (string.IsNullOrWhiteSpace(motivo))
+        {
+            throw new RechazoGestionPermisosException(TipoRechazoGestionPermisos.DatosInvalidos,
+                "El motivo del rechazo es obligatorio.");
+        }
+
+        CambiarEstado(EstadoSolicitud.Rechazada);
+        ResueltaPorId = administradorId;
+        FechaResolucionUtc = ahoraUtc;
+        MotivoRechazo = motivo.Trim();
+    }
+
     // Lo marca el sistema en cuanto el permiso aprobado quedó aplicado [RF-GP-05].
     public void MarcarAplicada()
     {
