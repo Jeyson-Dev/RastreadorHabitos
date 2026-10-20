@@ -36,6 +36,21 @@ public class SolicitudPermiso
         FechaCreacionUtc = ahoraUtc;
     }
 
+    // Queda registrado quién aprobó y cuándo [RF-GP-03]. Si la transición no está permitida,
+    // no se registra nada.
+    public void Aprobar(Guid administradorId, DateTime ahoraUtc)
+    {
+        CambiarEstado(EstadoSolicitud.Aprobada);
+        ResueltaPorId = administradorId;
+        FechaResolucionUtc = ahoraUtc;
+    }
+
+    // Lo marca el sistema en cuanto el permiso aprobado quedó aplicado [RF-GP-05].
+    public void MarcarAplicada()
+    {
+        CambiarEstado(EstadoSolicitud.Aplicada);
+    }
+
     // Único punto donde cambia el estado: resuelve cada transición contra TransicionesSolicitud
     // [RD-04]. Una transición fuera de la tabla se rechaza y el estado no cambia [RF-GP-06].
     private void CambiarEstado(EstadoSolicitud nuevo)
