@@ -69,7 +69,6 @@ public class SolicitudPermiso
         CambiarEstado(EstadoSolicitud.Rechazada);
         ResueltaPorId = administradorId;
         FechaResolucionUtc = ahoraUtc;
-        MotivoRechazo = motivo.Trim();
     }
 
     // Lo marca el sistema en cuanto el permiso aprobado quedó aplicado [RF-GP-05].
