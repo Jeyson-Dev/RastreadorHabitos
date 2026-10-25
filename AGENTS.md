@@ -20,7 +20,8 @@ Es un proyecto largo que se construye por prácticas, todas sobre el mismo dise�
 | Práctica | Enunciado | Qué define | Estado |
 |---|---|---|---|
 | 1 | `docs/practica1-control-acceso.md` (`practica1-p3.pdf`) | Control de acceso completo (pieza 1) · cola mínima de correos (RF-NOT-08, 09, 12, 13) · estructura de la máquina de estados del negocio (sección 1.6) | Entregada (tag `practica-1`) |
-| Asignación 2 | `docs/asignacion2-gestion-permisos.md` | Gestión de permisos (pieza 2): RF-GP-01 a 07 · suite de pruebas (RD-12) · bitácora `docs/bitacora-asignacion-2.md` | En curso (tag `asignacion-2`) |
+| Asignación 2 | `docs/asignacion2-gestion-permisos.md` | Gestión de permisos (pieza 2): RF-GP-01 a 07 · suite de pruebas (RD-12) · bitácora `docs/bitacora-asignacion-2.md` | Entregada (tag `asignacion-2`) |
+| 2 | `docs/practica2-suite-defectos.md` | Suite sobre Gestión de permisos (RF-GP-01 a 07, una prueba identificada por requisito) · seis defectos plantados de la variante A (tags `practica-2-defecto-1` a `6`, ramas `defecto-N`, nunca en `main`) · sección «Defectos» del README · revisión acumulada de Control de acceso | En curso (tag `practica-2`) |
 
 **Cuando llegue una práctica nueva:** agregar su transcripción literal a `docs/`, añadir su
 fila a esta tabla y adaptar el proyecto a ella **sin romper lo que exigen las prácticas
@@ -214,3 +215,5 @@ ninguna clase de ese tipo, pregunta antes de decidir la carpeta.
 - `docs/asignacion2-gestion-permisos.md`: enunciado de la Asignación 2 (Gestión de permisos).
 - `docs/bitacora-asignacion-2.md`: bitácora con el agente que exige la sección 1.3 de la
   Asignación 2.
+- `docs/practica2-suite-defectos.md`: enunciado de la Práctica 2 (suite que detecta defectos)
+  y el extracto de los defectos publicados de la variante A.
