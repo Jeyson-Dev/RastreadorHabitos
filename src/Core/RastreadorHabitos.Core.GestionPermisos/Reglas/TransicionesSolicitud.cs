@@ -17,6 +17,7 @@ public static class TransicionesSolicitud
 
         // Un Administrador rechaza una solicitud pendiente indicando el motivo [RF-GP-04].
         (EstadoSolicitud.Pendiente, EstadoSolicitud.Rechazada),
+        (EstadoSolicitud.Rechazada, EstadoSolicitud.Aplicada),
     ];
 
     public const EstadoSolicitud EstadoInicial = EstadoSolicitud.Pendiente;
