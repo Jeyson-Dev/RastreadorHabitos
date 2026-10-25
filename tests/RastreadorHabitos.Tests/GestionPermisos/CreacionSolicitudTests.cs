@@ -57,7 +57,7 @@ public class CreacionSolicitudTests
         var deOtro = await servicio.CrearAsync(Guid.NewGuid(), new CreacionSolicitudPermisoDto { Permiso = "Administrador" });
 
         // Actuar
-        var pendientes = await baseEnMemoria.NuevoServicio().ListarPendientesAsync();
+        var pendientes = await baseEnMemoria.NuevoServicio().ListarPendientesAsync(Guid.NewGuid(), esAdministrador: true);
 
         // Verificar
         Assert.Equal(new[] { deUno.Id, deOtro.Id }.Order(), pendientes.Select(s => s.Id).Order());
@@ -74,7 +74,7 @@ public class CreacionSolicitudTests
         await servicio.AprobarAsync(resuelta.Id, Guid.NewGuid());
 
         // Actuar
-        var pendientes = await baseEnMemoria.NuevoServicio().ListarPendientesAsync();
+        var pendientes = await baseEnMemoria.NuevoServicio().ListarPendientesAsync(Guid.NewGuid(), esAdministrador: true);
 
         // Verificar
         Assert.Equal(pendiente.Id, Assert.Single(pendientes).Id);

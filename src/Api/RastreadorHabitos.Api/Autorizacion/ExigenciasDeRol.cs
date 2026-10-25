@@ -40,7 +40,7 @@ public static class ExigenciasDeRol
         ["Usuarios.ForzarRestablecimientoContrasena"] = Exigencia.Administrador,
 
         ["SolicitudesPermiso.Crear"] = Exigencia.Autenticado,
-        ["SolicitudesPermiso.ListarPendientes"] = Exigencia.Administrador,
+        ["SolicitudesPermiso.ListarPendientes"] = Exigencia.Autenticado,
         ["SolicitudesPermiso.Aprobar"] = Exigencia.Administrador,
         ["SolicitudesPermiso.Rechazar"] = Exigencia.Administrador,
     };
