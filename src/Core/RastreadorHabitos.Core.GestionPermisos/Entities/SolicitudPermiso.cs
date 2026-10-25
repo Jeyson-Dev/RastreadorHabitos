@@ -81,11 +81,6 @@ public class SolicitudPermiso
     // Nadie resuelve su propia solicitud [RF-GP-07].
     private void RechazarSiEsPropia(Guid administradorId)
     {
-        if (administradorId == SolicitanteId)
-        {
-            throw new RechazoGestionPermisosException(TipoRechazoGestionPermisos.NoPermitido,
-                "Nadie puede resolver su propia solicitud.");
-        }
     }
 
     // Resuelve contra TransicionesSolicitud las transiciones de MarcarAplicada y Rechazar [RD-04].
