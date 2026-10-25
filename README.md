@@ -447,18 +447,19 @@ Todos requieren el header `Authorization: Bearer <token>` (el `token` de `/api/s
 | Método | Ruta | Cuerpo | Quién | Respuesta |
 |---|---|---|---|---|
 | `POST` | `/api/solicitudes-permiso` | `{ "permiso": "Administrador" }` | Cualquier usuario con sesión | `201` la solicitud creada, con `estado: "Pendiente"` · `400` permiso vacío o inválido |
-| `GET` | `/api/solicitudes-permiso/pendientes` | — | Administrador | `200` lista de las solicitudes `Pendiente` de todos los usuarios · `403` Estándar |
+| `GET` | `/api/solicitudes-permiso/pendientes` | — | Cualquier usuario con sesión | `200` lista de las solicitudes `Pendiente`: un Administrador recibe las de todos los usuarios; un Estándar, solo las suyas |
 | `POST` | `/api/solicitudes-permiso/{id}/aprobar` | — | Administrador | `200` la solicitud con `estado: "Aplicada"`, `resueltaPorId` y `fechaResolucionUtc` · `403` Estándar, o es su propia solicitud · `404` no existe · `409` transición no permitida, o ya la resolvió otra operación al mismo tiempo |
 | `POST` | `/api/solicitudes-permiso/{id}/rechazar` | `{ "motivo": "…" }` | Administrador | `200` la solicitud con `estado: "Rechazada"` y `motivoRechazo` · `400` sin motivo · `403` Estándar, o es su propia solicitud · `404` no existe · `409` transición no permitida, o ya la resolvió otra operación al mismo tiempo |
 
 Las transiciones válidas son **Pendiente → Aprobada → Aplicada** y **Pendiente → Rechazada**, y
-se resuelven en un solo punto del código (RD-04):
+están declaradas en un solo lugar del código (RD-04):
 
 | Qué localizar | Dónde |
 |---|---|
 | Los estados | `src/Core/RastreadorHabitos.Core.GestionPermisos/Entities/EstadoSolicitud.cs` |
 | La tabla de transiciones permitidas | `src/Core/RastreadorHabitos.Core.GestionPermisos/Reglas/TransicionesSolicitud.cs` |
-| El único método que cambia el estado (`CambiarEstado`), usado por `Aprobar`, `MarcarAplicada` y `Rechazar` | `src/Core/RastreadorHabitos.Core.GestionPermisos/Entities/SolicitudPermiso.cs` |
+| Dónde cambia el estado: `Aprobar`, que solo aprueba una solicitud Pendiente (condición explícita), y `CambiarEstado`, que resuelve contra la tabla `MarcarAplicada` y `Rechazar` | `src/Core/RastreadorHabitos.Core.GestionPermisos/Entities/SolicitudPermiso.cs` |
+| La consulta de pendientes según quién consulta (RF-GP-02) | `src/Core/RastreadorHabitos.Core.GestionPermisos/Services/SolicitudesPermisoService.cs`, `ListarPendientesAsync` |
 
 Aprobar hace las dos transiciones en la misma operación: Pendiente → Aprobada, le pide a Control
 de acceso que aplique el permiso (cambia el rol del solicitante a Administrador) y Aprobada →
@@ -479,7 +480,7 @@ Se necesitan usuarios activados (ver [Registro y activación](#cómo-provocar-ca
 - **A**: Administrador, convertido con el comando `promover-administrador` (ver
   [Crear el primer Administrador](#crear-el-primer-administrador)).
 - **E1**: Estándar.
-- **E2**: Estándar (para el rechazo).
+- **E2**: Estándar (para la consulta de RF-GP-02 y el rechazo).
 
 Cada uno inicia sesión con `POST /api/sesion/iniciar` y usa su `token`. El `id` de cada
 usuario sale de `GET /api/usuarios` con el token de A.
@@ -497,12 +498,17 @@ FROM GestionPermisos.SolicitudesPermiso ORDER BY FechaCreacionUtc;
 `POST /api/solicitudes-permiso` con `{ "permiso": "Administrador" }` → `201` con
 `"estado": "Pendiente"` y `"solicitanteId"` igual al id de E1. Guardar su `id` como **S1**.
 
-**RF-GP-02 — Un Administrador consulta las pendientes; un Estándar no ve las de otros.**
-- Con el token de A, `GET /api/solicitudes-permiso/pendientes` → `200`; la lista incluye S1.
-- Con el token de E1, la misma petición, construida a mano → `403` «No tiene permiso para
-  realizar esta operación.» Ninguna ruta recibe el id de un solicitante, así que un Estándar no
-  tiene forma de pedir las solicitudes de otros usuarios.
-- Sin token → `401` «Se requiere una sesión válida.»
+**RF-GP-02 — Un Administrador consulta las pendientes; un Estándar no ve las de otros.** Con el
+token de E2, crear otra solicitud (`POST /api/solicitudes-permiso`, `{ "permiso": "Administrador" }`)
+y guardar su `id` como **S2** (se usa en RF-GP-04). Después,
+`GET /api/solicitudes-permiso/pendientes`:
+- con el token de A → `200`; la lista incluye S1 y S2;
+- con el token de E1 → `200`; la lista incluye S1 y **no** S2: un Estándar solo ve las suyas;
+- con el token de E2 → `200`; la lista incluye S2 y no S1;
+- sin token → `401` «Se requiere una sesión válida.»
+
+Ninguna ruta recibe el id de un solicitante: el servidor decide qué devolver según el usuario de la
+sesión y su rol vigente, así que un Estándar no tiene forma de pedir las solicitudes de otros.
 
 **RD-07 — Entrada inválida, rechazo controlado.** `POST /api/solicitudes-permiso`:
 - `{ "permiso": "" }`, `{}` o `{ "permiso": "SuperUsuario" }` → `400` «El permiso solicitado
@@ -511,10 +517,9 @@ FROM GestionPermisos.SolicitudesPermiso ORDER BY FechaCreacionUtc;
 
 Ninguna respuesta expone trazas ni detalles de la base de datos.
 
-**RF-GP-04 — Rechazar indicando el motivo; sin motivo no se completa.** Con el token de E2,
-crear otra solicitud (`POST /api/solicitudes-permiso`, `{ "permiso": "Administrador" }`) y
-guardar su `id` como **S2**. Con el token de A:
-- `POST /api/solicitudes-permiso/S2/rechazar` con `{}` o con `{ "motivo": "   " }` → `400`
+**RF-GP-04 — Rechazar indicando el motivo; sin motivo no se completa.** Con el token de A y la
+solicitud S2 de E2 (creada en RF-GP-02):
+- `POST /api/solicitudes-permiso/S2/rechazar` con `{}`, `{ "motivo": "" }` o `{ "motivo": "   " }` → `400`
   «El motivo del rechazo es obligatorio.» S2 sigue `Pendiente` (consulta SQL de arriba).
 - `POST /api/solicitudes-permiso/S2/rechazar` con
   `{ "motivo": "No necesita administrar usuarios." }` → `200` con `"estado": "Rechazada"`, el
