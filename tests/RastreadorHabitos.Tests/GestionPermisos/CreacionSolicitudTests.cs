@@ -8,6 +8,7 @@ namespace RastreadorHabitos.Tests.GestionPermisos;
 // [RD-07] Una entrada inválida produce un rechazo controlado.
 public class CreacionSolicitudTests
 {
+    // [RF-GP-01] La solicitud nace en estado Pendiente.
     [Fact]
     public async Task Crear_ConPermisoValido_LaSolicitudNaceEnEstadoPendiente()
     {
@@ -27,6 +28,7 @@ public class CreacionSolicitudTests
         Assert.Equal(solicitanteId, guardada.SolicitanteId);
     }
 
+    // [RD-07] Un permiso vacío o fuera del catálogo produce un rechazo controlado.
     [Theory]
     [InlineData(null)]
     [InlineData("")]

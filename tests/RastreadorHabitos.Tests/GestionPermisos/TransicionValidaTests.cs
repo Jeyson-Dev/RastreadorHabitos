@@ -19,6 +19,7 @@ public class TransicionValidaTests
         return creada.Id;
     }
 
+    // [RF-GP-03] Al aprobar queda registrado quién aprobó y cuándo.
     [Fact]
     public async Task Aprobar_SolicitudPendiente_QuedaAplicadaYRegistraQuienAproboYCuando()
     {
@@ -58,6 +59,7 @@ public class TransicionValidaTests
         Assert.Equal((SolicitanteId, "Administrador", AdministradorId), aplicado);
     }
 
+    // [RF-GP-04] Al rechazar con motivo queda Rechazada y registra el motivo.
     [Fact]
     public async Task Rechazar_SolicitudPendienteConMotivo_QuedaRechazadaYRegistraElMotivo()
     {

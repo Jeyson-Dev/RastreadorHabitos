@@ -20,6 +20,7 @@ public class TransicionProhibidaTests
         return creada.Id;
     }
 
+    // [RF-GP-06] Aprobar dos veces la misma solicitud se rechaza.
     [Fact]
     public async Task Aprobar_SolicitudYaAplicada_SeRechazaYElEstadoNoCambia()
     {
@@ -39,6 +40,7 @@ public class TransicionProhibidaTests
         Assert.Equal(AdministradorId, guardada.ResueltaPorId);
     }
 
+    // [RF-GP-06] Aprobar una solicitud Rechazada se rechaza.
     [Fact]
     public async Task Aprobar_SolicitudRechazada_SeRechazaYElEstadoNoCambia()
     {
@@ -60,6 +62,7 @@ public class TransicionProhibidaTests
         Assert.Empty(aplicador.Aplicados);
     }
 
+    // [RF-GP-06] Pasar de Rechazada a Aplicada se rechaza.
     [Fact]
     public void MarcarAplicada_SolicitudRechazada_SeRechazaYElEstadoNoCambia()
     {
@@ -97,7 +100,7 @@ public class TransicionProhibidaTests
         Assert.Equal(EstadoSolicitud.Pendiente, guardada!.Estado);
     }
 
-    // Todas las parejas que no están en la tabla, incluidas las que salen de un estado final.
+    // [RF-GP-06] Ninguna pareja fuera de la tabla está permitida, incluidas las que salen de un estado final.
     [Theory]
     [InlineData(EstadoSolicitud.Pendiente, EstadoSolicitud.Aplicada)]
     [InlineData(EstadoSolicitud.Aprobada, EstadoSolicitud.Rechazada)]
