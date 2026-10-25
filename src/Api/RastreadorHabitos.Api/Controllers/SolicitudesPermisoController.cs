@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using RastreadorHabitos.Core.ControlAcceso.Configuracion;
+using RastreadorHabitos.Core.ControlAcceso.Entities;
 using RastreadorHabitos.Core.GestionPermisos.DTOs;
 using RastreadorHabitos.Core.GestionPermisos.Services;
 
@@ -25,11 +26,12 @@ public class SolicitudesPermisoController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, creada);
     }
 
-    // Ninguna ruta recibe el Id de un solicitante: un Estándar no puede pedir las de otros [RF-GP-02].
+    // Ninguna ruta recibe el Id de un solicitante: el servicio filtra por quien consulta y su rol
+    // vigente, así un Estándar no puede pedir las de otros [RF-GP-02].
     [HttpGet("pendientes")]
     public async Task<IActionResult> ListarPendientes()
     {
-        return Ok(await _solicitudes.ListarPendientesAsync());
+        return Ok(await _solicitudes.ListarPendientesAsync(UsuarioActual(), User.IsInRole(Rol.NombreAdministrador)));
     }
 
     [HttpPost("{id:guid}/aprobar")]

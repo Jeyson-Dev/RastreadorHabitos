@@ -20,6 +20,7 @@ public class ResolucionSimultaneaTests
         return creada.Id;
     }
 
+    // [RF-GP-06] Aprobar dos veces, aunque las dos la leyeran Pendiente, se rechaza.
     [Fact]
     public async Task Aprobar_SolicitudAprobadaPorOtraOperacionDespuesDeLeerla_SeRechazaYElEstadoNoCambia()
     {
@@ -43,6 +44,7 @@ public class ResolucionSimultaneaTests
         Assert.Empty(aplicador.Aplicados);
     }
 
+    // [RF-GP-06] Rechazar una que otra operación ya aprobó se rechaza.
     [Fact]
     public async Task Rechazar_SolicitudAprobadaPorOtraOperacionDespuesDeLeerla_SeRechazaYElEstadoNoCambia()
     {

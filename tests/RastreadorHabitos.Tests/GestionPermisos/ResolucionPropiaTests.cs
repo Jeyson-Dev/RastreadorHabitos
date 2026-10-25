@@ -17,6 +17,7 @@ public class ResolucionPropiaTests
         return creada.Id;
     }
 
+    // [RF-GP-07] Un Administrador no aprueba su propia solicitud.
     [Fact]
     public async Task Aprobar_SolicitudCreadaPorElMismoAdministrador_SeRechazaYSiguePendiente()
     {
@@ -34,6 +35,7 @@ public class ResolucionPropiaTests
         Assert.Equal(EstadoSolicitud.Pendiente, guardada!.Estado);
     }
 
+    // [RF-GP-07] Un Administrador no rechaza su propia solicitud.
     [Fact]
     public async Task Rechazar_SolicitudCreadaPorElMismoAdministrador_SeRechazaYSiguePendiente()
     {

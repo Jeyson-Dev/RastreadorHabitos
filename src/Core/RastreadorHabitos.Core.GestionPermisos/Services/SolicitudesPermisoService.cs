@@ -31,10 +31,17 @@ public class SolicitudesPermisoService : ISolicitudesPermisoService
         return SolicitudPermisoDto.Desde(nueva);
     }
 
-    public async Task<IReadOnlyList<SolicitudPermisoDto>> ListarPendientesAsync()
+    public async Task<IReadOnlyList<SolicitudPermisoDto>> ListarPendientesAsync(Guid consultanteId, bool esAdministrador)
     {
-        var pendientes = await _context.SolicitudesPermiso
-            .Where(s => s.Estado == EstadoSolicitud.Pendiente)
+        var consulta = _context.SolicitudesPermiso.Where(s => s.Estado == EstadoSolicitud.Pendiente);
+
+        // Un Estándar solo ve las suyas, nunca las de otros usuarios [RF-GP-02].
+        if (!esAdministrador)
+        {
+            consulta = consulta.Where(s => s.SolicitanteId == consultanteId);
+        }
+
+        var pendientes = await consulta
             .OrderBy(s => s.FechaCreacionUtc)
             .ToListAsync();
 

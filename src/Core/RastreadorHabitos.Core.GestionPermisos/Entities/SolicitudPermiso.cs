@@ -14,7 +14,7 @@ public class SolicitudPermiso
     // Permiso que pide, uno de Reglas/PermisosSolicitables.
     public string Permiso { get; private set; } = string.Empty;
 
-    // Toda solicitud nace Pendiente [RF-GP-01]. Solo cambia por CambiarEstado.
+    // Toda solicitud nace Pendiente [RF-GP-01]. Solo cambia en Aprobar y en CambiarEstado.
     public EstadoSolicitud Estado { get; private set; } = TransicionesSolicitud.EstadoInicial;
 
     public DateTime FechaCreacionUtc { get; private set; }
@@ -41,7 +41,17 @@ public class SolicitudPermiso
     public void Aprobar(Guid administradorId, DateTime ahoraUtc)
     {
         RechazarSiEsPropia(administradorId);
-        CambiarEstado(EstadoSolicitud.Aprobada);
+
+        // Solo se aprueba una solicitud Pendiente: aprobar dos veces se rechaza y el estado no
+        // cambia [RF-GP-06]. Esta condición decide la aprobación; coincide con Pendiente → Aprobada
+        // de TransicionesSolicitud.
+        var puedeAprobarse = Estado == EstadoSolicitud.Pendiente;
+        if (!puedeAprobarse)
+        {
+            throw RechazoTransicion(EstadoSolicitud.Aprobada);
+        }
+
+        Estado = EstadoSolicitud.Aprobada;
         ResueltaPorId = administradorId;
         FechaResolucionUtc = ahoraUtc;
     }
@@ -78,16 +88,19 @@ public class SolicitudPermiso
         }
     }
 
-    // Único punto donde cambia el estado: resuelve cada transición contra TransicionesSolicitud
-    // [RD-04]. Una transición fuera de la tabla se rechaza y el estado no cambia [RF-GP-06].
+    // Resuelve contra TransicionesSolicitud las transiciones de MarcarAplicada y Rechazar [RD-04].
+    // Una transición fuera de la tabla se rechaza y el estado no cambia [RF-GP-06].
     private void CambiarEstado(EstadoSolicitud nuevo)
     {
         if (!TransicionesSolicitud.EsPermitida(Estado, nuevo))
         {
-            throw new RechazoGestionPermisosException(TipoRechazoGestionPermisos.TransicionNoPermitida,
-                $"La solicitud está en estado {Estado} y no puede pasar a {nuevo}.");
+            throw RechazoTransicion(nuevo);
         }
 
         Estado = nuevo;
     }
+
+    private RechazoGestionPermisosException RechazoTransicion(EstadoSolicitud nuevo) =>
+        new(TipoRechazoGestionPermisos.TransicionNoPermitida,
+            $"La solicitud está en estado {Estado} y no puede pasar a {nuevo}.");
 }

@@ -19,6 +19,7 @@ public class TransicionValidaTests
         return creada.Id;
     }
 
+    // [RF-GP-03] Al aprobar queda registrado quién aprobó y cuándo.
     [Fact]
     public async Task Aprobar_SolicitudPendiente_QuedaAplicadaYRegistraQuienAproboYCuando()
     {
@@ -38,8 +39,10 @@ public class TransicionValidaTests
         Assert.InRange(guardada.FechaResolucionUtc!.Value, antes, despues);
     }
 
+    // [RF-GP-05] Tras aprobar, la solicitud llega a Aplicada y el permiso pedido queda aplicado al
+    // solicitante, sin intervención manual.
     [Fact]
-    public async Task Aprobar_SolicitudPendiente_AplicaElPermisoPedidoAlSolicitanteSinIntervencionManual()
+    public async Task Aprobar_SolicitudPendiente_LlegaAAplicadaYAplicaElPermisoPedidoSinIntervencionManual()
     {
         // Preparar
         var baseEnMemoria = new BaseEnMemoria();
@@ -50,10 +53,13 @@ public class TransicionValidaTests
         await baseEnMemoria.NuevoServicio(aplicador).AprobarAsync(solicitudId, AdministradorId);
 
         // Verificar
+        var guardada = await baseEnMemoria.NuevoContexto().SolicitudesPermiso.FindAsync(solicitudId);
+        Assert.Equal(EstadoSolicitud.Aplicada, guardada!.Estado);
         var aplicado = Assert.Single(aplicador.Aplicados);
         Assert.Equal((SolicitanteId, "Administrador", AdministradorId), aplicado);
     }
 
+    // [RF-GP-04] Al rechazar con motivo queda Rechazada y registra el motivo.
     [Fact]
     public async Task Rechazar_SolicitudPendienteConMotivo_QuedaRechazadaYRegistraElMotivo()
     {

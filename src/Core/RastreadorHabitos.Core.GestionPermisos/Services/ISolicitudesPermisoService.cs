@@ -9,8 +9,9 @@ public interface ISolicitudesPermisoService
     // La solicitud nace Pendiente [RF-GP-01].
     Task<SolicitudPermisoDto> CrearAsync(Guid solicitanteId, CreacionSolicitudPermisoDto solicitud);
 
-    // Solicitudes pendientes de todos los usuarios, reservado al Administrador [RF-GP-02].
-    Task<IReadOnlyList<SolicitudPermisoDto>> ListarPendientesAsync();
+    // Un Administrador ve las pendientes de todos los usuarios; un Estándar, solo las suyas
+    // [RF-GP-02]. El rol lo decide Control de acceso: esta pieza solo filtra según lo que recibe.
+    Task<IReadOnlyList<SolicitudPermisoDto>> ListarPendientesAsync(Guid consultanteId, bool esAdministrador);
 
     // Aprueba y aplica el permiso en la misma operación: la solicitud queda Aplicada y el
     // solicitante ya puede ejecutar la acción que pidió [RF-GP-03, RF-GP-05].
