@@ -75,8 +75,12 @@ public class TransicionProhibidaTests
         Assert.Equal(EstadoSolicitud.Rechazada, solicitud.Estado);
     }
 
-    [Fact]
-    public async Task Rechazar_SinMotivoEscrito_NoSeCompletaYLaSolicitudSiguePendiente()
+    // [RF-GP-04] Sin motivo, ausente o vacío, el rechazo no se completa y el estado no cambia.
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Rechazar_SinMotivoAusenteOVacio_NoSeCompletaYLaSolicitudSiguePendiente(string? motivo)
     {
         // Preparar
         var baseEnMemoria = new BaseEnMemoria();
@@ -85,7 +89,7 @@ public class TransicionProhibidaTests
         // Actuar
         var rechazo = await Assert.ThrowsAsync<RechazoGestionPermisosException>(() =>
             baseEnMemoria.NuevoServicio().RechazarAsync(solicitudId, AdministradorId,
-                new RechazoSolicitudPermisoDto { Motivo = "   " }));
+                new RechazoSolicitudPermisoDto { Motivo = motivo }));
 
         // Verificar
         Assert.Equal(TipoRechazoGestionPermisos.DatosInvalidos, rechazo.Tipo);
