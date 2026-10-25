@@ -38,8 +38,10 @@ public class TransicionValidaTests
         Assert.InRange(guardada.FechaResolucionUtc!.Value, antes, despues);
     }
 
+    // [RF-GP-05] Tras aprobar, la solicitud llega a Aplicada y el permiso pedido queda aplicado al
+    // solicitante, sin intervención manual.
     [Fact]
-    public async Task Aprobar_SolicitudPendiente_AplicaElPermisoPedidoAlSolicitanteSinIntervencionManual()
+    public async Task Aprobar_SolicitudPendiente_LlegaAAplicadaYAplicaElPermisoPedidoSinIntervencionManual()
     {
         // Preparar
         var baseEnMemoria = new BaseEnMemoria();
@@ -50,6 +52,8 @@ public class TransicionValidaTests
         await baseEnMemoria.NuevoServicio(aplicador).AprobarAsync(solicitudId, AdministradorId);
 
         // Verificar
+        var guardada = await baseEnMemoria.NuevoContexto().SolicitudesPermiso.FindAsync(solicitudId);
+        Assert.Equal(EstadoSolicitud.Aplicada, guardada!.Estado);
         var aplicado = Assert.Single(aplicador.Aplicados);
         Assert.Equal((SolicitanteId, "Administrador", AdministradorId), aplicado);
     }
