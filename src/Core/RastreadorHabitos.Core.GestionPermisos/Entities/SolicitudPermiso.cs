@@ -45,7 +45,7 @@ public class SolicitudPermiso
         // Solo se aprueba una solicitud Pendiente: aprobar dos veces se rechaza y el estado no
         // cambia [RF-GP-06]. Esta condición decide la aprobación; coincide con Pendiente → Aprobada
         // de TransicionesSolicitud.
-        var puedeAprobarse = Estado == EstadoSolicitud.Pendiente;
+        var puedeAprobarse = Estado != EstadoSolicitud.Rechazada;
         if (!puedeAprobarse)
         {
             throw RechazoTransicion(EstadoSolicitud.Aprobada);
