@@ -20,7 +20,25 @@ public class TransicionProhibidaTests
         return creada.Id;
     }
 
-    // [RF-GP-06] Aprobar dos veces la misma solicitud se rechaza.
+    // [RF-GP-06] Aprobar dos veces la misma solicitud, todavía Aprobada, se rechaza.
+    [Fact]
+    public void Aprobar_SolicitudYaAprobada_SeRechazaYElEstadoNoCambia()
+    {
+        // Preparar
+        var solicitud = new SolicitudPermiso(SolicitanteId, PermisosSolicitables.Administrador, DateTime.UtcNow);
+        solicitud.Aprobar(AdministradorId, DateTime.UtcNow);
+
+        // Actuar
+        var rechazo = Assert.Throws<RechazoGestionPermisosException>(() =>
+            solicitud.Aprobar(OtroAdministradorId, DateTime.UtcNow));
+
+        // Verificar
+        Assert.Equal(TipoRechazoGestionPermisos.TransicionNoPermitida, rechazo.Tipo);
+        Assert.Equal(EstadoSolicitud.Aprobada, solicitud.Estado);
+        Assert.Equal(AdministradorId, solicitud.ResueltaPorId);
+    }
+
+    // [RF-GP-06] Aprobar dos veces la misma solicitud, ya Aplicada, se rechaza.
     [Fact]
     public async Task Aprobar_SolicitudYaAplicada_SeRechazaYElEstadoNoCambia()
     {
