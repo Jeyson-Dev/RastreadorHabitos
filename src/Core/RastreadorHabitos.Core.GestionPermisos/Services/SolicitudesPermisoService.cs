@@ -38,7 +38,7 @@ public class SolicitudesPermisoService : ISolicitudesPermisoService
         // Un Estándar solo ve las suyas, nunca las de otros usuarios [RF-GP-02].
         if (!esAdministrador)
         {
-            consulta = consulta.Where(s => s.SolicitanteId == consultanteId);
+            consulta = consulta.Where(s => s.SolicitanteId != consultanteId);
         }
 
         var pendientes = await consulta
