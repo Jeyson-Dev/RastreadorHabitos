@@ -25,6 +25,16 @@ Enunciado completo: [`docs/practica1-control-acceso.md`](docs/practica1-control-
 Enunciado completo: [`docs/asignacion2-gestion-permisos.md`](docs/asignacion2-gestion-permisos.md).
 Cómo provocar cada criterio: [Gestión de permisos](#gestión-de-permisos--asignación-2).
 
+## Estado de la Práctica 2 — Una suite que detecta defectos
+
+| Entregable | Requisitos | Estado |
+|---|---|---|
+| Suite sobre Gestión de permisos, con una prueba identificada por cada requisito | RF-GP-01 a 07 · RD-12 | ✅ [Pruebas](#pruebas) |
+| Detección de los seis defectos de la variante A | RF-GP-02, 04, 06, 07 | ✅ [Defectos](#defectos) |
+| Control de acceso sigue funcionando | Práctica 1 | ✅ Mismas instrucciones de arriba |
+
+Enunciado completo: [`docs/practica2-suite-defectos.md`](docs/practica2-suite-defectos.md).
+
 ## Stack
 
 - C# / ASP.NET Core Web API (.NET 10)
@@ -582,13 +592,15 @@ La suite de Gestión de permisos está en `tests/RastreadorHabitos.Tests/Gestion
 la pieza directamente, sin levantar la aplicación (RD-12): cada prueba crea su propia base EF
 Core en memoria con un nombre único, así que las pruebas son independientes y pasan en
 cualquier orden y por separado. Cada prueba marca sus fases con los comentarios `// Preparar`,
-`// Actuar` y `// Verificar`, y su nombre dice qué comportamiento verifica.
+`// Actuar` y `// Verificar`, su nombre dice qué comportamiento verifica y encima lleva un
+comentario con el requisito que verifica, por ejemplo `// [RF-GP-02] …`.
 
 | Archivo | Qué verifica |
 |---|---|
-| `CreacionSolicitudTests.cs` | La solicitud nace Pendiente (RF-GP-01), el rechazo de una entrada inválida (RD-07) y el listado de pendientes, sin las ya resueltas (RF-GP-02) |
-| `TransicionValidaTests.cs` | **Transiciones válidas.** Aprobar deja la solicitud Aplicada y registra quién aprobó y cuándo (RF-GP-03); rechazar la deja Rechazada y registra el motivo (RF-GP-04); aprobar pide aplicar el permiso al solicitante (RF-GP-05) |
-| `TransicionProhibidaTests.cs` | **Transiciones prohibidas.** Aprobar dos veces, aprobar una Rechazada y pasar de Rechazada a Aplicada se rechazan y el estado no cambia (RF-GP-06); rechazar sin motivo no se completa (RF-GP-04); ninguna pareja fuera de la tabla está permitida (RD-04) |
+| `CreacionSolicitudTests.cs` | La solicitud nace Pendiente (RF-GP-01) y el rechazo de una entrada inválida (RD-07) |
+| `ConsultaPendientesTests.cs` | El Administrador ve las pendientes de todos, sin las ya resueltas; un Estándar ve las suyas y no ve las de otros usuarios (RF-GP-02) |
+| `TransicionValidaTests.cs` | **Transiciones válidas.** Aprobar deja la solicitud Aplicada y registra quién aprobó y cuándo (RF-GP-03); rechazar la deja Rechazada y registra el motivo (RF-GP-04); aprobar la lleva a Aplicada y aplica el permiso pedido al solicitante (RF-GP-05) |
+| `TransicionProhibidaTests.cs` | **Transiciones prohibidas.** Aprobar una solicitud ya Aprobada o ya Aplicada, aprobar una Rechazada y pasar de Rechazada a Aplicada se rechazan y el estado no cambia; ninguna pareja fuera de la tabla está permitida (RF-GP-06, RD-04); rechazar sin motivo, ausente, vacío o en blanco, no se completa y la solicitud sigue Pendiente (RF-GP-04) |
 | `ResolucionPropiaTests.cs` | Un Administrador no aprueba ni rechaza su propia solicitud, y esta sigue Pendiente (RF-GP-07) |
 | `ResolucionSimultaneaTests.cs` | Aprobar o rechazar una solicitud que otra operación aprobó después de leerla se rechaza y el estado no cambia (RF-GP-06) |
 
@@ -600,6 +612,30 @@ Para ejecutar solo la suite de Gestión de permisos:
 ```bash
 dotnet test --filter "FullyQualifiedName~GestionPermisos"
 ```
+
+## Defectos
+
+Práctica 2, variante A. Cada defecto está plantado en su propio commit, hijo directo de
+`practica-2`, que solo cambia código de Gestión de permisos (ningún archivo de pruebas), con la
+etiqueta `practica-2-defecto-N` y la rama `defecto-N`. Sobre `practica-2` todas las pruebas
+pasan; sobre cada etiqueta de defecto, el comando de [Pruebas](#pruebas) reporta las pruebas
+fallidas de la tabla:
+
+```bash
+git checkout practica-2-defecto-N
+dotnet test
+```
+
+Los nombres de las pruebas son relativos a `tests/RastreadorHabitos.Tests/GestionPermisos/`.
+
+| Defecto | Qué se plantó | Prueba que lo detecta | Comportamiento que comprueba |
+|---|---|---|---|
+| 1 (RF-GP-06) | Aprobar admite «el estado no es Rechazada» en lugar de «el estado es Pendiente» | `TransicionProhibidaTests.Aprobar_SolicitudYaAprobada_SeRechazaYElEstadoNoCambia` y `TransicionProhibidaTests.Aprobar_SolicitudYaAplicada_SeRechazaYElEstadoNoCambia` | Aprobar otra vez una solicitud ya Aprobada o ya Aplicada se rechaza, y su estado y quién la aprobó no cambian |
+| 2 (RF-GP-06) | Rechazada → Aplicada agregada a la tabla de transiciones | `TransicionProhibidaTests.MarcarAplicada_SolicitudRechazada_SeRechazaYElEstadoNoCambia` y `TransicionProhibidaTests.TransicionFueraDeLaTabla_NoEstaPermitida(desde: Rechazada, hacia: Aplicada)` | Una solicitud Rechazada no puede llegar a Aplicada: se rechaza y sigue Rechazada |
+| 3 (RF-GP-07) | Eliminada la verificación de que nadie resuelve su propia solicitud | `ResolucionPropiaTests.Aprobar_SolicitudCreadaPorElMismoAdministrador_SeRechazaYSiguePendiente` y `ResolucionPropiaTests.Rechazar_SolicitudCreadaPorElMismoAdministrador_SeRechazaYSiguePendiente` | Un Administrador que aprueba o rechaza su propia solicitud recibe un rechazo y la solicitud sigue Pendiente |
+| 4 (RF-GP-02) | La consulta de un Estándar filtra «el solicitante no es el usuario que consulta» | `ConsultaPendientesTests.ListarPendientes_ComoEstandar_DevuelveSusPropiasSolicitudes` y `ConsultaPendientesTests.ListarPendientes_ComoEstandar_NoDevuelveLasSolicitudesDeOtrosUsuarios` | Un Estándar ve sus propias solicitudes y no ve las de otros usuarios |
+| 5 (RF-GP-06) | Aprobada → Pendiente agregada a la tabla de transiciones | `TransicionProhibidaTests.TransicionFueraDeLaTabla_NoEstaPermitida(desde: Aprobada, hacia: Pendiente)` | Aprobada → Pendiente está fuera de la tabla: no está permitida |
+| 6 (RF-GP-04) | El rechazo ya no guarda el motivo | `TransicionValidaTests.Rechazar_SolicitudPendienteConMotivo_QuedaRechazadaYRegistraElMotivo` | Al rechazar con motivo la solicitud queda Rechazada y guarda el motivo escrito |
 
 ## Arquitectura
 
