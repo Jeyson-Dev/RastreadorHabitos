@@ -129,9 +129,11 @@ src/
     └── RastreadorHabitos.Tests/                 → referencia los proyectos que vaya cubriendo
 ```
 
-Referencias actuales: Api → ControlAcceso, Notificaciones, GestionPermisos, Modulo.Metas ·
+Referencias actuales: Api → ControlAcceso, Notificaciones, GestionPermisos, Modulo.Habitos,
+Modulo.Metas · Modulo.Habitos → ControlAcceso · Modulo.Metas → Modulo.Habitos ·
 Tests → ControlAcceso, GestionPermisos. Gestión de permisos no referencia a ControlAcceso:
-declara el puerto `IAplicadorPermiso` y la Api lo conecta con el cambio de rol. Las pruebas
+declara el puerto `IAplicadorPermiso` y la Api lo conecta con Control de acceso (cambio de rol
+para `Administrador`, `aplicarPermiso` para cualquier otro permiso). Las pruebas
 viven en `tests/RastreadorHabitos.Tests/`, en la raíz.
 
 **Fronteras entre piezas** (derivadas del diagrama de `Estructura.md`):
@@ -159,21 +161,23 @@ viven en `tests/RastreadorHabitos.Tests/`, en la raíz.
 - Errores: un único manejador global; los rechazos de negocio usan una excepción propia de
   cada pieza, y cualquier otra excepción responde un 500 genérico.
 
-**Módulo de negocio — la Meta y su máquina de estados** (definidas con el usuario para la
-sección 1.6 de la Práctica 1; la tabla completa está en `docs/maquina-de-estados.md`):
-- Una **Meta** agrupa uno o más hábitos de un usuario y se cumple al sumar un objetivo de
-  cumplimientos (1 o más) antes de que termine el día de su fecha límite.
+**Módulo de negocio — la Meta y su máquina de estados** (en la Práctica 3 se adoptó, con el
+usuario, la máquina de `docs/diseno-componentes-detalle.md`; la tabla exacta de lo implementado
+está en `docs/maquina-de-estados.md`):
+- Una **Meta** agrupa uno o más hábitos de un usuario y su avance es la cantidad de días
+  cumplidos de esos hábitos entre su fecha de inicio y su fecha límite (no se guarda).
 - Cuatro estados, declarados solo en `Entities/EstadoMeta.cs`: **Pendiente** (inicial),
-  **En progreso**, **Completada** y **Fallida** (estas dos, terminales).
-- Las transiciones se declaran solo en `Reglas/TransicionesMeta.cs`, y la entidad cambia de
-  estado solo con `Meta.CambiarEstado`, que rechaza las no permitidas. Permitidas, todas
-  ejecutadas por el sistema: Pendiente → En progreso (primer cumplimiento), En progreso →
-  Completada (alcanza el objetivo a tiempo), En progreso → Fallida y Pendiente → Fallida
-  (vence la fecha límite sin alcanzarlo). Prohibidas explícitas: Pendiente → Completada,
-  En progreso → Pendiente, reabrir una meta terminada y cambiar su resultado.
-- La Meta guarda solo el `UsuarioId` de su dueño, sin relación con las tablas de Control de
-  acceso. `Habito`, `MetaHabito` e `HistorialEstadoMeta` (del diagrama) todavía no existen:
-  se construyen cuando una práctica los pida.
+  **En progreso**, **Completada** (único terminal) y **Fallida**.
+- Las transiciones, con quién las ejecuta (Sistema o Dueño) y su condición, se declaran y se
+  resuelven solo en `Reglas/TransicionesMeta.cs`; la entidad cambia de estado solo con
+  `Meta.CambiarEstado`. Las del sistema se aplican al consultar la meta. La fila 1 de permitidas
+  es Pendiente → En progreso y la 1 de prohibidas es Pendiente → Completada: los defectos de la
+  Práctica 3 se plantan sobre ese orden.
+- Límite de hábitos: 10, o 20 con el permiso `LIMITE_HABITOS_AMPLIADO`, que Hábitos consulta solo
+  a Control de acceso (`tienePermiso`).
+- Hábitos y Metas guardan solo el `UsuarioId` del dueño, sin relación con las tablas de Control
+  de acceso. Todavía no existen `CategoriaHabito`, `HistorialEstadoMeta`, archivar, rachas ni
+  hábitos cuantitativos: se construyen cuando una práctica los pida.
 
 **Pendiente: Docker.** El profesor anunció que el proyecto deberá correr con Docker en su
 máquina, sin dar detalles todavía. No construir nada de Docker hasta que haya una indicación

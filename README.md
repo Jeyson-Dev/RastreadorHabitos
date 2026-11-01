@@ -10,7 +10,7 @@ Rastreador de hábitos con metas — Programación III · TDS-007 · ITLA · 202
 | Sesión | RF-CA-03, 07, 18, 19 | ✅ Implementado |
 | Roles y administración | RF-CA-04, 05, 06, 08, 20, 21 · RD-06 | ✅ Implementado |
 | Contraseñas | RF-CA-09 a 13, 22 | ✅ Implementado |
-| Máquina de estados de negocio (`Meta`) | RF-NEG-03, 04, 05 · RD-04 | ✅ Estructura declarada (las pruebas llegan en la semana 8) |
+| Máquina de estados de negocio (`Meta`) | RF-NEG-03, 04, 05 · RD-04 | ✅ Estructura declarada. En la Práctica 3 se reemplazó por la máquina de [`docs/maquina-de-estados.md`](docs/maquina-de-estados.md) |
 
 Enunciado completo: [`docs/practica1-control-acceso.md`](docs/practica1-control-acceso.md).
 
@@ -34,6 +34,17 @@ Cómo provocar cada criterio: [Gestión de permisos](#gestión-de-permisos--asig
 | Control de acceso sigue funcionando | Práctica 1 | ✅ Mismas instrucciones de arriba |
 
 Enunciado completo: [`docs/practica2-suite-defectos.md`](docs/practica2-suite-defectos.md).
+
+## Estado de la Práctica 3 — Módulo de negocio, sus pruebas y su integración
+
+| Entregable | Requisitos | Estado |
+|---|---|---|
+| Módulo de negocio con siete funcionalidades separables, protegidas por Control de acceso | RF-NEG-02, 06 · RD-06, 07, 09 | ✅ [Módulo de negocio](#módulo-de-negocio--práctica-3) |
+| Máquina de estados de la Meta: estados y transiciones en un solo lugar, prohibidas explícitas y estado terminal | RF-NEG-03, 04, 05, 09 · RD-04 | ✅ [`docs/maquina-de-estados.md`](docs/maquina-de-estados.md) |
+| Operación que requiere un permiso de Gestión de permisos (`LIMITE_HABITOS_AMPLIADO`) | RF-GP-05 · RF-NEG-06 | ✅ [Cómo probarla](#la-operación-que-requiere-un-permiso-de-gestión-de-permisos) |
+| Control de acceso y Gestión de permisos siguen funcionando | Prácticas 1 y 2 | ✅ Mismas instrucciones de arriba |
+
+Enunciado completo: [`docs/practica3-modulo-negocio.md`](docs/practica3-modulo-negocio.md).
 
 ## Stack
 
@@ -414,30 +425,6 @@ Con el token de un Estándar → `403`.
 - datos correctos → `200`: todas las sesiones, incluida la que hizo el cambio, dejan de ser
   válidas (RF-CA-12), y hay que iniciar sesión con la contraseña nueva.
 
-## Máquina de estados de negocio — `Meta`
-
-La entidad central del módulo de negocio es **Meta**: agrupa uno o más hábitos y se cumple al
-sumar un objetivo de cumplimientos antes de su fecha límite. Tiene cuatro estados:
-**Pendiente**, **En progreso**, **Completada** y **Fallida**; los dos últimos son terminales.
-
-| Qué localizar | Dónde |
-|---|---|
-| Los estados, declarados en un solo lugar (RF-NEG-03) | `src/Negocio/RastreadorHabitos.Modulo.Metas/Entities/EstadoMeta.cs` |
-| Las transiciones permitidas, en un solo lugar (RD-04), con las prohibidas explícitas (RF-NEG-04) y los estados terminales (RF-NEG-05) | `src/Negocio/RastreadorHabitos.Modulo.Metas/Reglas/TransicionesMeta.cs` |
-| La entidad con su atributo de estado | `src/Negocio/RastreadorHabitos.Modulo.Metas/Entities/Meta.cs` |
-| La tabla de transiciones (desde, hacia, quién la ejecuta, condición) | [`docs/maquina-de-estados.md`](docs/maquina-de-estados.md) |
-
-La entidad existe en el modelo de datos: la API crea al arrancar la tabla `Metas.Metas`, con
-la columna `Estado`:
-
-```sql
-SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_SCHEMA = 'Metas' AND TABLE_NAME = 'Metas';
-```
-
-Por ahora es solo la estructura que pide la sección 1.6: todavía no hay endpoints de metas
-ni pruebas de la máquina de estados (llegan en la semana 8).
-
 ## Gestión de permisos — Asignación 2
 
 Un usuario pide un permiso con una **solicitud**, que un Administrador resuelve. Se pueden pedir
@@ -587,6 +574,205 @@ cambiado) y:
 - la consulta SQL muestra S1 `Aplicada`, S2 `Rechazada` con su motivo y S3 `Pendiente`;
 - `POST /api/solicitudes-permiso/S1/aprobar` → `409`: el estado guardado se respeta.
 
+## Módulo de negocio — Práctica 3
+
+El módulo **Rastreador de hábitos** tiene dos partes: **Hábitos** (el usuario define sus hábitos
+y registra cada día si los cumplió) y **Metas** (agrupa hábitos y se logra al sumar un objetivo
+de cumplimientos). La entidad central es la **Meta**, con su máquina de estados.
+
+**Arranque.** No necesita nada aparte: se ejecuta la API como se indica en
+[Ejecutar la API](#ejecutar-la-api), con las mismas variables de entorno. Al arrancar se crean
+las tablas de los esquemas `Habitos` (`Habitos`, `HabitosDias`, `RegistrosDiarios`) y `Metas`
+(`Metas`, `MetasHabitos`), y la tabla `ControlAcceso.PermisosUsuario`.
+
+### Protección por Control de acceso (RF-NEG-06, RD-06)
+
+Todas las operaciones del negocio exigen una sesión válida y uno de los dos roles del sistema
+(exigencia `EstandarOAdministrador`), verificado en cada petición contra el rol vigente en la
+base. Está declarado en la misma tabla única de la Práctica 1,
+`src/Api/RastreadorHabitos.Api/Autorizacion/ExigenciasDeRol.cs` (entradas `Habitos.*` y
+`Metas.*`). Cada usuario trabaja solo con sus propios hábitos y metas: los de otro usuario
+responden `404`, como si no existieran.
+
+- Sin el header `Authorization`, o con un token inventado, cerrado o vencido → `401` «Se
+  requiere una sesión válida.» Vale para cualquier ruta de esta sección, por ejemplo
+  `GET /api/habitos` o `POST /api/metas`.
+
+### Endpoints
+
+Todos requieren `Authorization: Bearer <token>`. Las fechas van en formato `AAAA-MM-DD`. Los días
+de la semana son números: `1` = lunes … `7` = domingo.
+
+| # | Funcionalidad | Método y ruta | Cuerpo | Respuesta |
+|---|---|---|---|---|
+| F1 | Crear un hábito | `POST /api/habitos` | `{ "nombre", "descripcion" (opcional), "dias": [1, …, 7] }` | `201` el hábito · `400` dato inválido · `403` límite de hábitos alcanzado |
+| F2 | Listar mis hábitos | `GET /api/habitos` | — | `200` lista con `id`, `nombre`, `descripcion`, `dias`, `fechaCreacionUtc` |
+| F3 | Registrar el cumplimiento de hoy | `POST /api/habitos/{id}/registros` | `{ "cumplido": true \| false }` | `200 { "habitoId", "fecha", "cumplido" }` · `400` sin `cumplido` · `404` hábito inexistente o de otro usuario · `409` hoy no es un día programado |
+| F4 | Crear una meta | `POST /api/metas` | `{ "nombre", "objetivoCumplimientos", "fechaLimite", "habitoIds": [ … ] }` | `201` la meta, en `Pendiente` · `400` dato inválido |
+| F5 | Consultar mis metas | `GET /api/metas` y `GET /api/metas/{id}` | — | `200` la meta (o la lista) con su `avance` y su `estado` al día · `404` meta inexistente o de otro usuario |
+| F6 | Completar una meta | `POST /api/metas/{id}/completar` | — | `200` la meta en `Completada` · `404` · `409` transición no permitida o condición no cumplida |
+| F7 | Reactivar una meta Fallida | `POST /api/metas/{id}/reactivar` | `{ "nuevaFechaLimite" }` | `200` la meta en `EnProgreso` con la fecha nueva · `400` sin fecha · `404` · `409` transición no permitida o condición no cumplida |
+
+Cada meta se devuelve como
+`{ "id", "nombre", "objetivoCumplimientos", "avance", "fechaInicio", "fechaLimite", "estado", "habitoIds", "fechaCreacionUtc" }`.
+El **avance** es la cantidad de días cumplidos (registros con `cumplido: true`) de los hábitos de
+la meta entre `fechaInicio` (el día en que se creó) y `fechaLimite`.
+
+«Hoy» es la fecha local del servidor. La fecha del registro diario la asigna el servidor; no se
+puede registrar otro día.
+
+### Preparación
+
+Se necesitan dos usuarios activados (ver
+[Registro y activación](#cómo-provocar-cada-criterio-de-aceptación--registro-y-activación)):
+
+- **E**: Estándar.
+- **A**: Administrador, convertido con el comando `promover-administrador` (ver
+  [Crear el primer Administrador](#crear-el-primer-administrador)).
+
+Cada uno inicia sesión con `POST /api/sesion/iniciar` y usa su `token`. Para ver lo guardado:
+
+```sql
+SELECT Id, UsuarioId, Nombre, FechaCreacionUtc FROM Habitos.Habitos ORDER BY FechaCreacionUtc;
+SELECT HabitoId, Fecha, Cumplido FROM Habitos.RegistrosDiarios;
+SELECT Id, UsuarioId, Nombre, ObjetivoCumplimientos, FechaInicio, FechaLimite, Estado FROM Metas.Metas;
+SELECT UsuarioId, Codigo, FechaConcesionUtc FROM ControlAcceso.PermisosUsuario;
+```
+
+### Cómo provocar cada funcionalidad
+
+Todas con el token de E, salvo que se diga otra cosa. Cada una se puede probar por separado: F1
+y F4 crean lo que necesitan las demás.
+
+**F1 — Crear un hábito.** `POST /api/habitos` con
+`{ "nombre": "Leer 20 minutos", "dias": [1, 2, 3, 4, 5, 6, 7] }` → `201` con su `id` (guardarlo
+como **H1**). Entrada inválida, rechazo controlado (RD-07):
+- sin `nombre`, vacío o de más de 100 caracteres → `400` «El nombre es obligatorio y tiene como
+  máximo 100 caracteres.»
+- sin `dias`, `[]` o con un día fuera de 1 a 7 (por ejemplo `[8]`) → `400` «Indique al menos un
+  día de la semana, del 1 (lunes) al 7 (domingo).»
+- `"dias": "lunes"`, JSON mal formado o cuerpo vacío → `400` «La solicitud no tiene un formato
+  válido.»
+
+**F2 — Listar mis hábitos.** `GET /api/habitos` → `200` con H1 y sus días. Con el token de A →
+`200 []`: no ve los hábitos de E.
+
+**F3 — Registrar el cumplimiento de hoy.** `POST /api/habitos/H1/registros` con
+`{ "cumplido": true }` → `200` con la `fecha` de hoy. Repetirlo con `{ "cumplido": false }` →
+`200`: corrige el registro de hoy, no crea otro. Además:
+- `{}` → `400` «Indique si cumplió el hábito (cumplido: true o false).»
+- un hábito cuyo único día programado no sea hoy (por ejemplo, si hoy es domingo, crearlo con
+  `"dias": [1]`) → `409` «Hoy no es un día programado para este hábito.»
+- con el token de A sobre H1, o con un id inexistente → `404` «No existe un hábito con ese id.»
+
+Dejar H1 con `{ "cumplido": true }` para F5.
+
+**F4 — Crear una meta.** Antes, crear otro hábito **H2** (F1). `POST /api/metas` con
+`{ "nombre": "Leer 2 veces", "objetivoCumplimientos": 2, "fechaLimite": "<dentro de 10 días>", "habitoIds": ["H2"] }`
+→ `201` con `"estado": "Pendiente"` y `"avance": 0`. Guardar su `id` como **M1**. Entrada inválida
+→ `400`:
+- `objetivoCumplimientos` ausente, `0` o negativo → «El objetivo de cumplimientos es obligatorio
+  y debe ser 1 o más.»
+- `fechaLimite` ausente o anterior a hoy → «La fecha límite es obligatoria (AAAA-MM-DD) y no puede
+  ser anterior a hoy.»; con otro formato (`"30/11/2026"`) → «La solicitud no tiene un formato
+  válido.»
+- `habitoIds` vacío → «Indique al menos un hábito para la meta.»; con un id que no es de E →
+  «Alguno de los hábitos indicados no existe.»
+
+**F5 — Consultar mis metas.** `GET /api/metas/M1` → `200`, `Pendiente`, `avance: 0`. Registrar el
+cumplimiento de H2 (F3) y consultar otra vez → `200`, `"estado": "EnProgreso"`, `"avance": 1`: el
+sistema aplicó la transición Pendiente → En progreso al consultar. `GET /api/metas` → `200` con
+todas las metas de E. Con el token de A, `GET /api/metas/M1` → `404`.
+
+**F6 — Completar una meta.** Ver las transiciones 2 y prohibidas 1 y 4 de abajo.
+
+**F7 — Reactivar una meta Fallida.** Ver la transición 5 y la prohibida 4 de abajo.
+
+### Máquina de estados de la Meta
+
+Estados, transiciones permitidas (con quién la ejecuta y su condición), prohibidas y estado
+terminal: [`docs/maquina-de-estados.md`](docs/maquina-de-estados.md).
+
+| Qué localizar | Dónde |
+|---|---|
+| Los estados, declarados en un solo lugar (RF-NEG-03) | `src/Negocio/RastreadorHabitos.Modulo.Metas/Entities/EstadoMeta.cs` |
+| La tabla de transiciones permitidas con quién la ejecuta y su condición, las prohibidas explícitas y el único punto que resuelve cada transición (RD-04, RF-NEG-04, RF-NEG-05) | `src/Negocio/RastreadorHabitos.Modulo.Metas/Reglas/TransicionesMeta.cs` |
+| La entidad: solo cambia de estado por `CambiarEstado` | `src/Negocio/RastreadorHabitos.Modulo.Metas/Entities/Meta.cs` |
+
+Cómo provocar cada fila de la tabla con la API. Para el vencimiento de la fecha límite no hace
+falta esperar: se adelanta con SQL.
+
+```sql
+UPDATE Metas.Metas SET FechaLimite = DATEADD(DAY, -1, CAST(GETDATE() AS date)) WHERE Id = '<id de la meta>';
+```
+
+**Permitidas:**
+
+1. **Pendiente → En progreso** (sistema, al menos un cumplimiento): F5 sobre M1.
+2. **En progreso → Completada** (dueño, avance ≥ objetivo): `POST /api/metas/M1/completar` con
+   avance 1 de 2 → `409` «El avance todavía no alcanza el objetivo de la meta.», y M1 sigue
+   `EnProgreso`. Crear **M2** con `objetivoCumplimientos: 1` y `habitoIds: ["H1"]` (H1 ya está
+   cumplido hoy): nace con avance 1 y el sistema la pasa a `EnProgreso`. Después,
+   `POST /api/metas/M2/completar` → `200`, `"estado": "Completada"`.
+3. **En progreso → Fallida** (sistema, venció sin alcanzar el objetivo): vencer M1 con la consulta
+   SQL y `GET /api/metas/M1` → `"estado": "Fallida"`.
+4. **Pendiente → Fallida** (sistema, venció sin alcanzar el objetivo): crear **M3** con un hábito
+   sin cumplimientos (`Pendiente`), vencerla con la consulta SQL y `GET /api/metas/M3` →
+   `"estado": "Fallida"`.
+5. **Fallida → En progreso** (dueño, nueva fecha límite posterior a hoy):
+   `POST /api/metas/M3/reactivar` con `{ "nuevaFechaLimite": "<hoy>" }` → `409` «La nueva fecha
+   límite debe ser posterior a hoy.», y M3 sigue `Fallida`. Con `{}` → `400`. Con
+   `{ "nuevaFechaLimite": "<dentro de 7 días>" }` → `200`, `"estado": "EnProgreso"` y esa
+   `fechaLimite`.
+
+**Prohibidas (RF-NEG-04):** se rechazan con `409` y el estado no cambia (se ve con
+`GET /api/metas/{id}`).
+
+1. **Pendiente → Completada:** `POST /api/metas/{id}/completar` sobre una meta `Pendiente` →
+   `409` «Una meta Pendiente no puede completarse: primero debe pasar por En progreso.»
+2. **Fallida → Completada:** `POST /api/metas/{id}/completar` sobre una meta `Fallida` → `409`
+   «Una meta Fallida no puede completarse: primero debe reactivarse.»
+3. **Completada → En progreso, estado terminal (RF-NEG-05):** `POST /api/metas/M2/reactivar` con
+   una fecha futura → `409` «Una meta Completada es definitiva y no cambia de estado.», y
+   `POST /api/metas/M2/completar` otra vez → `409`. M2 sigue `Completada`.
+4. **En progreso → Pendiente, Fallida → Pendiente, Completada → Pendiente y Completada → Fallida:**
+   ninguna operación de la API las pide. El sistema nunca las aplica (una meta Completada vencida
+   sigue `Completada`), y la suite de [Pruebas](#pruebas) verifica que se rechazan.
+
+### La operación que requiere un permiso de Gestión de permisos
+
+Un usuario puede tener **10 hábitos**, o **20** si tiene el permiso `LIMITE_HABITOS_AMPLIADO`.
+Para crear un hábito, el módulo consulta el permiso **solo a Control de acceso**
+(`tienePermiso`, en `src/Negocio/RastreadorHabitos.Modulo.Habitos/Services/HabitosService.cs`),
+nunca a Gestión de permisos. Gestión de permisos tramita la solicitud y, al aprobarla, le pide a
+Control de acceso que aplique el permiso (`aplicarPermiso`).
+
+1. Con el token de E, crear hábitos (F1) hasta tener 10.
+2. Crear el 11.º → `403` «Alcanzó el límite de 10 hábitos. Para crear más, solicite el permiso
+   LIMITE_HABITOS_AMPLIADO.»
+3. Con el token de E, `POST /api/solicitudes-permiso` con
+   `{ "permiso": "LIMITE_HABITOS_AMPLIADO" }` → `201`, `"estado": "Pendiente"`. Guardar su `id`
+   como **S**.
+4. Con la solicitud todavía `Pendiente`, crear el 11.º otra vez → `403`, el mismo mensaje.
+5. Con el token de A, `POST /api/solicitudes-permiso/S/aprobar` → `200`, `"estado": "Aplicada"`.
+   En `ControlAcceso.PermisosUsuario` aparece el permiso de E. Su rol no cambia (sigue `Estandar`
+   en `GET /api/sesion/usuario`).
+6. Con el **mismo token** de E, crear el 11.º → `201`. Ahora puede llegar a 20; el 21.º → `403`
+   «Alcanzó el límite de 20 hábitos.»
+
+Si A rechaza la solicitud (`POST /api/solicitudes-permiso/S/rechazar` con un motivo), el 11.º
+sigue rechazándose.
+
+### RD-09 y RF-NEG-09
+
+- **Los datos del negocio sobreviven a reiniciar la aplicación (RD-09).** Detener la API
+  (`Ctrl+C`), volver a arrancarla e iniciar sesión otra vez como E: `GET /api/habitos` y
+  `GET /api/metas` devuelven lo mismo que antes, con los mismos estados; el permiso de E sigue
+  vigente (el 11.º hábito ya creado sigue ahí y puede crear más hasta 20).
+- **Máquina independiente de la de Gestión de permisos (RF-NEG-09).** El proyecto
+  `RastreadorHabitos.Modulo.Metas` no referencia a Gestión de permisos (ver su `.csproj`) ni usa
+  `EstadoSolicitud`; sus estados son solo los de `EstadoMeta.cs`.
+
 ## Pruebas
 
 Un solo comando, desde la raíz de un clon limpio del repositorio, ejecuta toda la suite. No
@@ -652,4 +838,5 @@ Monolito modular por proyectos sobre el diagrama de componentes de
 `.csproj`, de forma que una referencia de proyecto indebida no compila. Control de acceso no
 conoce a Notificaciones: declara la interfaz `ISolicitudCorreoSaliente` y la Api la conecta
 con la cola. Cada pieza guarda sus tablas en su propio esquema SQL (`ControlAcceso`,
-`Notificaciones`, `Metas`). Detalles en [`AGENTS.md`](AGENTS.md).
+`Notificaciones`, `GestionPermisos`, `Habitos`, `Metas`). El módulo de negocio solo habla con
+Control de acceso (identidad y `tienePermiso`), y Metas depende de Hábitos, nunca al revés. Detalles en [`AGENTS.md`](AGENTS.md).
