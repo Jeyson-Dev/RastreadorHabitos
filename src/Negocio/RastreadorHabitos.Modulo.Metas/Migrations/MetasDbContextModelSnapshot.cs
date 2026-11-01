@@ -37,6 +37,9 @@ namespace RastreadorHabitos.Modulo.Metas.Migrations
                     b.Property<DateTime>("FechaCreacionUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateOnly>("FechaInicio")
+                        .HasColumnType("date");
+
                     b.Property<DateOnly>("FechaLimite")
                         .HasColumnType("date");
 
@@ -59,6 +62,33 @@ namespace RastreadorHabitos.Modulo.Metas.Migrations
                         {
                             t.HasCheckConstraint("CK_Metas_ObjetivoCumplimientos", "[ObjetivoCumplimientos] >= 1");
                         });
+                });
+
+            modelBuilder.Entity("RastreadorHabitos.Modulo.Metas.Entities.MetaHabito", b =>
+                {
+                    b.Property<Guid>("MetaId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("HabitoId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("MetaId", "HabitoId");
+
+                    b.ToTable("MetasHabitos", "Metas");
+                });
+
+            modelBuilder.Entity("RastreadorHabitos.Modulo.Metas.Entities.MetaHabito", b =>
+                {
+                    b.HasOne("RastreadorHabitos.Modulo.Metas.Entities.Meta", null)
+                        .WithMany("Habitos")
+                        .HasForeignKey("MetaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RastreadorHabitos.Modulo.Metas.Entities.Meta", b =>
+                {
+                    b.Navigation("Habitos");
                 });
 #pragma warning restore 612, 618
         }

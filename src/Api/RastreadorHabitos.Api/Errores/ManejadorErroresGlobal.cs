@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using RastreadorHabitos.Core.ControlAcceso.Services;
 using RastreadorHabitos.Core.GestionPermisos.Services;
 using RastreadorHabitos.Modulo.Habitos.Services;
+using RastreadorHabitos.Modulo.Metas.Services;
 
 namespace RastreadorHabitos.Api.Errores;
 
@@ -58,6 +59,18 @@ public class ManejadorErroresGlobal : IExceptionHandler
                 _ => StatusCodes.Status400BadRequest
             };
             await httpContext.Response.WriteAsJsonAsync(new { error = rechazoHabitos.Message }, cancellationToken);
+            return true;
+        }
+
+        if (exception is RechazoMetasException rechazoMetas)
+        {
+            httpContext.Response.StatusCode = rechazoMetas.Tipo switch
+            {
+                TipoRechazoMetas.NoEncontrado => StatusCodes.Status404NotFound,
+                TipoRechazoMetas.TransicionNoPermitida => StatusCodes.Status409Conflict,
+                _ => StatusCodes.Status400BadRequest
+            };
+            await httpContext.Response.WriteAsJsonAsync(new { error = rechazoMetas.Message }, cancellationToken);
             return true;
         }
 

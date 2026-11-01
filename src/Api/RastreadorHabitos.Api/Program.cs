@@ -15,6 +15,7 @@ using RastreadorHabitos.Core.Notificaciones.Services;
 using RastreadorHabitos.Modulo.Habitos.Data;
 using RastreadorHabitos.Modulo.Habitos.Services;
 using RastreadorHabitos.Modulo.Metas.Data;
+using RastreadorHabitos.Modulo.Metas.Services;
 
 // Comandos independientes: se ejecutan una vez y terminan, sin levantar el servidor web.
 //   dotnet run --project src/Api/RastreadorHabitos.Api -- enviar-correos                  [RF-NOT-09]
@@ -88,6 +89,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<HabitosService>();
 builder.Services.AddScoped<IHabitosService>(servicios => servicios.GetRequiredService<HabitosService>());
 builder.Services.AddScoped<IConsultaHabitos>(servicios => servicios.GetRequiredService<HabitosService>());
+builder.Services.AddScoped<IMetasService, MetasService>();
 
 // Credencial de sesión: la clave para firmarla solo llega por variable de entorno [RD-10].
 // Los comandos independientes no la necesitan.
