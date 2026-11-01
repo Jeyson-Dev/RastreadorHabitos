@@ -807,6 +807,31 @@ Para ejecutar solo la suite de Gestión de permisos:
 dotnet test --filter "FullyQualifiedName~GestionPermisos"
 ```
 
+### Suite de la máquina de estados de la Meta (Práctica 3)
+
+Está en `tests/RastreadorHabitos.Tests/Metas/` y la ejecuta el mismo `dotnet test`. Ejercita la
+entidad `Meta` y la tabla `TransicionesMeta` directamente, sin base de datos ni aplicación
+(RD-12). Cada prueba construye su propia meta (`MetasDePrueba.En(estado)`, que la lleva a ese
+estado solo con transiciones permitidas) y usa una fecha fija, así que las pruebas son
+independientes, pasan en cualquier orden y no dependen del día en que se ejecutan. Cada una marca
+sus fases con `// Preparar`, `// Actuar` y `// Verificar` y su nombre dice qué comportamiento
+verifica. Encima lleva un comentario con la fila de [`docs/maquina-de-estados.md`](docs/maquina-de-estados.md)
+que prueba.
+
+| Archivo | Qué verifica |
+|---|---|
+| `TransicionesPermitidasMetaTests.cs` | **Una prueba por cada fila de la tabla de permitidas** (1 a 5), con su condición cumplida y ejecutada por quien le corresponde: el estado resultante (y, al reactivar, la fecha límite nueva). Además, que toda meta nace Pendiente |
+| `CondicionesTransicionMetaTests.cs` | Cada transición permitida sin su condición, o ejecutada por quien no le corresponde, se rechaza y el estado no cambia (RD-04) |
+| `TransicionesProhibidasMetaTests.cs` | **Una prueba por cada fila de la tabla de prohibidas** (1 a 7), intentada por el sistema y por el dueño con un avance suficiente y una fecha nueva futura: se rechaza y el estado no cambia (RF-NEG-04). Además, completar una meta Pendiente con la operación de la API |
+| `EstadoTerminalMetaTests.cs` | **Del estado terminal no se sale** (RF-NEG-05): ninguna transición permitida sale de Completada, una meta Completada no pasa a ningún estado, no se reactiva y el sistema no la mueve aunque venza; los demás estados no son terminales |
+| `IndependenciaMaquinaMetaTests.cs` | El módulo de Metas no referencia a Gestión de permisos (RF-NEG-09) y declara exactamente cuatro estados (RF-NEG-03) |
+
+Para ejecutar solo esta suite:
+
+```bash
+dotnet test --filter "FullyQualifiedName~Tests.Metas"
+```
+
 ## Defectos
 
 Práctica 2, variante A. Cada defecto está plantado en su propio commit, hijo directo de
