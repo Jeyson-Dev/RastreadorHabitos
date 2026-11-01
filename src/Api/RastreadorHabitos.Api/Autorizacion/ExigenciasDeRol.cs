@@ -53,6 +53,12 @@ public static class ExigenciasDeRol
         ["Habitos.Crear"] = Exigencia.EstandarOAdministrador,
         ["Habitos.Listar"] = Exigencia.EstandarOAdministrador,
         ["Habitos.RegistrarCumplimiento"] = Exigencia.EstandarOAdministrador,
+
+        ["Metas.Crear"] = Exigencia.EstandarOAdministrador,
+        ["Metas.Listar"] = Exigencia.EstandarOAdministrador,
+        ["Metas.Obtener"] = Exigencia.EstandarOAdministrador,
+        ["Metas.Completar"] = Exigencia.EstandarOAdministrador,
+        ["Metas.Reactivar"] = Exigencia.EstandarOAdministrador,
     };
 
     public static Exigencia De(string controlador, string accion) =>
