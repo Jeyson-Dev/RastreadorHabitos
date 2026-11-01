@@ -22,7 +22,7 @@ public class SolicitudesPermisoService : ISolicitudesPermisoService
         // Entrada inválida: rechazo controlado, nunca una excepción sin manejar [RD-07].
         var permiso = PermisosSolicitables.Normalizar(solicitud.Permiso)
             ?? throw new RechazoGestionPermisosException(TipoRechazoGestionPermisos.DatosInvalidos,
-                $"El permiso solicitado debe ser {PermisosSolicitables.Administrador}.");
+                $"El permiso solicitado debe ser {string.Join(" o ", PermisosSolicitables.Todos)}.");
 
         var nueva = new SolicitudPermiso(solicitanteId, permiso, DateTime.UtcNow);
         _context.SolicitudesPermiso.Add(nueva);

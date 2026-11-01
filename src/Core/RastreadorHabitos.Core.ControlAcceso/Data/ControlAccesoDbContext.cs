@@ -16,6 +16,7 @@ public class ControlAccesoDbContext : DbContext
     public DbSet<Rol> Roles => Set<Rol>();
     public DbSet<TokenUsuario> TokensUsuario => Set<TokenUsuario>();
     public DbSet<SesionUsuario> SesionesUsuario => Set<SesionUsuario>();
+    public DbSet<PermisoUsuario> PermisosUsuario => Set<PermisoUsuario>();
 
     // Marca como cerradas todas las sesiones abiertas de un usuario, sin guardar: quien llama
     // guarda junto con su propio cambio, así las dos cosas ocurren o ninguna. La usan la
@@ -91,6 +92,18 @@ public class ControlAccesoDbContext : DbContext
             builder.HasOne(s => s.Usuario)
                 .WithMany()
                 .HasForeignKey(s => s.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PermisoUsuario>(builder =>
+        {
+            // Un permiso se concede una sola vez a cada usuario.
+            builder.HasKey(p => new { p.UsuarioId, p.Codigo });
+            builder.Property(p => p.Codigo).IsRequired().HasMaxLength(50);
+
+            builder.HasOne(p => p.Usuario)
+                .WithMany()
+                .HasForeignKey(p => p.UsuarioId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

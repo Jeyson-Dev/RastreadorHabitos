@@ -440,9 +440,17 @@ ni pruebas de la máquina de estados (llegan en la semana 8).
 
 ## Gestión de permisos — Asignación 2
 
-Un usuario pide un permiso con una **solicitud**, que un Administrador resuelve. El único
-permiso que se puede pedir es `Administrador`: Control de acceso solo tiene roles, así que al
-aplicarse el solicitante puede ejecutar las operaciones reservadas a ese rol.
+Un usuario pide un permiso con una **solicitud**, que un Administrador resuelve. Se pueden pedir
+dos permisos:
+
+- `Administrador`: al aplicarse, Control de acceso le cambia el rol al solicitante, que puede
+  ejecutar las operaciones reservadas a ese rol.
+- `LIMITE_HABITOS_AMPLIADO`: al aplicarse, Control de acceso guarda el permiso del solicitante
+  (tabla `ControlAcceso.PermisosUsuario`), que puede tener hasta 20 hábitos en lugar de 10 (ver
+  [Módulo de negocio](#módulo-de-negocio--práctica-3)).
+
+Los ejemplos de esta sección usan `Administrador`; los mismos pasos valen con
+`LIMITE_HABITOS_AMPLIADO`.
 
 **Arranque de la pieza.** No necesita nada aparte: se ejecuta la API como se indica en
 [Ejecutar la API](#ejecutar-la-api), con las mismas variables de entorno. Al arrancar se crea
@@ -456,7 +464,7 @@ Todos requieren el header `Authorization: Bearer <token>` (el `token` de `/api/s
 
 | Método | Ruta | Cuerpo | Quién | Respuesta |
 |---|---|---|---|---|
-| `POST` | `/api/solicitudes-permiso` | `{ "permiso": "Administrador" }` | Cualquier usuario con sesión | `201` la solicitud creada, con `estado: "Pendiente"` · `400` permiso vacío o inválido |
+| `POST` | `/api/solicitudes-permiso` | `{ "permiso": "Administrador" }` o `{ "permiso": "LIMITE_HABITOS_AMPLIADO" }` | Cualquier usuario con sesión | `201` la solicitud creada, con `estado: "Pendiente"` · `400` permiso vacío o inválido |
 | `GET` | `/api/solicitudes-permiso/pendientes` | — | Cualquier usuario con sesión | `200` lista de las solicitudes `Pendiente`: un Administrador recibe las de todos los usuarios; un Estándar, solo las suyas |
 | `POST` | `/api/solicitudes-permiso/{id}/aprobar` | — | Administrador | `200` la solicitud con `estado: "Aplicada"`, `resueltaPorId` y `fechaResolucionUtc` · `403` Estándar, o es su propia solicitud · `404` no existe · `409` transición no permitida, o ya la resolvió otra operación al mismo tiempo |
 | `POST` | `/api/solicitudes-permiso/{id}/rechazar` | `{ "motivo": "…" }` | Administrador | `200` la solicitud con `estado: "Rechazada"` y `motivoRechazo` · `400` sin motivo · `403` Estándar, o es su propia solicitud · `404` no existe · `409` transición no permitida, o ya la resolvió otra operación al mismo tiempo |
@@ -472,8 +480,8 @@ están declaradas en un solo lugar del código (RD-04):
 | La consulta de pendientes según quién consulta (RF-GP-02) | `src/Core/RastreadorHabitos.Core.GestionPermisos/Services/SolicitudesPermisoService.cs`, `ListarPendientesAsync` |
 
 Aprobar hace las dos transiciones en la misma operación: Pendiente → Aprobada, le pide a Control
-de acceso que aplique el permiso (cambia el rol del solicitante a Administrador) y Aprobada →
-Aplicada. Si la aplicación falla, no se guarda nada y la solicitud sigue Pendiente.
+de acceso que aplique el permiso (cambia el rol del solicitante a Administrador, o guarda el
+permiso `LIMITE_HABITOS_AMPLIADO`) y Aprobada → Aplicada. Si la aplicación falla, no se guarda nada y la solicitud sigue Pendiente.
 
 Dos resoluciones simultáneas de la misma solicitud (dos aprobaciones, o aprobar y rechazar a
 la vez) nunca pasan las dos: el estado es token de concurrencia y aprobar retiene la solicitud
@@ -522,7 +530,7 @@ sesión y su rol vigente, así que un Estándar no tiene forma de pedir las soli
 
 **RD-07 — Entrada inválida, rechazo controlado.** `POST /api/solicitudes-permiso`:
 - `{ "permiso": "" }`, `{}` o `{ "permiso": "SuperUsuario" }` → `400` «El permiso solicitado
-  debe ser Administrador.»
+  debe ser Administrador o LIMITE_HABITOS_AMPLIADO.»
 - JSON mal formado o cuerpo vacío → `400` «La solicitud no tiene un formato válido.»
 
 Ninguna respuesta expone trazas ni detalles de la base de datos.
