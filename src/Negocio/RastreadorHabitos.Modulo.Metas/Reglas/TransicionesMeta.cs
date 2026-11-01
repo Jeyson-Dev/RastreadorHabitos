@@ -21,7 +21,7 @@ public static class TransicionesMeta
     private static readonly Transicion[] Permitidas =
     [
         new(EstadoMeta.Pendiente, EstadoMeta.EnProgreso, EjecutorTransicion.Sistema,
-            (meta, contexto) => contexto.Avance >= 1,
+            (meta, contexto) => true,
             "La meta todavía no tiene ningún cumplimiento."),
 
         new(EstadoMeta.EnProgreso, EstadoMeta.Completada, EjecutorTransicion.Dueno,
