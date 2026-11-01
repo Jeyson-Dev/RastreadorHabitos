@@ -1,9 +1,18 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Solo para identidad y permisos (tienePermiso); nunca habla con Gestión de permisos. -->
+    <ProjectReference Include="..\..\Core\RastreadorHabitos.Core.ControlAcceso\RastreadorHabitos.Core.ControlAcceso.csproj" />
+  </ItemGroup>
 
 </Project>

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Diagnostics;
 using RastreadorHabitos.Core.ControlAcceso.Services;
 using RastreadorHabitos.Core.GestionPermisos.Services;
+using RastreadorHabitos.Modulo.Habitos.Services;
 
 namespace RastreadorHabitos.Api.Errores;
 
@@ -44,6 +45,19 @@ public class ManejadorErroresGlobal : IExceptionHandler
                 _ => StatusCodes.Status400BadRequest
             };
             await httpContext.Response.WriteAsJsonAsync(new { error = rechazoPermisos.Message }, cancellationToken);
+            return true;
+        }
+
+        if (exception is RechazoHabitosException rechazoHabitos)
+        {
+            httpContext.Response.StatusCode = rechazoHabitos.Tipo switch
+            {
+                TipoRechazoHabitos.NoEncontrado => StatusCodes.Status404NotFound,
+                TipoRechazoHabitos.LimiteAlcanzado => StatusCodes.Status403Forbidden,
+                TipoRechazoHabitos.ReglaIncumplida => StatusCodes.Status409Conflict,
+                _ => StatusCodes.Status400BadRequest
+            };
+            await httpContext.Response.WriteAsJsonAsync(new { error = rechazoHabitos.Message }, cancellationToken);
             return true;
         }
 
