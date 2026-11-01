@@ -22,6 +22,7 @@ Es un proyecto largo que se construye por prácticas, todas sobre el mismo dise�
 | 1 | `docs/practica1-control-acceso.md` (`practica1-p3.pdf`) | Control de acceso completo (pieza 1) · cola mínima de correos (RF-NOT-08, 09, 12, 13) · estructura de la máquina de estados del negocio (sección 1.6) | Entregada (tag `practica-1`) |
 | Asignación 2 | `docs/asignacion2-gestion-permisos.md` | Gestión de permisos (pieza 2): RF-GP-01 a 07 · suite de pruebas (RD-12) · bitácora `docs/bitacora-asignacion-2.md` | Entregada (tag `asignacion-2`) |
 | 2 | `docs/practica2-suite-defectos.md` | Suite sobre Gestión de permisos (RF-GP-01 a 07, una prueba identificada por requisito) · seis defectos plantados de la variante A (tags `practica-2-defecto-1` a `6`, ramas `defecto-N`, nunca en `main`) · sección «Defectos» del README · revisión acumulada de Control de acceso | En curso (tag `practica-2`) |
+| 3 | `docs/practica3-modulo-negocio.md` | Módulo de negocio funcionando (RF-NEG-02 a 06 y 09) · suite de la máquina de estados de Meta · cuatro defectos plantados (tags `practica-3-defecto-1` a `4`) · prueba de integración con Gestión de permisos · revisión acumulada de los cinco frentes | En curso (tag `practica-3`) |
 
 **Cuando llegue una práctica nueva:** agregar su transcripción literal a `docs/`, añadir su
 fila a esta tabla y adaptar el proyecto a ella **sin romper lo que exigen las prácticas
@@ -217,3 +218,9 @@ ninguna clase de ese tipo, pregunta antes de decidir la carpeta.
   Asignación 2.
 - `docs/practica2-suite-defectos.md`: enunciado de la Práctica 2 (suite que detecta defectos)
   y el extracto de los defectos publicados de la variante A.
+- `docs/practica3-modulo-negocio.md`: enunciado de la Práctica 3 (módulo de negocio, suite de su
+  máquina de estados, defectos plantados e integración con Gestión de permisos).
+- `docs/requerimientos-core.md`: Requerimientos del Core (RD-XX, RF-XX y entidades mínimas), igual
+  para todos los proyectos.
+- `docs/diseno-componentes-detalle.md`: detalle del diseño de componentes (fronteras, interfaces,
+  entidades del módulo, máquina de estados de Meta y reglas de negocio).
