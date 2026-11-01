@@ -74,6 +74,7 @@ builder.Services.AddScoped<ISolicitudCorreoSaliente, SolicitudCorreoSalientePorC
 builder.Services.AddScoped<ICuentaService, CuentaService>();
 builder.Services.AddScoped<IAdministracionUsuariosService, AdministracionUsuariosService>();
 builder.Services.AddScoped<IContrasenaService, ContrasenaService>();
+builder.Services.AddScoped<IPermisosUsuarioService, PermisosUsuarioService>();
 builder.Services.AddScoped<IAplicadorPermiso, AplicadorPermisoPorControlAcceso>();
 builder.Services.AddScoped<ISolicitudesPermisoService, SolicitudesPermisoService>();
 
