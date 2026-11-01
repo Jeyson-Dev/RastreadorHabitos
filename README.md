@@ -856,6 +856,31 @@ dotnet test --filter "FullyQualifiedName~Integracion"
 
 ## Defectos
 
+### Práctica 3 — máquina de estados de la Meta e integración
+
+Cada defecto está plantado en su propio commit, hijo directo de `practica-3`, que solo cambia
+código de producción (ningún archivo de pruebas), con la etiqueta `practica-3-defecto-N` y la
+rama `p3-defecto-N` (las ramas `defecto-N` son de la Práctica 2). Su mensaje dice el archivo y la
+línea que cambió. Sobre `practica-3` todas las pruebas pasan; sobre cada etiqueta de defecto, el
+comando de [Pruebas](#pruebas) reporta las pruebas fallidas de la tabla:
+
+```bash
+git checkout practica-3-defecto-N
+dotnet test
+```
+
+Las filas citadas son las de [`docs/maquina-de-estados.md`](docs/maquina-de-estados.md). Los
+nombres de las pruebas son relativos a `tests/RastreadorHabitos.Tests/`.
+
+| Defecto | Qué se plantó | Prueba que lo detecta | Comportamiento que comprueba |
+|---|---|---|---|
+| 1 | La primera prohibida, Pendiente → Completada, agregada a las transiciones permitidas de `TransicionesMeta.cs` | `Metas/TransicionesProhibidasMetaTests.Completar_MetaPendienteConAvanceSuficiente_SeRechazaYSiguePendiente` y `Metas/TransicionesProhibidasMetaTests.PendienteACompletada_SeRechazaYSiguePendiente(ejecutor: Dueno)` | Completar una meta Pendiente, aun con el avance suficiente, se rechaza y la meta sigue Pendiente |
+| 2 | Completada → En progreso (por el dueño, con una fecha nueva) agregada a las transiciones permitidas: sale una transición del estado terminal | `Metas/EstadoTerminalMetaTests.Completada_EsTerminal_NingunaTransicionPermitidaSaleDeElla`, `Metas/EstadoTerminalMetaTests.Reactivar_MetaCompletada_SeRechazaYSigueCompletadaConSuFecha`, `Metas/EstadoTerminalMetaTests.MetaCompletada_NoSaleHaciaNingunEstado(hacia: EnProgreso, ejecutor: Dueno)` y `Metas/TransicionesProhibidasMetaTests.CompletadaAEnProgreso_SeRechazaYSigueCompletada(ejecutor: Dueno)` | Ninguna transición sale de Completada: reactivarla se rechaza y sigue Completada con su fecha |
+| 3 | Eliminada la condición de la fila 1, Pendiente → En progreso («al menos un cumplimiento»): la condición queda en `true` | `Metas/CondicionesTransicionMetaTests.PendienteAEnProgreso_SinCumplimientos_SeRechazaYSiguePendiente` y `Metas/CondicionesTransicionMetaTests.AplicarTransicionesDelSistema_SinCumplimientosAntesDeVencer_LaMetaSiguePendiente` | Sin ningún cumplimiento, la meta no pasa a En progreso: el intento se rechaza y el sistema la deja Pendiente |
+| 4 | Eliminada la consulta `tienePermiso` al crear un hábito en `HabitosService.cs`: el límite queda siempre en 20 | `Integracion/PermisoLimiteHabitosIntegracionTests.CrearHabitoSobreElLimite_SeRechazaConLaSolicitudPendienteYSePermiteTrasAprobarla` y `Integracion/PermisoLimiteHabitosIntegracionTests.CrearHabitoSobreElLimite_ConLaSolicitudRechazada_SigueRechazandose` | Con 10 hábitos, el 11.º se rechaza mientras la solicitud `LIMITE_HABITOS_AMPLIADO` no está aprobada (Pendiente o Rechazada) y se permite después de que un Administrador la aprueba |
+
+### Práctica 2 — Gestión de permisos
+
 Práctica 2, variante A. Cada defecto está plantado en su propio commit, hijo directo de
 `practica-2`, que solo cambia código de Gestión de permisos (ningún archivo de pruebas), con la
 etiqueta `practica-2-defecto-N` y la rama `defecto-N`. Sobre `practica-2` todas las pruebas
