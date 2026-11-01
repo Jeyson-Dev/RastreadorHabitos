@@ -798,8 +798,9 @@ comentario con el requisito que verifica, por ejemplo `// [RF-GP-02] …`.
 | `ResolucionPropiaTests.cs` | Un Administrador no aprueba ni rechaza su propia solicitud, y esta sigue Pendiente (RF-GP-07) |
 | `ResolucionSimultaneaTests.cs` | Aprobar o rechazar una solicitud que otra operación aprobó después de leerla se rechaza y el estado no cambia (RF-GP-06) |
 
-Control de acceso queda fuera de las pruebas de esta pieza: `AplicadorPermisoFalso` toma su
-lugar y registra qué permiso se pidió aplicar y a quién.
+En la suite de Gestión de permisos, Control de acceso queda fuera: `AplicadorPermisoFalso` toma
+su lugar y registra qué permiso se pidió aplicar y a quién. La prueba de integración de abajo, en
+cambio, usa Control de acceso real.
 
 Para ejecutar solo la suite de Gestión de permisos:
 
@@ -830,6 +831,27 @@ Para ejecutar solo esta suite:
 
 ```bash
 dotnet test --filter "FullyQualifiedName~Tests.Metas"
+```
+
+### Prueba de integración con Gestión de permisos (Práctica 3)
+
+Está en `tests/RastreadorHabitos.Tests/Integracion/` y la ejecuta el mismo `dotnet test`. Usa las
+piezas **reales**, sin dobles ni la aplicación levantada: `SolicitudesPermisoService` (Gestión de
+permisos), `AplicadorPermisoPorControlAcceso` (el adaptador de la Api), `PermisosUsuarioService`
+y `AdministracionUsuariosService` (Control de acceso) y `HabitosService` (módulo de negocio), cada
+uno con su propia base EF Core en memoria (`PiezasReales.cs`).
+
+| Prueba | Qué verifica |
+|---|---|
+| `PermisoLimiteHabitosIntegracionTests.CrearHabitoSobreElLimite_SeRechazaConLaSolicitudPendienteYSePermiteTrasAprobarla` | **Las dos caras.** Con 10 hábitos y la solicitud `LIMITE_HABITOS_AMPLIADO` Pendiente, crear el 11.º se rechaza por el límite y siguen siendo 10. Un Administrador aprueba la solicitud (queda Aplicada) y el mismo 11.º se crea |
+| `PermisoLimiteHabitosIntegracionTests.CrearHabitoSobreElLimite_ConLaSolicitudRechazada_SigueRechazandose` | Si un Administrador rechaza la solicitud, el 11.º se sigue rechazando |
+| `PermisoLimiteHabitosIntegracionTests.AprobarLimiteHabitosAmpliado_ConcedeElPermisoSinCambiarElRol` | Al aprobar, Control de acceso guarda el permiso y el solicitante sigue siendo Estándar |
+| `PermisoLimiteHabitosIntegracionTests.ModuloHabitos_NoReferenciaAGestionDePermisos` | El módulo de negocio consulta el permiso solo a Control de acceso: no referencia a Gestión de permisos |
+
+Para ejecutar solo la integración:
+
+```bash
+dotnet test --filter "FullyQualifiedName~Integracion"
 ```
 
 ## Defectos
