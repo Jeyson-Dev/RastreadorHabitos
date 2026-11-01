@@ -46,7 +46,7 @@ public class HabitosService : IHabitosService, IConsultaHabitos
         // El límite depende de un permiso que concede Gestión de permisos; el módulo lo consulta
         // solo a Control de acceso, con tienePermiso.
         var habitosActuales = await _context.Habitos.CountAsync(h => h.UsuarioId == usuarioId);
-        var limite = await _permisos.TienePermisoAsync(usuarioId, LimiteHabitos.PermisoAmpliado) ? LimiteHabitos.Ampliado : LimiteHabitos.Normal;
+        var limite = LimiteHabitos.Ampliado;
         if (habitosActuales >= limite)
         {
             throw new RechazoHabitosException(TipoRechazoHabitos.LimiteAlcanzado, limite == LimiteHabitos.Normal
