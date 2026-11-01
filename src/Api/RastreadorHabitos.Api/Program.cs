@@ -12,6 +12,7 @@ using RastreadorHabitos.Core.GestionPermisos.Services;
 using RastreadorHabitos.Core.Notificaciones.Configuracion;
 using RastreadorHabitos.Core.Notificaciones.Data;
 using RastreadorHabitos.Core.Notificaciones.Services;
+using RastreadorHabitos.Modulo.Habitos.Data;
 using RastreadorHabitos.Modulo.Metas.Data;
 
 // Comandos independientes: se ejecutan una vez y terminan, sin levantar el servidor web.
@@ -52,6 +53,9 @@ builder.Services.AddDbContext<MetasDbContext>(options =>
 builder.Services.AddDbContext<GestionPermisosDbContext>(options =>
     options.UseSqlServer(cadenaConexion,
         sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", GestionPermisosDbContext.Esquema)));
+builder.Services.AddDbContext<HabitosDbContext>(options =>
+    options.UseSqlServer(cadenaConexion,
+        sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", HabitosDbContext.Esquema)));
 
 // Los enlaces de los correos se arman con esta URL y nunca con la cabecera Host de la petición.
 // Si no se configura, se usa la dirección con la que arranca la aplicación por defecto.
@@ -124,6 +128,7 @@ using (var scope = app.Services.CreateScope())
         await servicios.GetRequiredService<NotificacionesDbContext>().Database.MigrateAsync();
         await servicios.GetRequiredService<MetasDbContext>().Database.MigrateAsync();
         await servicios.GetRequiredService<GestionPermisosDbContext>().Database.MigrateAsync();
+        await servicios.GetRequiredService<HabitosDbContext>().Database.MigrateAsync();
     }
     catch (Exception ex)
     {
