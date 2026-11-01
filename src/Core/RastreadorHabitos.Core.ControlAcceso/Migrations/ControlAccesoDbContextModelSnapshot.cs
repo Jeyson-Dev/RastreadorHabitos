@@ -23,6 +23,23 @@ namespace RastreadorHabitos.Core.ControlAcceso.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("RastreadorHabitos.Core.ControlAcceso.Entities.PermisoUsuario", b =>
+                {
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Codigo")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("FechaConcesionUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("UsuarioId", "Codigo");
+
+                    b.ToTable("PermisosUsuario", "ControlAcceso");
+                });
+
             modelBuilder.Entity("RastreadorHabitos.Core.ControlAcceso.Entities.Rol", b =>
                 {
                     b.Property<int>("Id")
@@ -176,6 +193,17 @@ namespace RastreadorHabitos.Core.ControlAcceso.Migrations
                     b.HasIndex("RolId");
 
                     b.ToTable("Usuarios", "ControlAcceso");
+                });
+
+            modelBuilder.Entity("RastreadorHabitos.Core.ControlAcceso.Entities.PermisoUsuario", b =>
+                {
+                    b.HasOne("RastreadorHabitos.Core.ControlAcceso.Entities.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
                 });
 
             modelBuilder.Entity("RastreadorHabitos.Core.ControlAcceso.Entities.SesionUsuario", b =>
