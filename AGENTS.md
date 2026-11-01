@@ -131,7 +131,8 @@ src/
 
 Referencias actuales: Api → ControlAcceso, Notificaciones, GestionPermisos, Modulo.Habitos,
 Modulo.Metas · Modulo.Habitos → ControlAcceso · Modulo.Metas → Modulo.Habitos ·
-Tests → ControlAcceso, GestionPermisos, Modulo.Metas. Gestión de permisos no referencia a ControlAcceso:
+Tests → ControlAcceso, GestionPermisos, Modulo.Habitos, Modulo.Metas, Api (solo por el adaptador real
+que usa la prueba de integración). Gestión de permisos no referencia a ControlAcceso:
 declara el puerto `IAplicadorPermiso` y la Api lo conecta con Control de acceso (cambio de rol
 para `Administrador`, `aplicarPermiso` para cualquier otro permiso). Las pruebas
 viven en `tests/RastreadorHabitos.Tests/`, en la raíz.

@@ -22,7 +22,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Core\RastreadorHabitos.Core.ControlAcceso\RastreadorHabitos.Core.ControlAcceso.csproj" />
     <ProjectReference Include="..\..\src\Core\RastreadorHabitos.Core.GestionPermisos\RastreadorHabitos.Core.GestionPermisos.csproj" />
+    <ProjectReference Include="..\..\src\Negocio\RastreadorHabitos.Modulo.Habitos\RastreadorHabitos.Modulo.Habitos.csproj" />
     <ProjectReference Include="..\..\src\Negocio\RastreadorHabitos.Modulo.Metas\RastreadorHabitos.Modulo.Metas.csproj" />
+    <!-- Solo por el adaptador real que conecta Gestión de permisos con Control de acceso. -->
+    <ProjectReference Include="..\..\src\Api\RastreadorHabitos.Api\RastreadorHabitos.Api.csproj" />
   </ItemGroup>
 
 </Project>
