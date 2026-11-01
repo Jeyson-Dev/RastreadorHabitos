@@ -22,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Core\RastreadorHabitos.Core.ControlAcceso\RastreadorHabitos.Core.ControlAcceso.csproj" />
     <ProjectReference Include="..\..\src\Core\RastreadorHabitos.Core.GestionPermisos\RastreadorHabitos.Core.GestionPermisos.csproj" />
+    <ProjectReference Include="..\..\src\Negocio\RastreadorHabitos.Modulo.Metas\RastreadorHabitos.Modulo.Metas.csproj" />
   </ItemGroup>
 
 </Project>
