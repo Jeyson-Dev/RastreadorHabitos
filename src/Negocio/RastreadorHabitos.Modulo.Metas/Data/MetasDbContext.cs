@@ -31,8 +31,18 @@ public class MetasDbContext : DbContext
             // Sin relación con las tablas de Control de acceso: solo el Id del dueño.
             builder.HasIndex(m => m.UsuarioId);
 
+            builder.HasMany(m => m.Habitos).WithOne().HasForeignKey(mh => mh.MetaId).OnDelete(DeleteBehavior.Cascade);
+
             builder.ToTable(tabla => tabla.HasCheckConstraint(
                 "CK_Metas_ObjetivoCumplimientos", "[ObjetivoCumplimientos] >= 1"));
+        });
+
+        modelBuilder.Entity<MetaHabito>(builder =>
+        {
+            builder.ToTable("MetasHabitos");
+
+            // HabitoId sin clave foránea: la tabla de hábitos es del esquema Habitos.
+            builder.HasKey(mh => new { mh.MetaId, mh.HabitoId });
         });
     }
 }
