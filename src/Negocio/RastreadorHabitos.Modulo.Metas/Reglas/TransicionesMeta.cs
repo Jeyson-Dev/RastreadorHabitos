@@ -39,6 +39,7 @@ public static class TransicionesMeta
         new(EstadoMeta.Fallida, EstadoMeta.EnProgreso, EjecutorTransicion.Dueno,
             (meta, contexto) => contexto.NuevaFechaLimite > contexto.Hoy,
             "La nueva fecha límite debe ser posterior a hoy."),
+        new(EstadoMeta.Pendiente, EstadoMeta.Completada, EjecutorTransicion.Dueno, (meta, contexto) => contexto.Avance >= meta.ObjetivoCumplimientos, "El avance todavía no alcanza el objetivo de la meta."),
     ];
 
     // Transiciones prohibidas de forma explícita [RF-NEG-04], con el motivo que recibe quien
