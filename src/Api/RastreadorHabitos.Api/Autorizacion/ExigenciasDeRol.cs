@@ -8,6 +8,11 @@ public enum Exigencia
 {
     Anonimo,
     Autenticado,
+
+    // Con sesión válida y con uno de los dos roles del sistema, verificado en cada petición
+    // contra el rol vigente. Es la exigencia de las operaciones del módulo de negocio [RF-NEG-06].
+    EstandarOAdministrador,
+
     Administrador
 }
 
@@ -17,6 +22,7 @@ public enum Exigencia
 public static class ExigenciasDeRol
 {
     public const string PoliticaAutenticado = "Autenticado";
+    public const string PoliticaEstandarOAdministrador = "EstandarOAdministrador";
     public const string PoliticaAdministrador = "Administrador";
 
     private static readonly Dictionary<string, Exigencia> PorOperacion = new()
@@ -56,6 +62,8 @@ public static class ExigenciasDeRol
         services.AddAuthorization(opciones =>
         {
             opciones.AddPolicy(PoliticaAutenticado, politica => politica.RequireAuthenticatedUser());
+            opciones.AddPolicy(PoliticaEstandarOAdministrador,
+                politica => politica.RequireRole(Rol.NombreEstandar, Rol.NombreAdministrador));
             opciones.AddPolicy(PoliticaAdministrador, politica => politica.RequireRole(Rol.NombreAdministrador));
         });
         return services;
@@ -72,6 +80,7 @@ public class AplicarExigenciasDeRol : IActionModelConvention
         {
             Exigencia.Anonimo => new AllowAnonymousAttribute(),
             Exigencia.Autenticado => new AuthorizeAttribute(ExigenciasDeRol.PoliticaAutenticado),
+            Exigencia.EstandarOAdministrador => new AuthorizeAttribute(ExigenciasDeRol.PoliticaEstandarOAdministrador),
             _ => new AuthorizeAttribute(ExigenciasDeRol.PoliticaAdministrador)
         };
 
