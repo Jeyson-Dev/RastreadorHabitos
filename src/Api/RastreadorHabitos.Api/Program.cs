@@ -13,6 +13,7 @@ using RastreadorHabitos.Core.Notificaciones.Configuracion;
 using RastreadorHabitos.Core.Notificaciones.Data;
 using RastreadorHabitos.Core.Notificaciones.Services;
 using RastreadorHabitos.Modulo.Habitos.Data;
+using RastreadorHabitos.Modulo.Habitos.Services;
 using RastreadorHabitos.Modulo.Metas.Data;
 
 // Comandos independientes: se ejecutan una vez y terminan, sin levantar el servidor web.
@@ -81,6 +82,12 @@ builder.Services.AddScoped<IContrasenaService, ContrasenaService>();
 builder.Services.AddScoped<IPermisosUsuarioService, PermisosUsuarioService>();
 builder.Services.AddScoped<IAplicadorPermiso, AplicadorPermisoPorControlAcceso>();
 builder.Services.AddScoped<ISolicitudesPermisoService, SolicitudesPermisoService>();
+
+// Módulo de negocio. "Hoy" sale del reloj del servidor, nunca de la petición.
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddScoped<HabitosService>();
+builder.Services.AddScoped<IHabitosService>(servicios => servicios.GetRequiredService<HabitosService>());
+builder.Services.AddScoped<IConsultaHabitos>(servicios => servicios.GetRequiredService<HabitosService>());
 
 // Credencial de sesión: la clave para firmarla solo llega por variable de entorno [RD-10].
 // Los comandos independientes no la necesitan.
