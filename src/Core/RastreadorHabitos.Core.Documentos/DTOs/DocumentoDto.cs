@@ -18,7 +18,9 @@ public class DocumentoDto
         Nombre = documento.Nombre,
         Tipo = documento.Tipo,
         TamanoBytes = documento.TamanoBytes,
-        FechaSubidaUtc = documento.FechaSubidaUtc,
+        // La base devuelve la fecha sin indicar que es UTC: se marca para que siempre salga con
+        // la misma forma (…Z), la acabe de subir o venga de la base [RD-11].
+        FechaSubidaUtc = DateTime.SpecifyKind(documento.FechaSubidaUtc, DateTimeKind.Utc),
         SubidoPorId = documento.SubidoPorId
     };
 }
