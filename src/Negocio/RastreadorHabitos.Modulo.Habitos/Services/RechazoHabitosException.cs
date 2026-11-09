@@ -5,7 +5,10 @@ public enum TipoRechazoHabitos
     DatosInvalidos,
     NoEncontrado,
     LimiteAlcanzado,
-    ReglaIncumplida
+    ReglaIncumplida,
+
+    // El servicio de clima externo no está configurado o no respondió.
+    ServicioExternoNoDisponible
 }
 
 // Rechazo esperado de una regla de Hábitos. Su mensaje está pensado para el usuario; cualquier
