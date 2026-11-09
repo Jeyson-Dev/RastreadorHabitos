@@ -129,12 +129,13 @@ src/
     └── RastreadorHabitos.Tests/                 → referencia los proyectos que vaya cubriendo
 ```
 
-Referencias actuales: Api → ControlAcceso, Notificaciones, GestionPermisos, Modulo.Habitos,
+Referencias actuales: Api → ControlAcceso, Notificaciones, GestionPermisos, Documentos, Modulo.Habitos,
 Modulo.Metas · Modulo.Habitos → ControlAcceso · Modulo.Metas → Modulo.Habitos ·
 Tests → ControlAcceso, GestionPermisos, Modulo.Habitos, Modulo.Metas, Api (solo por el adaptador real
 que usa la prueba de integración). Gestión de permisos no referencia a ControlAcceso:
 declara el puerto `IAplicadorPermiso` y la Api lo conecta con Control de acceso (cambio de rol
-para `Administrador`, `aplicarPermiso` para cualquier otro permiso). Las pruebas
+para `Administrador`, `aplicarPermiso` para cualquier otro permiso). Documentos no referencia a
+nadie: como Gestión de permisos, recibe de la Api el Id y el rol del usuario de la sesión. Las pruebas
 viven en `tests/RastreadorHabitos.Tests/`, en la raíz.
 
 **Fronteras entre piezas** (derivadas del diagrama de `Estructura.md`):
