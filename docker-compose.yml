@@ -20,7 +20,8 @@ services:
       retries: 30
       start_period: 20s
 
-  # La aplicación (API). Es el único servicio que publica un puerto en el equipo: 5003.
+  # La aplicación (API), en el puerto 5003 del equipo. Aparte de ella, solo Mailpit publica su
+  # página de correos de prueba (8025); la base de datos no publica ninguno.
   # Al arrancar aplica las migraciones de todas las piezas: la base se crea sola.
   app:
     build: .
@@ -46,3 +47,41 @@ services:
       Smtp__Contrasena: ${Smtp__Contrasena:-}
       TZ: ${TZ:-America/Santo_Domingo}
     restart: on-failure
+
+  # Enviador de la cola de correos: proceso independiente de las operaciones que encolan
+  # [RF-NOT-08, RF-NOT-09]. Con la misma imagen, ejecuta el comando enviar-correos cada 10
+  # segundos; solo toma correos Pendiente, así nunca duplica un envío [RF-NOT-12].
+  enviador:
+    build: .
+    image: rastreadorhabitos-app
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      app:
+        condition: service_started
+      mailpit:
+        condition: service_started
+    entrypoint: ["/bin/sh", "-c", "sleep 20; while true; do dotnet RastreadorHabitos.Api.dll enviar-correos; sleep 10; done"]
+    environment:
+      ConnectionStrings__RastreadorHabitos: ${ConnectionStrings__RastreadorHabitos:?Falta ConnectionStrings__RastreadorHabitos. Copie .env.example a .env}
+      Smtp__Host: ${Smtp__Host:-}
+      Smtp__Puerto: ${Smtp__Puerto:-}
+      Smtp__UsarSsl: ${Smtp__UsarSsl:-true}
+      Smtp__Remitente: ${Smtp__Remitente:-}
+      Smtp__Usuario: ${Smtp__Usuario:-}
+      Smtp__Contrasena: ${Smtp__Contrasena:-}
+      Logging__LogLevel__Default: Warning
+      TZ: ${TZ:-America/Santo_Domingo}
+    restart: on-failure
+
+  # Servidor de correo de captura para pruebas: recibe lo que envía el enviador y lo muestra en
+  # http://localhost:8025, para abrir el enlace de activación o leer el código de recuperación sin
+  # credenciales SMTP reales. Acepta cualquier usuario y contraseña.
+  mailpit:
+    image: axllent/mailpit:v1.27
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+      TZ: ${TZ:-America/Santo_Domingo}
+    ports:
+      - "8025:8025"
