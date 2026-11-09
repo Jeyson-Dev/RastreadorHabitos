@@ -23,6 +23,7 @@ Es un proyecto largo que se construye por prácticas, todas sobre el mismo dise�
 | Asignación 2 | `docs/asignacion2-gestion-permisos.md` | Gestión de permisos (pieza 2): RF-GP-01 a 07 · suite de pruebas (RD-12) · bitácora `docs/bitacora-asignacion-2.md` | Entregada (tag `asignacion-2`) |
 | 2 | `docs/practica2-suite-defectos.md` | Suite sobre Gestión de permisos (RF-GP-01 a 07, una prueba identificada por requisito) · seis defectos plantados de la variante A (tags `practica-2-defecto-1` a `6`, ramas `defecto-N`, nunca en `main`) · sección «Defectos» del README · revisión acumulada de Control de acceso | En curso (tag `practica-2`) |
 | 3 | `docs/practica3-modulo-negocio.md` | Módulo de negocio funcionando (RF-NEG-02 a 06 y 09) · suite de la máquina de estados de Meta · cuatro defectos plantados (tags `practica-3-defecto-1` a `4`) · prueba de integración con Gestión de permisos · revisión acumulada de los cinco frentes | En curso (tag `practica-3`) |
+| 4 | `docs/practica4-contenedor-documentos-api.md` | Manejador de documentos (pieza 3: RF-DOC-01 a 05) · proyecto en contenedores con un solo comando (`Dockerfile`, `.dockerignore`, `docker-compose.yml`) · volúmenes persistentes · API externa con su clave como secreto (`.env` no versionado, `.env.example`) · revisión acumulada de los seis frentes | En curso (tag `practica-4`) |
 
 **Cuando llegue una práctica nueva:** agregar su transcripción literal a `docs/`, añadir su
 fila a esta tabla y adaptar el proyecto a ella **sin romper lo que exigen las prácticas
@@ -225,6 +226,9 @@ ninguna clase de ese tipo, pregunta antes de decidir la carpeta.
   y el extracto de los defectos publicados de la variante A.
 - `docs/practica3-modulo-negocio.md`: enunciado de la Práctica 3 (módulo de negocio, suite de su
   máquina de estados, defectos plantados e integración con Gestión de permisos).
+- `docs/practica4-contenedor-documentos-api.md`: enunciado de la Práctica 4 (Manejador de
+  documentos, contenedor con un solo comando, volúmenes persistentes y API externa con su clave
+  como secreto).
 - `docs/requerimientos-core.md`: Requerimientos del Core (RD-XX, RF-XX y entidades mínimas), igual
   para todos los proyectos.
 - `docs/diseno-componentes-detalle.md`: detalle del diseño de componentes (fronteras, interfaces,
