@@ -79,6 +79,16 @@ public class DocumentosService : IDocumentosService
         return new DescargaDocumentoDto { Documento = DocumentoDto.Desde(documento), Contenido = contenido };
     }
 
+    public async Task EliminarAsync(Guid documentoId, Guid usuarioId, bool esAdministrador)
+    {
+        var documento = await BuscarDelDuenoOAdministradorAsync(documentoId, usuarioId, esAdministrador,
+            "Solo el dueño del documento o un Administrador pueden eliminarlo.");
+
+        // Solo se marca: no se borra la fila ni el archivo [RF-DOC-04].
+        documento.MarcarEliminado(_reloj.GetUtcNow().UtcDateTime);
+        await _context.SaveChangesAsync();
+    }
+
     // Un documento eliminado ya no existe para nadie [RF-DOC-04]. Uno ajeno se rechaza salvo para
     // el Administrador: la regla se decide aquí, en el servidor, se construya como se construya
     // la petición [RF-DOC-03, RD-06].

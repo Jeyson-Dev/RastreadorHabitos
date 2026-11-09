@@ -18,4 +18,8 @@ public interface IDocumentosService
     // Solo el dueño o un Administrador lo descargan; cualquier otro usuario recibe un rechazo
     // [RF-DOC-03].
     Task<DescargaDocumentoDto> DescargarAsync(Guid documentoId, Guid usuarioId, bool esAdministrador);
+
+    // Borrado lógico: deja de aparecer en el listado, pero el registro y el archivo siguen en el
+    // almacenamiento [RF-DOC-04]. Solo el dueño o un Administrador lo eliminan.
+    Task EliminarAsync(Guid documentoId, Guid usuarioId, bool esAdministrador);
 }

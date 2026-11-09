@@ -63,6 +63,13 @@ public class DocumentosController : ControllerBase
         return File(descarga.Contenido, descarga.Documento.Tipo, descarga.Documento.Nombre);
     }
 
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Eliminar(Guid id)
+    {
+        await _documentos.EliminarAsync(id, UsuarioActual(), EsAdministrador());
+        return Ok(new { mensaje = "Documento eliminado." });
+    }
+
     // Id de quien hace la petición, que Control de acceso ya autenticó; esta pieza no autentica.
     private Guid UsuarioActual() =>
         Guid.Parse(User.FindFirst(OpcionesSesion.ClaimUsuario)!.Value);
