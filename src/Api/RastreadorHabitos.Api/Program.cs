@@ -91,6 +91,17 @@ builder.Services.AddScoped<IHabitosService>(servicios => servicios.GetRequiredSe
 builder.Services.AddScoped<IConsultaHabitos>(servicios => servicios.GetRequiredService<HabitosService>());
 builder.Services.AddScoped<IMetasService, MetasService>();
 
+// API externa de clima (WeatherAPI.com) para el plan de hoy. La clave solo llega por la variable
+// de entorno WeatherApi__Clave [RD-10]; sin ella la API arranca igual y solo esa operación se
+// rechaza de forma controlada. La llamada tiene un tiempo máximo para no colgar la petición.
+builder.Services.AddSingleton(new OpcionesWeatherApi { Clave = builder.Configuration["WeatherApi:Clave"] });
+builder.Services.AddHttpClient<IProveedorPronostico, PronosticoPorWeatherApi>(http =>
+{
+    http.BaseAddress = new Uri(OpcionesWeatherApi.UrlBase);
+    http.Timeout = OpcionesWeatherApi.TiempoMaximo;
+});
+builder.Services.AddScoped<IPlanDeHoyService, PlanDeHoyService>();
+
 // Credencial de sesión: la clave para firmarla solo llega por variable de entorno [RD-10].
 // Los comandos independientes no la necesitan.
 if (comando is null)
