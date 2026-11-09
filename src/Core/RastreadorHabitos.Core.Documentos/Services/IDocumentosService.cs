@@ -10,4 +10,8 @@ public interface IDocumentosService
     // Registra nombre, tipo, tamaño, fecha y quién lo subió [RF-DOC-01]. Un archivo ausente o
     // vacío se rechaza [RD-07].
     Task<DocumentoDto> SubirAsync(Guid usuarioId, ArchivoSubidoDto? archivo);
+
+    // Nunca incluye documentos eliminados. Un Estándar ve solo los suyos; un Administrador, los
+    // de todos los usuarios [RF-DOC-02].
+    Task<IReadOnlyList<DocumentoDto>> ListarAsync(Guid usuarioId, bool esAdministrador);
 }

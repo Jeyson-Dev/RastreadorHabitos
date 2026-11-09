@@ -48,6 +48,14 @@ public class DocumentosController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, creado);
     }
 
+    // Ninguna ruta recibe el Id de un usuario: el servicio filtra por quien consulta y su rol
+    // vigente, así un Estándar no puede pedir los documentos de otros [RF-DOC-02].
+    [HttpGet]
+    public async Task<IActionResult> Listar()
+    {
+        return Ok(await _documentos.ListarAsync(UsuarioActual(), EsAdministrador()));
+    }
+
     // Id de quien hace la petición, que Control de acceso ya autenticó; esta pieza no autentica.
     private Guid UsuarioActual() =>
         Guid.Parse(User.FindFirst(OpcionesSesion.ClaimUsuario)!.Value);

@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using RastreadorHabitos.Core.Documentos.Data;
 using RastreadorHabitos.Core.Documentos.DTOs;
 using RastreadorHabitos.Core.Documentos.Entities;
@@ -49,5 +50,20 @@ public class DocumentosService : IDocumentosService
         }
 
         return DocumentoDto.Desde(documento);
+    }
+
+    public async Task<IReadOnlyList<DocumentoDto>> ListarAsync(Guid usuarioId, bool esAdministrador)
+    {
+        // Los eliminados no aparecen para nadie [RF-DOC-04].
+        var consulta = _context.Documentos.Where(d => !d.Eliminado);
+
+        // Un Estándar solo ve los suyos, nunca los de otros usuarios [RF-DOC-02].
+        if (!esAdministrador)
+        {
+            consulta = consulta.Where(d => d.SubidoPorId == usuarioId);
+        }
+
+        var documentos = await consulta.OrderByDescending(d => d.FechaSubidaUtc).ToListAsync();
+        return documentos.Select(DocumentoDto.Desde).ToList();
     }
 }

@@ -63,6 +63,7 @@ public static class ExigenciasDeRol
         // Manejador de documentos: sesión válida y uno de los dos roles, verificado en cada
         // petición contra el rol vigente [RD-06]. Qué documentos ve cada uno lo decide la pieza.
         ["Documentos.Subir"] = Exigencia.EstandarOAdministrador,
+        ["Documentos.Listar"] = Exigencia.EstandarOAdministrador,
     };
 
     public static Exigencia De(string controlador, string accion) =>
