@@ -1,0 +1,28 @@
+# Lo que no entra en el contexto de construcción de la imagen (Práctica 4, sección 1.2).
+
+# Carpetas de compilación y dependencias restauradas
+**/bin/
+**/obj/
+**/TestResults/
+**/*.user
+
+# Historial de git y archivos del editor
+.git/
+.gitignore
+.gitattributes
+.github/
+.vs/
+.vscode/
+.idea/
+
+# Secretos: el .env nunca se copia a la imagen [RD-10]
+.env
+.env.*
+
+# Lo que la imagen no necesita
+tests/
+docs/
+*.md
+Dockerfile
+.dockerignore
+docker-compose*.yml
