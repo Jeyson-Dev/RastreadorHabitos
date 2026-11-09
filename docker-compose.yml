@@ -35,6 +35,11 @@ services:
         condition: service_healthy
     ports:
       - "5003:8080"
+    # Archivos de los documentos en un volumen con nombre, fuera de la imagen [RF-DOC-05]. Se monta
+    # en la misma carpeta que lee la aplicación (Documentos__Ruta), que la imagen crea con permiso
+    # de escritura para su usuario sin privilegios.
+    volumes:
+      - documentos:${Documentos__Ruta:?Falta Documentos__Ruta. Copie .env.example a .env}
     environment:
       ConnectionStrings__RastreadorHabitos: ${ConnectionStrings__RastreadorHabitos:?Falta ConnectionStrings__RastreadorHabitos. Copie .env.example a .env}
       Jwt__Clave: ${Jwt__Clave:?Falta Jwt__Clave. Copie .env.example a .env}
@@ -94,3 +99,4 @@ services:
 # docker compose down -v los borra.
 volumes:
   datos-sqlserver:
+  documentos:
