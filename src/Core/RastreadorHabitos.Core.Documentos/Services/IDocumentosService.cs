@@ -14,4 +14,8 @@ public interface IDocumentosService
     // Nunca incluye documentos eliminados. Un Estándar ve solo los suyos; un Administrador, los
     // de todos los usuarios [RF-DOC-02].
     Task<IReadOnlyList<DocumentoDto>> ListarAsync(Guid usuarioId, bool esAdministrador);
+
+    // Solo el dueño o un Administrador lo descargan; cualquier otro usuario recibe un rechazo
+    // [RF-DOC-03].
+    Task<DescargaDocumentoDto> DescargarAsync(Guid documentoId, Guid usuarioId, bool esAdministrador);
 }

@@ -56,6 +56,13 @@ public class DocumentosController : ControllerBase
         return Ok(await _documentos.ListarAsync(UsuarioActual(), EsAdministrador()));
     }
 
+    [HttpGet("{id:guid}/descarga")]
+    public async Task<IActionResult> Descargar(Guid id)
+    {
+        var descarga = await _documentos.DescargarAsync(id, UsuarioActual(), EsAdministrador());
+        return File(descarga.Contenido, descarga.Documento.Tipo, descarga.Documento.Nombre);
+    }
+
     // Id de quien hace la petición, que Control de acceso ya autenticó; esta pieza no autentica.
     private Guid UsuarioActual() =>
         Guid.Parse(User.FindFirst(OpcionesSesion.ClaimUsuario)!.Value);

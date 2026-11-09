@@ -64,6 +64,7 @@ public static class ExigenciasDeRol
         // petición contra el rol vigente [RD-06]. Qué documentos ve cada uno lo decide la pieza.
         ["Documentos.Subir"] = Exigencia.EstandarOAdministrador,
         ["Documentos.Listar"] = Exigencia.EstandarOAdministrador,
+        ["Documentos.Descargar"] = Exigencia.EstandarOAdministrador,
     };
 
     public static Exigencia De(string controlador, string accion) =>
