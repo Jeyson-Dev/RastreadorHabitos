@@ -76,6 +76,7 @@ entorno. Aquí se documenta el nombre y el propósito de cada una, nunca su valo
 |---|---|---|
 | `ConnectionStrings__RastreadorHabitos` | Sí | Cadena de conexión a SQL Server. La base de datos se crea sola al arrancar. Sin esta variable la aplicación no arranca y lo indica en la consola. |
 | `Jwt__Clave` | Sí (para la API) | Clave secreta, de 32 caracteres o más, con la que se firman las credenciales de sesión. Sin ella, o si es más corta, la API no arranca. El enviador de correos no la necesita. |
+| `Documentos__Ruta` | Sí (para la API) | Carpeta donde se guardan los archivos de los documentos (por ejemplo `C:\RastreadorHabitos\documentos`). Se crea sola si no existe. Sin esta variable la API no arranca. En el contenedor apunta al volumen `documentos`. |
 | `App__UrlBase` | No | URL pública de la aplicación, sin barra final, con la que se arman los enlaces de activación de los correos. Si no se configura, se usa `http://localhost:5003`, que es la dirección con la que arranca la aplicación. |
 | `Smtp__Host` | Para enviar correos | Servidor SMTP (por ejemplo `smtp.gmail.com`). |
 | `Smtp__Puerto` | Para enviar correos | Puerto del servidor SMTP (por ejemplo `587`). |
@@ -102,6 +103,7 @@ que la API y el enviador deben ejecutarse desde ventanas donde estén configurad
 ```powershell
 $env:ConnectionStrings__RastreadorHabitos = "Server=<servidor\instancia>;Database=RastreadorHabitos;Trusted_Connection=True;TrustServerCertificate=True"
 $env:Jwt__Clave = "<clave-aleatoria-de-32-caracteres-o-mas>"
+$env:Documentos__Ruta = "<carpeta-de-documentos>"
 $env:Smtp__Host = "smtp.gmail.com"
 $env:Smtp__Puerto = "587"
 $env:Smtp__Usuario = "<tu-correo@gmail.com>"
@@ -117,6 +119,7 @@ usuario de Windows (una sola vez) y **cerrar y volver a abrir Visual Studio**:
 ```powershell
 [Environment]::SetEnvironmentVariable('ConnectionStrings__RastreadorHabitos', 'Server=<servidor\instancia>;Database=RastreadorHabitos;Trusted_Connection=True;TrustServerCertificate=True', 'User')
 [Environment]::SetEnvironmentVariable('Jwt__Clave', '<clave-aleatoria-de-32-caracteres-o-mas>', 'User')
+[Environment]::SetEnvironmentVariable('Documentos__Ruta', '<carpeta-de-documentos>', 'User')
 [Environment]::SetEnvironmentVariable('Smtp__Host', 'smtp.gmail.com', 'User')
 [Environment]::SetEnvironmentVariable('Smtp__Puerto', '587', 'User')
 [Environment]::SetEnvironmentVariable('Smtp__Usuario', '<tu-correo@gmail.com>', 'User')
@@ -772,6 +775,87 @@ sigue rechazándose.
 - **Máquina independiente de la de Gestión de permisos (RF-NEG-09).** El proyecto
   `RastreadorHabitos.Modulo.Metas` no referencia a Gestión de permisos (ver su `.csproj`) ni usa
   `EstadoSolicitud`; sus estados son solo los de `EstadoMeta.cs`.
+
+## Manejador de documentos — Práctica 4
+
+Pieza 3 del Core (`src/Core/RastreadorHabitos.Core.Documentos`). Cada documento guarda su
+registro en la tabla `Documentos.Documentos` y su archivo en la carpeta de `Documentos__Ruta`, con
+un nombre que asigna la pieza (nunca el que manda el usuario). La pieza no autentica: la Api le
+pasa el Id y el rol vigente del usuario de la sesión.
+
+**Protección (RD-06).** Las cuatro operaciones exigen una sesión válida y uno de los dos roles
+(exigencia `EstandarOAdministrador`), verificado en cada petición contra el rol vigente en la
+base, en la misma tabla única de la Práctica 1,
+`src/Api/RastreadorHabitos.Api/Autorizacion/ExigenciasDeRol.cs` (entradas `Documentos.*`). Quién
+puede ver, descargar o eliminar cada documento lo decide la pieza en el servidor
+(`src/Core/RastreadorHabitos.Core.Documentos/Services/DocumentosService.cs`), se construya como se
+construya la petición.
+
+### Endpoints
+
+Todos requieren `Authorization: Bearer <token>`.
+
+| Método | Ruta | Cuerpo | Quién | Respuesta |
+|---|---|---|---|---|
+| `POST` | `/api/documentos` | `multipart/form-data` con el archivo en el campo `archivo` | Cualquier usuario con sesión | `201` el documento · `400` archivo ausente o vacío · `401` sin sesión |
+| `GET` | `/api/documentos` | — | Cualquier usuario con sesión | `200` lista sin eliminados: un Estándar recibe solo los suyos; un Administrador, los de todos |
+| `GET` | `/api/documentos/{id}/descarga` | — | Su dueño o un Administrador | `200` el archivo, con su nombre y su tipo · `403` otro usuario · `404` no existe o está eliminado |
+| `DELETE` | `/api/documentos/{id}` | — | Su dueño o un Administrador | `200` eliminado (borrado lógico) · `403` otro usuario · `404` no existe o ya está eliminado |
+
+Cada documento se devuelve como
+`{ "id", "nombre", "tipo", "tamanoBytes", "fechaSubidaUtc", "subidoPorId" }`.
+
+### Preparación
+
+Tres usuarios activados (ver
+[Registro y activación](#cómo-provocar-cada-criterio-de-aceptación--registro-y-activación)):
+**E1** y **E2**, Estándar, y **A**, Administrador (convertido con el comando
+`promover-administrador`). Cada uno inicia sesión con `POST /api/sesion/iniciar` y usa su `token`.
+Para ver lo guardado:
+
+```sql
+SELECT Id, Nombre, Tipo, TamanoBytes, FechaSubidaUtc, SubidoPorId, RutaAlmacenamiento, Eliminado, FechaEliminacionUtc
+FROM Documentos.Documentos ORDER BY FechaSubidaUtc;
+```
+
+### Cómo provocar cada criterio de aceptación — Documentos
+
+**RF-DOC-01 — Subir registra nombre, tipo, tamaño, fecha y quién lo subió.** Con el token de E1,
+`POST /api/documentos` con un archivo en el campo `archivo` (en Postman: *Body → form-data*, clave
+`archivo` de tipo *File*; con curl: `-F "archivo=@informe.pdf"`) → `201` con `nombre`, `tipo`,
+`tamanoBytes`, `fechaSubidaUtc` (UTC) y `subidoPorId` igual al id de E1. Guardar su `id` como
+**D1**. El registro queda consultable en el listado y en la consulta SQL de arriba.
+
+**RD-07 — Archivo ausente o vacío, rechazo controlado.** Con el token de E1, `POST /api/documentos`:
+- con un archivo de 0 bytes, con un formulario sin archivo, o con un cuerpo JSON → `400` «Adjunte
+  un archivo con contenido en el campo «archivo» (multipart/form-data).»
+- un formulario mal formado → `400` «La solicitud no tiene un formato válido.»
+
+Sin el header `Authorization`, cualquier operación de esta sección → `401` «Se requiere una sesión
+válida.»
+
+**RF-DOC-02 — El listado excluye eliminados y ajenos, salvo para el Administrador.**
+`GET /api/documentos`:
+- con el token de E1 → incluye D1;
+- con el token de E2 → **no** incluye D1;
+- con el token de A → incluye D1 y los documentos de todos los usuarios.
+
+**RF-DOC-03 — Solo el dueño o un Administrador descargan.** `GET /api/documentos/D1/descarga`:
+- con el token de E1 → `200` y el mismo archivo que se subió, con su nombre;
+- con el token de A → `200`;
+- con el token de E2 → `403` «Solo el dueño del documento o un Administrador pueden descargarlo.»
+
+**RF-DOC-04 — Eliminación lógica.**
+1. Con el token de E2, `DELETE /api/documentos/D1` → `403` «Solo el dueño del documento o un
+   Administrador pueden eliminarlo.» D1 sigue en el listado de E1.
+2. Con el token de E1, `DELETE /api/documentos/D1` → `200` «Documento eliminado.»
+3. `GET /api/documentos` con el token de E1 y con el de A → D1 ya no aparece.
+   `GET /api/documentos/D1/descarga` → `404`.
+4. La consulta SQL de arriba muestra que la fila de D1 **sigue existiendo**, con `Eliminado = 1` y
+   su `FechaEliminacionUtc`; el archivo también sigue en la carpeta de documentos.
+
+Un Administrador también puede eliminar el documento de otro usuario (`DELETE` con el token de A
+→ `200`).
 
 ## Pruebas
 
