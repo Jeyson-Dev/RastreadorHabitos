@@ -7,6 +7,9 @@ using RastreadorHabitos.Api.Errores;
 using RastreadorHabitos.Core.ControlAcceso.Configuracion;
 using RastreadorHabitos.Core.ControlAcceso.Data;
 using RastreadorHabitos.Core.ControlAcceso.Services;
+using RastreadorHabitos.Core.Documentos.Configuracion;
+using RastreadorHabitos.Core.Documentos.Data;
+using RastreadorHabitos.Core.Documentos.Services;
 using RastreadorHabitos.Core.GestionPermisos.Data;
 using RastreadorHabitos.Core.GestionPermisos.Services;
 using RastreadorHabitos.Core.Notificaciones.Configuracion;
@@ -58,6 +61,9 @@ builder.Services.AddDbContext<GestionPermisosDbContext>(options =>
 builder.Services.AddDbContext<HabitosDbContext>(options =>
     options.UseSqlServer(cadenaConexion,
         sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", HabitosDbContext.Esquema)));
+builder.Services.AddDbContext<DocumentosDbContext>(options =>
+    options.UseSqlServer(cadenaConexion,
+        sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", DocumentosDbContext.Esquema)));
 
 // Los enlaces de los correos se arman con esta URL y nunca con la cabecera Host de la petición.
 // Si no se configura, se usa la dirección con la que arranca la aplicación por defecto.
@@ -103,6 +109,18 @@ if (comando is null)
     }
     builder.Services.AgregarCredencialSesion(new OpcionesSesion { Clave = claveSesion });
     builder.Services.AgregarExigenciasDeRol();
+
+    // Carpeta de los archivos de documentos: solo por variable de entorno, para poder montarla
+    // como volumen fuera de la imagen [RF-DOC-05]. Sin ella la API no arranca.
+    var rutaDocumentos = builder.Configuration["Documentos:Ruta"];
+    if (string.IsNullOrWhiteSpace(rutaDocumentos))
+    {
+        throw new InvalidOperationException(
+            "Falta la variable de entorno Documentos__Ruta con la carpeta donde se guardan los archivos de los documentos.");
+    }
+    builder.Services.AddSingleton(new OpcionesDocumentos { Ruta = rutaDocumentos });
+    builder.Services.AddSingleton<IAlmacenArchivos, AlmacenArchivosEnDisco>();
+    builder.Services.AddScoped<IDocumentosService, DocumentosService>();
 }
 
 // Credenciales SMTP solo por variables de entorno Smtp__* [RF-NOT-13, RD-10].
@@ -138,6 +156,7 @@ using (var scope = app.Services.CreateScope())
         await servicios.GetRequiredService<MetasDbContext>().Database.MigrateAsync();
         await servicios.GetRequiredService<GestionPermisosDbContext>().Database.MigrateAsync();
         await servicios.GetRequiredService<HabitosDbContext>().Database.MigrateAsync();
+        await servicios.GetRequiredService<DocumentosDbContext>().Database.MigrateAsync();
     }
     catch (Exception ex)
     {
