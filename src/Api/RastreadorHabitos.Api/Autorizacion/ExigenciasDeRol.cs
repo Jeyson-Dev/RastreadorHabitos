@@ -59,6 +59,10 @@ public static class ExigenciasDeRol
         ["Metas.Obtener"] = Exigencia.EstandarOAdministrador,
         ["Metas.Completar"] = Exigencia.EstandarOAdministrador,
         ["Metas.Reactivar"] = Exigencia.EstandarOAdministrador,
+
+        // Manejador de documentos: sesión válida y uno de los dos roles, verificado en cada
+        // petición contra el rol vigente [RD-06]. Qué documentos ve cada uno lo decide la pieza.
+        ["Documentos.Subir"] = Exigencia.EstandarOAdministrador,
     };
 
     public static Exigencia De(string controlador, string accion) =>
