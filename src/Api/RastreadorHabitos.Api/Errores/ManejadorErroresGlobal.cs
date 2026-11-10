@@ -57,6 +57,7 @@ public class ManejadorErroresGlobal : IExceptionHandler
                 TipoRechazoHabitos.NoEncontrado => StatusCodes.Status404NotFound,
                 TipoRechazoHabitos.LimiteAlcanzado => StatusCodes.Status403Forbidden,
                 TipoRechazoHabitos.ReglaIncumplida => StatusCodes.Status409Conflict,
+                TipoRechazoHabitos.ServicioExternoNoDisponible => StatusCodes.Status503ServiceUnavailable,
                 _ => StatusCodes.Status400BadRequest
             };
             await httpContext.Response.WriteAsJsonAsync(new { error = rechazoHabitos.Message }, cancellationToken);
