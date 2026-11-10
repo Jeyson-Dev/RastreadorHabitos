@@ -46,6 +46,18 @@ Enunciado completo: [`docs/practica2-suite-defectos.md`](docs/practica2-suite-de
 
 Enunciado completo: [`docs/practica3-modulo-negocio.md`](docs/practica3-modulo-negocio.md).
 
+## Estado de la Práctica 4 — Contenedor, documentos y API externa
+
+| Entregable | Requisitos | Estado |
+|---|---|---|
+| Manejador de documentos: subir, listar, descargar y eliminar (lógico), con rechazo de documentos ajenos | RF-DOC-01 a 04 · RD-06, 07 | ✅ [Manejador de documentos](#manejador-de-documentos--práctica-4) |
+| El proyecto en contenedores con un solo comando (`cp .env.example .env` + `docker compose up --build`) | Práctica 4 §1.2 · RD-10 | ✅ [Contenedor](#contenedor) |
+| Datos y documentos en volúmenes con nombre, que sobreviven a `docker compose down` | RF-DOC-05 · RD-09 | ✅ [Datos que sobreviven](#datos-que-sobreviven) |
+| API externa (WeatherAPI.com) con su clave como secreto y rechazo controlado | Práctica 4 §1.4 · RD-07, 08, 10 | ✅ [API externa](#api-externa) |
+| Control de acceso, Gestión de permisos y módulo de negocio siguen funcionando | Prácticas 1 a 3 | ✅ Mismas instrucciones, con las [equivalencias del contenedor](#equivalencias-con-el-resto-de-este-readme) |
+
+Enunciado completo: [`docs/practica4-contenedor-documentos-api.md`](docs/practica4-contenedor-documentos-api.md).
+
 ## Stack
 
 - C# / ASP.NET Core Web API (.NET 10)
