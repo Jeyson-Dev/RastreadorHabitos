@@ -27,6 +27,8 @@ public static class ExigenciasDeRol
 
     private static readonly Dictionary<string, Exigencia> PorOperacion = new()
     {
+        ["Inicio.Estado"] = Exigencia.Anonimo,
+
         ["Cuentas.Registrar"] = Exigencia.Anonimo,
         ["Cuentas.Activar"] = Exigencia.Anonimo,
         ["Cuentas.ReenviarActivacion"] = Exigencia.Anonimo,

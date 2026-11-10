@@ -53,12 +53,16 @@ Enunciado completo: [`docs/practica3-modulo-negocio.md`](docs/practica3-modulo-n
 
 ## Requisitos previos
 
-- [.NET SDK 10](https://dotnet.microsoft.com/download) o superior.
-- SQL Server (local o una instancia accesible) con permiso para crear bases de datos.
-- Un servidor SMTP para que los correos lleguen de verdad. Sirve una cuenta de Gmail con una
-  [contraseña de aplicación](https://myaccount.google.com/apppasswords) (requiere tener
-  activada la verificación en dos pasos), o un servidor de pruebas como
-  [smtp4dev](https://github.com/rnwood/smtp4dev).
+Solo **Docker** (Docker Desktop, o Docker Engine con Docker Compose v2). No hace falta instalar
+.NET, SQL Server ni un servidor de correo: todo corre dentro de la composición (ver
+[Contenedor](#contenedor)).
+
+Para ejecutar sin Docker (alternativa, ver
+[Ejecutar sin Docker](#ejecutar-sin-docker-alternativa)) hacen falta el
+[.NET SDK 10](https://dotnet.microsoft.com/download), un SQL Server con permiso para crear bases
+de datos y un servidor SMTP (por ejemplo Gmail con una
+[contraseña de aplicación](https://myaccount.google.com/apppasswords), o
+[smtp4dev](https://github.com/rnwood/smtp4dev)).
 
 ## Clonar el repositorio
 
@@ -67,13 +71,91 @@ git clone https://github.com/Jeyson-Dev/RastreadorHabitos.git
 cd RastreadorHabitos
 ```
 
+## Contenedor
+
+Forma principal de ejecutar el proyecto. Desde la raíz de un clon limpio, en cualquier terminal:
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+En PowerShell, el primer paso es `Copy-Item .env.example .env`. Copiar `.env.example` a `.env` es
+el único paso previo: trae todas las variables con valores de ejemplo que funcionan tal cual. El
+`.env` no se versiona (lo excluye `.gitignore`).
+
+La primera vez tarda unos minutos (descarga las imágenes y compila). Está listo cuando la consola
+muestra `Now listening on: http://[::]:8080`.
+
+| Qué | Dirección |
+|---|---|
+| **La API** | **`http://localhost:5003`**. Al abrirla responde `{ "aplicacion": "Rastreador de hábitos con metas", "estado": "En funcionamiento", … }`; todas las rutas de este README van debajo, por ejemplo `http://localhost:5003/api/cuentas/registro` |
+| Los correos que envía la aplicación (Mailpit) | `http://localhost:8025` |
+
+**Detener el proyecto:** `Ctrl+C` en la terminal donde corre y después `docker compose down`
+(o directamente `docker compose down` desde otra terminal, en la raíz del repositorio). Los datos
+se conservan: usuarios, solicitudes, hábitos, metas y documentos sobreviven a `docker compose down`
+y a volver a levantar con `docker compose up` (ver [Datos que sobreviven](#datos-que-sobreviven)).
+`docker compose down -v` sí borra todos los datos.
+
+### Qué levanta la composición
+
+`docker-compose.yml` define cuatro servicios, que se encuentran por nombre, nunca por `localhost`:
+
+| Servicio | Qué es | Puerto en el equipo |
+|---|---|---|
+| `app` | La API (imagen del `Dockerfile`). Espera a que SQL Server esté listo (healthcheck) y al arrancar aplica las migraciones de todas las piezas: la base `RastreadorHabitos` se crea sola | `5003` |
+| `sqlserver` | SQL Server 2022 | Ninguno: solo es accesible dentro de la composición |
+| `enviador` | El enviador de la cola de correos (RF-NOT-09): un proceso aparte, con la misma imagen, que ejecuta `enviar-correos` cada 10 segundos | Ninguno |
+| `mailpit` | Servidor de correo de captura: recibe los correos que envía el enviador y los muestra en su página | `8025` (solo su página) |
+
+### Equivalencias con el resto de este README
+
+El resto del README sirve igual con el contenedor. Donde dice:
+
+- **«Ejecutar el enviador»:** el servicio `enviador` lo hace solo cada 10 segundos. Basta esperar
+  unos segundos y abrir `http://localhost:8025`, donde aparece el correo con el enlace de
+  activación o el código de recuperación. Para ejecutarlo a mano, con la salida que se describe en
+  [Enviar los correos pendientes](#enviar-los-correos-pendientes-enviador-de-la-cola):
+
+  ```bash
+  docker compose exec app dotnet RastreadorHabitos.Api.dll enviar-correos
+  ```
+
+- **«El comando `promover-administrador`»** (crear el primer Administrador):
+
+  ```bash
+  docker compose exec app dotnet RastreadorHabitos.Api.dll promover-administrador <correo>
+  ```
+
+- **«Consulta SQL»:** se abre una consola de SQL Server dentro de su contenedor (toma la
+  contraseña de la variable del propio contenedor), se escribe la consulta, después `GO` en otra
+  línea, y `exit` para salir:
+
+  ```bash
+  docker compose exec sqlserver bash -c '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -d RastreadorHabitos'
+  ```
+
+- **«Apagar el servidor SMTP»:** `docker compose stop mailpit`. Los correos quedan `Pendiente` y
+  el enviador informa en su log (`docker compose logs enviador`) que no pudo enviar. Con
+  `docker compose start mailpit` salen en la siguiente vuelta, una sola vez.
+- **«Reiniciar la aplicación»:** `docker compose restart app`, o `docker compose down` y
+  `docker compose up`.
+
+Para recibir los correos en un buzón real en lugar de Mailpit, se ponen en `.env` los datos de un
+servidor SMTP real (`Smtp__Host=smtp.gmail.com`, `Smtp__Puerto=587`, `Smtp__UsarSsl=true`, la
+cuenta en `Smtp__Usuario` y `Smtp__Remitente`, y su contraseña de aplicación en
+`Smtp__Contrasena`) y se vuelve a levantar.
+
 ## Variables de entorno
 
 El repositorio no contiene cadenas de conexión ni credenciales: todo llega por variables de
-entorno. Aquí se documenta el nombre y el propósito de cada una, nunca su valor.
+entorno. Con Docker llegan desde el `.env` (copia de `.env.example`). Aquí se documenta el nombre
+y el propósito de cada una, nunca un valor real.
 
 | Variable | Obligatoria | Para qué sirve |
 |---|---|---|
+| `MSSQL_SA_PASSWORD` | Sí (con Docker) | Contraseña del usuario `sa` del servicio `sqlserver`: 8 caracteres o más, con mayúsculas, minúsculas y números o símbolos. La cadena de conexión de `.env.example` la reutiliza. |
 | `ConnectionStrings__RastreadorHabitos` | Sí | Cadena de conexión a SQL Server. La base de datos se crea sola al arrancar. Sin esta variable la aplicación no arranca y lo indica en la consola. |
 | `Jwt__Clave` | Sí (para la API) | Clave secreta, de 32 caracteres o más, con la que se firman las credenciales de sesión. Sin ella, o si es más corta, la API no arranca. El enviador de correos no la necesita. |
 | `Documentos__Ruta` | Sí (para la API) | Carpeta donde se guardan los archivos de los documentos (por ejemplo `C:\RastreadorHabitos\documentos`). Se crea sola si no existe. Sin esta variable la API no arranca. En el contenedor apunta al volumen `documentos`. |
@@ -83,7 +165,9 @@ entorno. Aquí se documenta el nombre y el propósito de cada una, nunca su valo
 | `Smtp__Remitente` | Para enviar correos | Dirección que aparece como remitente. Con Gmail debe ser la misma cuenta. |
 | `Smtp__Usuario` | Si el servidor pide autenticación | Usuario de la cuenta SMTP. |
 | `Smtp__Contrasena` | Si el servidor pide autenticación | Contraseña de la cuenta SMTP (con Gmail, la contraseña de aplicación). |
-| `Smtp__UsarSsl` | No (por defecto `true`) | Usa STARTTLS. Ponerla en `false` solo con servidores de prueba sin cifrado, como smtp4dev. |
+| `Smtp__UsarSsl` | No (por defecto `true`) | Usa STARTTLS. Ponerla en `false` solo con servidores de prueba sin cifrado, como Mailpit o smtp4dev. |
+| `WeatherApi__Clave` | No | Clave de la API externa de clima (ver [API externa](#api-externa)). Sin ella, o si no es válida, solo el plan de hoy se rechaza de forma controlada; el resto funciona. |
+| `TZ` | No (con Docker, `America/Santo_Domingo`) | Zona horaria del contenedor. «Hoy», para los registros diarios y las metas, es la fecha local del servidor. |
 
 Las variables `Smtp__*` solo las usa el enviador de correos (ver más abajo). La API funciona
 sin ellas: los correos quedan pendientes en la cola hasta que se ejecute el enviador con un
@@ -94,6 +178,8 @@ Para generar un valor aleatorio para `Jwt__Clave` en PowerShell:
 ```powershell
 [Convert]::ToBase64String((1..48 | ForEach-Object { Get-Random -Maximum 256 }))
 ```
+
+Las dos opciones de abajo son solo para [ejecutar sin Docker](#ejecutar-sin-docker-alternativa).
 
 ### Opción A — PowerShell (para la ventana actual)
 
@@ -130,7 +216,10 @@ usuario de Windows (una sola vez) y **cerrar y volver a abrir Visual Studio**:
 No configurarlas en las propiedades de depuración de Visual Studio: se guardan en
 `Properties/launchSettings.json`, que forma parte del repositorio.
 
-## Ejecutar la API
+## Ejecutar sin Docker (alternativa)
+
+Solo para desarrollo: la forma de ejecutar el proyecto es la de [Contenedor](#contenedor). Con
+las variables de entorno configuradas (opciones A o B de arriba):
 
 ```bash
 dotnet run --project src/Api/RastreadorHabitos.Api
@@ -148,7 +237,9 @@ Las operaciones que generan correos (registro y reenvío del enlace) **no los en
 registran en la tabla `Notificaciones.CorreosEnCola` en estado `Pendiente` y responden de
 inmediato, aunque el servidor SMTP no esté disponible (RF-NOT-08).
 
-Los envía un **comando independiente** (RF-NOT-09). Se ejecuta desde la raíz del
+Los envía un **comando independiente** (RF-NOT-09). Con Docker lo ejecuta solo el servicio
+`enviador`, o a mano `docker compose exec app dotnet RastreadorHabitos.Api.dll enviar-correos`
+(ver [Contenedor](#contenedor)). Sin Docker se ejecuta desde la raíz del
 repositorio, en una ventana con las variables configuradas; puede ejecutarse mientras la API
 está corriendo:
 
@@ -182,7 +273,13 @@ FROM Notificaciones.CorreosEnCola ORDER BY FechaCreacionUtc;
 ## Crear el primer Administrador
 
 Todo usuario nace con el rol Estándar (RF-CA-04). Para convertir en Administrador a un usuario
-ya registrado se usa este comando, desde la raíz del repositorio y en una ventana con
+ya registrado, con Docker:
+
+```bash
+docker compose exec app dotnet RastreadorHabitos.Api.dll promover-administrador <correo>
+```
+
+Sin Docker se usa este comando, desde la raíz del repositorio y en una ventana con
 `ConnectionStrings__RastreadorHabitos` configurada (no necesita `Jwt__Clave` ni las `Smtp__*`;
 puede ejecutarse con la API corriendo):
 
@@ -443,7 +540,7 @@ Los ejemplos de esta sección usan `Administrador`; los mismos pasos valen con
 `LIMITE_HABITOS_AMPLIADO`.
 
 **Arranque de la pieza.** No necesita nada aparte: se ejecuta la API como se indica en
-[Ejecutar la API](#ejecutar-la-api), con las mismas variables de entorno. Al arrancar se crea
+[Contenedor](#contenedor), con el mismo `.env`. Al arrancar se crea
 la tabla `GestionPermisos.SolicitudesPermiso`. Quién puede invocar cada operación está en la
 misma tabla única de la Práctica 1, `Autorizacion/ExigenciasDeRol.cs`, y se verifica en el
 servidor (RD-06).
@@ -584,7 +681,7 @@ y registra cada día si los cumplió) y **Metas** (agrupa hábitos y se logra al
 de cumplimientos). La entidad central es la **Meta**, con su máquina de estados.
 
 **Arranque.** No necesita nada aparte: se ejecuta la API como se indica en
-[Ejecutar la API](#ejecutar-la-api), con las mismas variables de entorno. Al arrancar se crean
+[Contenedor](#contenedor), con el mismo `.env`. Al arrancar se crean
 las tablas de los esquemas `Habitos` (`Habitos`, `HabitosDias`, `RegistrosDiarios`) y `Metas`
 (`Metas`, `MetasHabitos`), y la tabla `ControlAcceso.PermisosUsuario`.
 

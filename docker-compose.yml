@@ -1,0 +1,87 @@
+# Composición del proyecto (Práctica 4, sección 1.2). Un solo comando desde un clon limpio:
+#   copiar .env.example a .env  y  docker compose up --build
+# Todo lo configurable llega desde .env (que no se versiona); aquí no hay ningún secreto [RD-10].
+# Los servicios se encuentran por nombre (sqlserver), nunca por localhost.
+name: rastreadorhabitos
+
+services:
+  # Motor de base de datos. No publica ningún puerto: solo es accesible dentro de la composición.
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Falta MSSQL_SA_PASSWORD. Copie .env.example a .env}
+    # La aplicación espera a que SQL Server acepte conexiones antes de arrancar.
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -b -Q \"SELECT 1\" -o /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  # La aplicación (API), en el puerto 5003 del equipo. Aparte de ella, solo Mailpit publica su
+  # página de correos de prueba (8025); la base de datos no publica ninguno.
+  # Al arrancar aplica las migraciones de todas las piezas: la base se crea sola.
+  app:
+    build: .
+    image: rastreadorhabitos-app
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    ports:
+      - "5003:8080"
+    environment:
+      ConnectionStrings__RastreadorHabitos: ${ConnectionStrings__RastreadorHabitos:?Falta ConnectionStrings__RastreadorHabitos. Copie .env.example a .env}
+      Jwt__Clave: ${Jwt__Clave:?Falta Jwt__Clave. Copie .env.example a .env}
+      App__UrlBase: ${App__UrlBase:?Falta App__UrlBase. Copie .env.example a .env}
+      Documentos__Ruta: ${Documentos__Ruta:?Falta Documentos__Ruta. Copie .env.example a .env}
+      # Opcional: sin ella la API arranca igual y solo el plan de hoy se rechaza de forma controlada.
+      WeatherApi__Clave: ${WeatherApi__Clave:-}
+      # Para ejecutar a mano el enviador de correos con docker compose exec.
+      Smtp__Host: ${Smtp__Host:-}
+      Smtp__Puerto: ${Smtp__Puerto:-}
+      Smtp__UsarSsl: ${Smtp__UsarSsl:-true}
+      Smtp__Remitente: ${Smtp__Remitente:-}
+      Smtp__Usuario: ${Smtp__Usuario:-}
+      Smtp__Contrasena: ${Smtp__Contrasena:-}
+      TZ: ${TZ:-America/Santo_Domingo}
+    restart: on-failure
+
+  # Enviador de la cola de correos: proceso independiente de las operaciones que encolan
+  # [RF-NOT-08, RF-NOT-09]. Con la misma imagen, ejecuta el comando enviar-correos cada 10
+  # segundos; solo toma correos Pendiente, así nunca duplica un envío [RF-NOT-12].
+  enviador:
+    build: .
+    image: rastreadorhabitos-app
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      app:
+        condition: service_started
+      mailpit:
+        condition: service_started
+    entrypoint: ["/bin/sh", "-c", "sleep 20; while true; do dotnet RastreadorHabitos.Api.dll enviar-correos; sleep 10; done"]
+    environment:
+      ConnectionStrings__RastreadorHabitos: ${ConnectionStrings__RastreadorHabitos:?Falta ConnectionStrings__RastreadorHabitos. Copie .env.example a .env}
+      Smtp__Host: ${Smtp__Host:-}
+      Smtp__Puerto: ${Smtp__Puerto:-}
+      Smtp__UsarSsl: ${Smtp__UsarSsl:-true}
+      Smtp__Remitente: ${Smtp__Remitente:-}
+      Smtp__Usuario: ${Smtp__Usuario:-}
+      Smtp__Contrasena: ${Smtp__Contrasena:-}
+      Logging__LogLevel__Default: Warning
+      TZ: ${TZ:-America/Santo_Domingo}
+    restart: on-failure
+
+  # Servidor de correo de captura para pruebas: recibe lo que envía el enviador y lo muestra en
+  # http://localhost:8025, para abrir el enlace de activación o leer el código de recuperación sin
+  # credenciales SMTP reales. Acepta cualquier usuario y contraseña.
+  mailpit:
+    image: axllent/mailpit:v1.27
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+      TZ: ${TZ:-America/Santo_Domingo}
+    ports:
+      - "8025:8025"

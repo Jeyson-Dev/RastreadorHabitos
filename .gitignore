@@ -371,6 +371,8 @@ FodyWeavers.xsd
 appsettings*.local.json
 .env
 .env.*
+# La plantilla sí se versiona: valores de ejemplo, nunca secretos (Práctica 4, sección 1.4)
+!.env.example
 
 # VS Code
 .vscode/*
