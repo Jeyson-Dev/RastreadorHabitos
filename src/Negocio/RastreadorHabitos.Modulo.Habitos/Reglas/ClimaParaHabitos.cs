@@ -27,22 +27,22 @@ public static class ClimaParaHabitos
             return "Ya registró todos sus hábitos de hoy.";
         }
 
-        var pendientes = pendientesHoy == 1 ? "1 hábito pendiente" : $"{pendientesHoy} hábitos pendientes";
+        var pendientes = pendientesHoy == 1 ? "su hábito pendiente" : $"sus {pendientesHoy} hábitos pendientes";
         if (pronostico.ProbabilidadLluvia >= ProbabilidadLluviaDesfavorable)
         {
-            return $"Probabilidad de lluvia del {pronostico.ProbabilidadLluvia} %: planifique bajo techo sus {pendientes} de hoy.";
+            return $"Probabilidad de lluvia del {pronostico.ProbabilidadLluvia} %: planifique bajo techo {pendientes} de hoy.";
         }
 
         if (pronostico.TemperaturaMaximaC > TemperaturaMaximaAgradableC)
         {
-            return $"Máxima de {pronostico.TemperaturaMaximaC:0.#} °C: haga temprano o bajo techo sus {pendientes} de hoy.";
+            return $"Máxima de {pronostico.TemperaturaMaximaC:0.#} °C: haga temprano o bajo techo {pendientes} de hoy.";
         }
 
         if (pronostico.TemperaturaMaximaC < TemperaturaMinimaAgradableC)
         {
-            return $"Máxima de {pronostico.TemperaturaMaximaC:0.#} °C: abríguese o haga bajo techo sus {pendientes} de hoy.";
+            return $"Máxima de {pronostico.TemperaturaMaximaC:0.#} °C: abríguese o haga bajo techo {pendientes} de hoy.";
         }
 
-        return $"Buen día para hacer al aire libre sus {pendientes} de hoy.";
+        return $"Buen día para hacer al aire libre {pendientes} de hoy.";
     }
 }
