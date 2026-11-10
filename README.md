@@ -98,6 +98,38 @@ se conservan: usuarios, solicitudes, hábitos, metas y documentos sobreviven a `
 y a volver a levantar con `docker compose up` (ver [Datos que sobreviven](#datos-que-sobreviven)).
 `docker compose down -v` sí borra todos los datos.
 
+### Datos que sobreviven
+
+Los datos viven en dos **volúmenes con nombre**, fuera de las imágenes (RF-DOC-05, RD-09):
+
+| Volumen | Qué guarda | Montado en |
+|---|---|---|
+| `rastreadorhabitos_datos-sqlserver` | La carpeta de datos de SQL Server: usuarios, sesiones, solicitudes de permiso, hábitos, metas, la cola de correos y los registros de documentos | `/var/opt/mssql` del servicio `sqlserver` |
+| `rastreadorhabitos_documentos` | Los archivos de los documentos subidos | `/app/documentos` del servicio `app` (`Documentos__Ruta`) |
+
+`docker compose down` borra los contenedores pero **no** los volúmenes; solo
+`docker compose down -v` los borra. Para comprobarlo:
+
+1. Con el proyecto levantado, registrar y activar un usuario, iniciar sesión y subir un documento
+   (`POST /api/documentos`, ver [Manejador de documentos](#manejador-de-documentos--práctica-4)).
+   Guardar su `id`.
+2. `docker compose down` (sin `-v`). `docker volume ls` sigue mostrando los dos volúmenes.
+3. `docker compose up` (sin `--build` también sirve).
+4. El usuario inicia sesión con su contraseña (`POST /api/sesion/iniciar` → `200`), el documento
+   sigue en `GET /api/documentos` y `GET /api/documentos/{id}/descarga` devuelve el mismo archivo.
+
+El archivo está en el volumen y no en la imagen:
+
+```bash
+docker run --rm -v rastreadorhabitos_documentos:/v --entrypoint ls rastreadorhabitos-app -l /v
+docker run --rm --entrypoint ls rastreadorhabitos-app -la /app/documentos
+```
+
+(En Git Bash, anteponer `MSYS_NO_PATHCONV=1` a cada comando para que no convierta las rutas.)
+El primer comando lista los archivos guardados (uno por documento, con su `id` como nombre); el
+segundo muestra que la carpeta de la imagen está vacía. Un documento eliminado (borrado lógico)
+también conserva su archivo en el volumen.
+
 ### Qué levanta la composición
 
 `docker-compose.yml` define cuatro servicios, que se encuentran por nombre, nunca por `localhost`:
