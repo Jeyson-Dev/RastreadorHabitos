@@ -179,6 +179,101 @@ servidor SMTP real (`Smtp__Host=smtp.gmail.com`, `Smtp__Puerto=587`, `Smtp__Usar
 cuenta en `Smtp__Usuario` y `Smtp__Remitente`, y su contraseña de aplicación en
 `Smtp__Contrasena`) y se vuelve a levantar.
 
+## API externa
+
+| | |
+|---|---|
+| **API** | [WeatherAPI.com](https://www.weatherapi.com), operación `forecast.json` (pronóstico del día). Exige clave. |
+| **Operación del proyecto que la usa** | `GET /api/habitos/hoy?ciudad=<ciudad>`, el **plan de hoy** del módulo de negocio. Requiere sesión (Estándar o Administrador). |
+| **Variable de entorno** | `WeatherApi__Clave`. Se lee de la variable de entorno; nunca está en el código, el `Dockerfile`, el `docker-compose.yml`, la imagen ni el historial. Con Docker llega desde el `.env`, que no se versiona. |
+
+El **plan de hoy** toma los hábitos del usuario programados para hoy, indica cuáles ya registró y
+los cruza con el pronóstico del día en esa ciudad. Con eso dice si el día favorece hacerlos al aire
+libre (probabilidad de lluvia menor al 50 % y máxima entre 10 y 33 °C) y qué se recomienda hacer
+con los que faltan.
+
+**Poner una clave real.** `.env.example` trae `WeatherApi__Clave=clave-de-ejemplo-de-weatherapi`.
+Con ese valor la operación responde el rechazo controlado de la tabla de abajo y el resto del
+proyecto funciona igual. Para obtener datos reales:
+
+1. Crear una cuenta gratis en <https://www.weatherapi.com/signup.aspx> y copiar la «API Key» del
+   panel.
+2. Ponerla en el `.env`: `WeatherApi__Clave=<la clave>`.
+3. Ejecutar `docker compose up -d`, que vuelve a crear la app con el valor nuevo
+   (`docker compose restart` no relee el `.env`).
+
+### Ejemplo real
+
+Respuesta obtenida el 2026-11-09 con una clave real. El usuario tiene dos hábitos programados todos
+los días y ya registró «Leer 20 minutos»:
+
+```http
+GET http://localhost:5003/api/habitos/hoy?ciudad=Santo Domingo
+Authorization: Bearer <token>
+```
+
+```json
+{
+  "fecha": "2026-11-09",
+  "ciudad": "Santo Domingo",
+  "pais": "Dominican Republic",
+  "pronostico": {
+    "condicion": "Lluvia irregular en las cercanías",
+    "temperaturaMaximaC": 30.1,
+    "temperaturaMinimaC": 22.7,
+    "probabilidadLluvia": 61
+  },
+  "favorableAlAireLibre": false,
+  "recomendacion": "Probabilidad de lluvia del 61 %: planifique bajo techo su hábito pendiente de hoy.",
+  "pendientes": 1,
+  "habitos": [
+    { "id": "92d70c85-3d31-445e-b95e-3f6f036e8d8c", "nombre": "Caminar 30 minutos", "registrado": false, "cumplido": null },
+    { "id": "6d6cd2c8-2c13-4d78-977c-8d10db1e670b", "nombre": "Leer 20 minutos", "registrado": true, "cumplido": true }
+  ]
+}
+```
+
+Para obtenerla, la aplicación llamó a
+`https://api.weatherapi.com/v1/forecast.json?key=<clave>&q=Santo Domingo&days=1&lang=es&aqi=no&alerts=no`
+(la clave se omite aquí). De lo que respondió WeatherAPI usa estos campos:
+
+```json
+{
+  "location": { "name": "Santo Domingo", "country": "Dominican Republic" },
+  "forecast": {
+    "forecastday": [
+      {
+        "date": "2026-11-09",
+        "day": {
+          "maxtemp_c": 30.1,
+          "mintemp_c": 22.7,
+          "daily_chance_of_rain": 61,
+          "condition": { "text": "Lluvia irregular en las cercanías" }
+        }
+      }
+    ]
+  }
+}
+```
+
+### Rechazos controlados
+
+Si falta la clave o la API no está disponible, la operación responde un mensaje comprensible y
+el resto del proyecto sigue funcionando (RD-07, RD-08). Ningún mensaje ni línea del log muestra
+la clave.
+
+| Caso | Cómo provocarlo | Respuesta |
+|---|---|---|
+| Clave de ejemplo o inválida | Dejar el valor de `.env.example` | `503` «El plan de hoy no está disponible: el servicio de clima rechazó la clave configurada en el servidor.» |
+| Sin clave | Dejar `WeatherApi__Clave=` vacía en el `.env` y ejecutar `docker compose up -d` | `503` «El plan de hoy no está disponible: el servidor no tiene configurada la clave del servicio de clima.» |
+| La API no responde (espera como máximo 5 s) | Desconectar el equipo de internet | `503` «El plan de hoy no está disponible: el servicio de clima no respondió. Intente de nuevo más tarde.» |
+| Ciudad que WeatherAPI no encuentra | `?ciudad=Xyzqwvbn` | `400` «El servicio de clima no encontró la ciudad indicada.» |
+| Sin `ciudad` | `GET /api/habitos/hoy` | `400` «Indique la ciudad, de hasta 100 caracteres (por ejemplo ?ciudad=Santo Domingo).» |
+| Sin sesión | Sin `Authorization` | `401` |
+
+En cualquiera de los tres `503`, `GET /api/habitos`, `GET /api/metas` y el resto de las
+operaciones siguen respondiendo con normalidad.
+
 ## Variables de entorno
 
 El repositorio no contiene cadenas de conexión ni credenciales: todo llega por variables de
@@ -741,6 +836,7 @@ de la semana son números: `1` = lunes … `7` = domingo.
 | F5 | Consultar mis metas | `GET /api/metas` y `GET /api/metas/{id}` | — | `200` la meta (o la lista) con su `avance` y su `estado` al día · `404` meta inexistente o de otro usuario |
 | F6 | Completar una meta | `POST /api/metas/{id}/completar` | — | `200` la meta en `Completada` · `404` · `409` transición no permitida o condición no cumplida |
 | F7 | Reactivar una meta Fallida | `POST /api/metas/{id}/reactivar` | `{ "nuevaFechaLimite" }` | `200` la meta en `EnProgreso` con la fecha nueva · `400` sin fecha · `404` · `409` transición no permitida o condición no cumplida |
+| — | Plan de hoy (Práctica 4, usa la [API externa](#api-externa)) | `GET /api/habitos/hoy?ciudad=<ciudad>` | — | `200` el plan · `400` sin ciudad o ciudad no encontrada · `503` servicio de clima no disponible |
 
 Cada meta se devuelve como
 `{ "id", "nombre", "objetivoCumplimientos", "avance", "fechaInicio", "fechaLimite", "estado", "habitoIds", "fechaCreacionUtc" }`.
