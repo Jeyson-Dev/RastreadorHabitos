@@ -6,6 +6,7 @@
     <ProjectReference Include="..\..\Negocio\RastreadorHabitos.Modulo.Habitos\RastreadorHabitos.Modulo.Habitos.csproj" />
     <ProjectReference Include="..\..\Negocio\RastreadorHabitos.Modulo.Metas\RastreadorHabitos.Modulo.Metas.csproj" />
     <ProjectReference Include="..\..\Core\RastreadorHabitos.Core.GestionPermisos\RastreadorHabitos.Core.GestionPermisos.csproj" />
+    <ProjectReference Include="..\..\Core\RastreadorHabitos.Core.Documentos\RastreadorHabitos.Core.Documentos.csproj" />
   </ItemGroup>
 
   <ItemGroup>

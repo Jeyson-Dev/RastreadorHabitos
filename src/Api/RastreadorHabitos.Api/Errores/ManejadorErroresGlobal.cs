@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics;
 using RastreadorHabitos.Core.ControlAcceso.Services;
+using RastreadorHabitos.Core.Documentos.Services;
 using RastreadorHabitos.Core.GestionPermisos.Services;
 using RastreadorHabitos.Modulo.Habitos.Services;
 using RastreadorHabitos.Modulo.Metas.Services;
@@ -71,6 +72,35 @@ public class ManejadorErroresGlobal : IExceptionHandler
                 _ => StatusCodes.Status400BadRequest
             };
             await httpContext.Response.WriteAsJsonAsync(new { error = rechazoMetas.Message }, cancellationToken);
+            return true;
+        }
+
+        if (exception is RechazoDocumentosException rechazoDocumentos)
+        {
+            httpContext.Response.StatusCode = rechazoDocumentos.Tipo switch
+            {
+                TipoRechazoDocumentos.NoPermitido => StatusCodes.Status403Forbidden,
+                TipoRechazoDocumentos.NoEncontrado => StatusCodes.Status404NotFound,
+                _ => StatusCodes.Status400BadRequest
+            };
+            await httpContext.Response.WriteAsJsonAsync(new { error = rechazoDocumentos.Message }, cancellationToken);
+            return true;
+        }
+
+        // Cuerpo que no se puede leer (formulario mal formado o archivo demasiado grande): es un
+        // error de quien envía, no del servidor [RD-07].
+        if (exception is BadHttpRequestException or InvalidDataException)
+        {
+            var demasiadoGrande = exception is BadHttpRequestException { StatusCode: StatusCodes.Status413PayloadTooLarge };
+            httpContext.Response.StatusCode = demasiadoGrande
+                ? StatusCodes.Status413PayloadTooLarge
+                : StatusCodes.Status400BadRequest;
+            await httpContext.Response.WriteAsJsonAsync(new
+            {
+                error = demasiadoGrande
+                    ? "El archivo supera el tamaño máximo permitido."
+                    : "La solicitud no tiene un formato válido."
+            }, cancellationToken);
             return true;
         }
 
