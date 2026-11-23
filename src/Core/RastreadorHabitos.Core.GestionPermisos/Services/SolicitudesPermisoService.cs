@@ -97,8 +97,43 @@ public class SolicitudesPermisoService : ISolicitudesPermisoService
         return SolicitudPermisoDto.Desde(solicitud);
     }
 
-    public async Task<IReadOnlyList<ConteoSolicitudesPorMesDto>> ContarSolicitudesPorEstadoAsync(
-        Guid? solicitanteId, DateTime? desdeUtc, DateTime? hastaUtc, int desplazamientoMinutos)
+    public async Task<IReadOnlyList<ConteoSolicitudesDto>> ContarSolicitudesPorEstadoAsync(
+        Guid? solicitanteId, IReadOnlyList<PeriodoUtc> periodos)
+    {
+        var conteos = new List<ConteoSolicitudesDto>(periodos.Count);
+        foreach (var periodo in periodos)
+        {
+            // Una consulta GROUP BY Estado por intervalo: SQL Server cuenta; nunca se traen las
+            // solicitudes para contarlas aquí [RF-REP-03]. Los límites de cada intervalo los
+            // decide quien pide el reporte, en UTC, así el mes es el local de cada fecha aunque la
+            // zona tenga horario de verano [Hallazgo 3 de la Asignación 3].
+            var porEstado = await Filtrar(solicitanteId, periodo.DesdeUtc, periodo.HastaUtc)
+                .GroupBy(s => s.Estado)
+                .Select(g => new { Estado = g.Key, Cantidad = g.Count() })
+                .ToDictionaryAsync(g => g.Estado, g => g.Cantidad);
+
+            conteos.Add(new ConteoSolicitudesDto
+            {
+                Pendiente = porEstado.GetValueOrDefault(EstadoSolicitud.Pendiente),
+                Aprobada = porEstado.GetValueOrDefault(EstadoSolicitud.Aprobada),
+                Aplicada = porEstado.GetValueOrDefault(EstadoSolicitud.Aplicada),
+                Rechazada = porEstado.GetValueOrDefault(EstadoSolicitud.Rechazada),
+                Total = porEstado.Values.Sum()
+            });
+        }
+        return conteos;
+    }
+
+    public async Task<(DateTime PrimeraUtc, DateTime UltimaUtc)?> FechasDeCreacionExtremasAsync(
+        Guid? solicitanteId, DateTime? desdeUtc, DateTime? hastaUtc)
+    {
+        var consulta = Filtrar(solicitanteId, desdeUtc, hastaUtc);
+        var primera = await consulta.MinAsync(s => (DateTime?)s.FechaCreacionUtc);
+        var ultima = await consulta.MaxAsync(s => (DateTime?)s.FechaCreacionUtc);
+        return primera is { } p && ultima is { } u ? (p, u) : null;
+    }
+
+    private IQueryable<SolicitudPermiso> Filtrar(Guid? solicitanteId, DateTime? desdeUtc, DateTime? hastaUtc)
     {
         var consulta = _context.SolicitudesPermiso.AsNoTracking();
         if (solicitanteId is { } id)
@@ -113,27 +148,7 @@ public class SolicitudesPermisoService : ISolicitudesPermisoService
         {
             consulta = consulta.Where(s => s.FechaCreacionUtc < hasta);
         }
-
-        // Una sola consulta GROUP BY: SQL Server agrupa por mes y cuenta cada estado; nunca se
-        // traen las solicitudes para contarlas aquí [RF-REP-03].
-        return await consulta
-            .GroupBy(s => new
-            {
-                s.FechaCreacionUtc.AddMinutes(desplazamientoMinutos).Year,
-                s.FechaCreacionUtc.AddMinutes(desplazamientoMinutos).Month
-            })
-            .Select(g => new ConteoSolicitudesPorMesDto
-            {
-                Anio = g.Key.Year,
-                Mes = g.Key.Month,
-                Pendiente = g.Count(s => s.Estado == EstadoSolicitud.Pendiente),
-                Aprobada = g.Count(s => s.Estado == EstadoSolicitud.Aprobada),
-                Aplicada = g.Count(s => s.Estado == EstadoSolicitud.Aplicada),
-                Rechazada = g.Count(s => s.Estado == EstadoSolicitud.Rechazada),
-                Total = g.Count()
-            })
-            .OrderBy(c => c.Anio).ThenBy(c => c.Mes)
-            .ToListAsync();
+        return consulta;
     }
 
     // Si otra operación resolvió la solicitud después de leerla, el estado guardado ya no es el

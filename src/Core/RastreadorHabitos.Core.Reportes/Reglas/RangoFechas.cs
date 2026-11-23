@@ -29,14 +29,25 @@ public sealed record RangoFechas(DateOnly? Desde, DateOnly? Hasta)
         return new RangoFechas(inicio, fin);
     }
 
-    // Primer instante incluido, en UTC: la medianoche local de «desde».
-    public DateTime? DesdeUtc(TimeZoneInfo zona) =>
-        Desde is { } d ? TimeZoneInfo.ConvertTimeToUtc(d.ToDateTime(TimeOnly.MinValue), zona) : null;
+    // Primer instante incluido, en UTC: el comienzo local de «desde».
+    public DateTime? DesdeUtc(TimeZoneInfo zona) => Desde is { } d ? InicioDelDiaUtc(d, zona) : null;
 
-    // Primer instante EXCLUIDO, en UTC: la medianoche local del día siguiente a «hasta». Así todo
+    // Primer instante EXCLUIDO, en UTC: el comienzo local del día siguiente a «hasta». Así todo
     // «hasta», hasta las 23:59:59.999 locales, queda dentro [RF-REP-05].
-    public DateTime? HastaExclusivoUtc(TimeZoneInfo zona) =>
-        Hasta is { } h ? TimeZoneInfo.ConvertTimeToUtc(h.AddDays(1).ToDateTime(TimeOnly.MinValue), zona) : null;
+    public DateTime? HastaExclusivoUtc(TimeZoneInfo zona) => Hasta is { } h ? InicioDelDiaUtc(h.AddDays(1), zona) : null;
+
+    // Primer instante de un día local, en UTC. En las zonas que adelantan el reloj a medianoche
+    // (por ejemplo America/Havana) la medianoche de ese día no existe: el día empieza en su primer
+    // instante válido, en lugar de fallar [Hallazgo 3 de la Asignación 3, RD-07].
+    public static DateTime InicioDelDiaUtc(DateOnly dia, TimeZoneInfo zona)
+    {
+        var local = dia.ToDateTime(TimeOnly.MinValue);
+        while (zona.IsInvalidTime(local))
+        {
+            local = local.AddMinutes(15);
+        }
+        return TimeZoneInfo.ConvertTimeToUtc(local, zona);
+    }
 
     private static DateOnly? LeerFecha(string? texto, string nombre)
     {
