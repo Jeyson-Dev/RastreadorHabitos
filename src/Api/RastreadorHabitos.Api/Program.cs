@@ -144,6 +144,7 @@ if (comando is null)
 
 // Credenciales SMTP solo por variables de entorno Smtp__* [RF-NOT-13, RD-10].
 builder.Services.AddSingleton(builder.Configuration.GetSection("Smtp").Get<OpcionesSmtp>() ?? new OpcionesSmtp());
+builder.Services.AddSingleton<ITransporteCorreo, TransporteSmtp>();
 builder.Services.AddScoped<IEnviadorColaCorreos, EnviadorColaCorreos>();
 
 // Toda la validación de datos vive en los servicios, con mensajes en español [RD-07]:
@@ -186,8 +187,8 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Comando independiente: envía los correos pendientes una vez y termina. Ejecutarlo dos veces
-// no duplica envíos [RF-NOT-12].
+// Comando independiente: hace un intento por cada correo pendiente y termina. Ejecutarlo dos
+// veces no duplica envíos [RF-NOT-12]; un correo que falla 3 veces queda Fallido [RF-NOT-10].
 if (comando == ComandoEnviarCorreos)
 {
     using var scope = app.Services.CreateScope();
@@ -197,16 +198,21 @@ if (comando == ComandoEnviarCorreos)
     {
         Console.WriteLine($"SMTP sin configurar (variables Smtp__*): {resultado.Pendientes} correo(s) siguen pendientes.");
     }
-    else if (resultado.MotivoFallo is not null)
+    else if (resultado.OtroProcesadorEnCurso)
     {
-        Console.WriteLine($"No se pudo enviar: {resultado.MotivoFallo.TrimEnd('.')}. Correos enviados: {resultado.Enviados}. Pendientes: {resultado.Pendientes}.");
+        Console.WriteLine($"Otro procesador de la cola está en curso: no se envió nada. Pendientes: {resultado.Pendientes}.");
     }
     else
     {
-        Console.WriteLine($"Correos enviados: {resultado.Enviados}. Pendientes: {resultado.Pendientes}.");
+        Console.WriteLine($"Correos enviados: {resultado.Enviados}. Con error en este intento: {resultado.ConError} " +
+                          $"(pasaron a Fallido: {resultado.PasaronAFallido}). Pendientes: {resultado.Pendientes}.");
+        if (resultado.UltimoError is not null)
+        {
+            Console.WriteLine($"Último error: {resultado.UltimoError}");
+        }
     }
 
-    Environment.ExitCode = resultado.Exito ? 0 : 1;
+    Environment.ExitCode = resultado.Exito || resultado.OtroProcesadorEnCurso ? 0 : 1;
     return;
 }
 
