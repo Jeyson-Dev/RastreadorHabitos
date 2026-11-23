@@ -90,6 +90,14 @@ builder.Services.AddScoped<IPermisosUsuarioService, PermisosUsuarioService>();
 builder.Services.AddScoped<IAplicadorPermiso, AplicadorPermisoPorControlAcceso>();
 builder.Services.AddScoped<ISolicitudesPermisoService, SolicitudesPermisoService>();
 
+// Notificaciones: notificar deja la interna y encola el correo; el correo del destinatario y
+// quiénes son los Administradores activos los responde Control de acceso por los adaptadores.
+builder.Services.AddScoped<IDirectorioUsuarios, DirectorioUsuariosService>();
+builder.Services.AddScoped<IDirectorioDestinatarios, DirectorioDestinatariosPorControlAcceso>();
+builder.Services.AddScoped<INotificador, Notificador>();
+builder.Services.AddScoped<INotificacionesService, NotificacionesService>();
+builder.Services.AddScoped<IAvisoSolicitudes, AvisoSolicitudesPorNotificaciones>();
+
 // Módulo de negocio. "Hoy" sale del reloj del servidor, nunca de la petición.
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<HabitosService>();
