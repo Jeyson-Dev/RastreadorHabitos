@@ -30,6 +30,7 @@ namespace RastreadorHabitos.Modulo.Metas.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Estado")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");

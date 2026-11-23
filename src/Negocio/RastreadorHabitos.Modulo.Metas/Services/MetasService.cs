@@ -104,7 +104,7 @@ public class MetasService : IMetasService
 
         var anterior = meta.Estado;
         meta.Completar(await AvanceAsync(meta), hoy);
-        await _context.SaveChangesAsync();
+        await GuardarCambioDelDuenoAsync();
         await AvisarSiCambioAsync(meta, anterior);
 
         return await ActualizarYDescribirAsync(meta, hoy);
@@ -122,7 +122,7 @@ public class MetasService : IMetasService
 
         var anterior = meta.Estado;
         meta.Reactivar(nuevaFechaLimite, await AvanceAsync(meta), hoy);
-        await _context.SaveChangesAsync();
+        await GuardarCambioDelDuenoAsync();
         await AvisarSiCambioAsync(meta, anterior);
 
         return await ActualizarYDescribirAsync(meta, hoy);
@@ -142,9 +142,35 @@ public class MetasService : IMetasService
         var avance = await AvanceAsync(meta);
         var anterior = meta.Estado;
         meta.AplicarTransicionesDelSistema(avance, hoy);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Otra petición aplicó la misma transición después de que esta leyó la meta: ya está
+            // guardada y ya se avisó. Se toma el estado guardado y no se avisa otra vez
+            // [Hallazgo 2 de la Asignación 3, CN-08].
+            await _context.Entry(meta).ReloadAsync();
+            return MetaDto.Desde(meta, avance);
+        }
         await AvisarSiCambioAsync(meta, anterior);
         return MetaDto.Desde(meta, avance);
+    }
+
+    // Si la meta cambió de estado por otra operación después de leerla, la acción del dueño se
+    // rechaza y el estado guardado no cambia [Hallazgo 2 de la Asignación 3].
+    private async Task GuardarCambioDelDuenoAsync()
+    {
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new RechazoMetasException(TipoRechazoMetas.TransicionNoPermitida,
+                "La meta cambió de estado por otra operación al mismo tiempo. Consúltela de nuevo.");
+        }
     }
 
     // Solo cuando el estado cambió y ya quedó guardado: consultar una meta que no cambia, o una

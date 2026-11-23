@@ -28,6 +28,11 @@ public class MetasDbContext : DbContext
             // El estado se guarda con su nombre ("EnProgreso"), legible al consultar la base.
             builder.Property(m => m.Estado).HasConversion<string>().HasMaxLength(20).IsRequired();
 
+            // Token de concurrencia: un cambio de estado se guarda solo si el estado sigue siendo el
+            // que se leyó. Dos peticiones simultáneas no aplican (ni avisan) dos veces la misma
+            // transición [Hallazgo 2 de la Asignación 3, RF-NOT-03].
+            builder.Property(m => m.Estado).IsConcurrencyToken();
+
             // Sin relación con las tablas de Control de acceso: solo el Id del dueño.
             builder.HasIndex(m => m.UsuarioId);
 

@@ -48,7 +48,7 @@ public sealed class PiezasNotificaciones
     private HabitosDbContext HabitosContexto() =>
         new(new DbContextOptionsBuilder<HabitosDbContext>().UseInMemoryDatabase($"HAB-{_sufijo}").Options);
 
-    private MetasDbContext MetasContexto() =>
+    public MetasDbContext MetasContexto() =>
         new(new DbContextOptionsBuilder<MetasDbContext>().UseInMemoryDatabase($"MET-{_sufijo}").Options);
 
     // Un usuario con el rol indicado. Activo = correo confirmado y cuenta habilitada.
@@ -94,7 +94,10 @@ public sealed class PiezasNotificaciones
     public HabitosService Habitos() =>
         new(HabitosContexto(), new PermisosUsuarioService(ControlAcceso()), Reloj);
 
-    public MetasService Metas() => new(MetasContexto(), Habitos(), Reloj, Notificador());
+    public MetasService Metas() => MetasCon(MetasContexto());
+
+    // Con un contexto dado: sirve para simular una petición que leyó la meta antes que otra.
+    public MetasService MetasCon(MetasDbContext contexto) => new(contexto, Habitos(), Reloj, Notificador());
 
     public async Task<List<Notificacion>> NotificacionesDeAsync(Guid usuarioId)
     {
