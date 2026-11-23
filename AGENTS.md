@@ -71,6 +71,33 @@ de notificaciones**: este (entidad `Notificacion`, operación `notificar`, bande
 preferencias) se construye en la Práctica 5 con el alcance `motor-notificaciones`, siempre
 después del commit que agrega este contexto y `docs/criterios-notificaciones-reportes.md`.
 
+**Reglas que salen de la auditoría de la Asignación 3** (ver `docs/bitacora-asignacion-3.md`). El
+agente las cumple en todo código nuevo y las comprueba antes de dar algo por terminado:
+
+1. **Límites con sistemas externos (Hallazgo 1).** En la frontera con SMTP, una API externa o
+   cualquier biblioteca de terceros, el agente **no asume qué excepción llega**: captura cualquier
+   error por elemento (un correo, una petición), lo registra como fallo de ESE elemento y sigue
+   con los demás. Nunca deja que un dato malo de una fila detenga un proceso por lotes. Las
+   pruebas de un dato inválido incluyen siempre el valor **vacío** y el de **solo espacios**,
+   además del mal formado.
+2. **Cambios de estado que avisan (Hallazgo 2).** Toda operación que cambia un estado y por eso
+   notifica, encola o audita protege ese estado con un **token de concurrencia**
+   (`IsConcurrencyToken`) y avisa **solo si su guardado ganó**. Las pruebas incluyen dos
+   peticiones que leen el mismo estado antes de que una de ellas guarde.
+3. **Fechas y zonas horarias (Hallazgo 3).** Nunca se usa una diferencia horaria fija (la de hoy)
+   para fechas de otro momento: cada límite local se convierte a UTC con `TimeZoneInfo`, con las
+   reglas de esa fecha. Toda conversión de una hora local a UTC maneja las horas que no existen
+   (el reloj se adelanta) en lugar de fallar. Lo que agrupa o filtra por días o meses se prueba
+   también con una zona con horario de verano (`TZ=America/New_York`, `TZ=America/Havana`).
+4. **RD-08 también en la consola (Hallazgo 4).** Los comandos de consola (`enviar-correos`,
+   `promover-administrador` y los que se agreguen) siguen la misma regla que la API: ante
+   cualquier error muestran un mensaje comprensible y un código de salida distinto de 0, nunca una
+   traza, el texto de la excepción ni la cadena de conexión. Se ejecutan desde
+   `Comandos/ComandosConsola.cs`, que se puede probar sin levantar la aplicación.
+5. **Criterios.** Al escribir criterios de aceptación se aplican las cuatro reglas de la sección 5
+   de `docs/criterios-notificaciones-reportes.md`: entradas vacías, casos simultáneos, zona con
+   horario de verano y comandos de consola.
+
 ## 1. Fuentes de verdad
 
 Es un proyecto largo que se construye por prácticas, todas sobre el mismo diseño.
@@ -92,8 +119,8 @@ Es un proyecto largo que se construye por prácticas, todas sobre el mismo dise�
 | 2 | `docs/practica2-suite-defectos.md` | Suite sobre Gestión de permisos (RF-GP-01 a 07, una prueba identificada por requisito) · seis defectos plantados de la variante A (tags `practica-2-defecto-1` a `6`, ramas `defecto-N`, nunca en `main`) · sección «Defectos» del README · revisión acumulada de Control de acceso | Entregada (tag `practica-2`) |
 | 3 | `docs/practica3-modulo-negocio.md` | Módulo de negocio funcionando (RF-NEG-02 a 06 y 09) · suite de la máquina de estados de Meta · cuatro defectos plantados (tags `practica-3-defecto-1` a `4`) · prueba de integración con Gestión de permisos · revisión acumulada de los cinco frentes | Entregada (tag `practica-3`) |
 | 4 | `docs/practica4-contenedor-documentos-api.md` | Manejador de documentos (pieza 3: RF-DOC-01 a 05) · proyecto en contenedores con un solo comando (`Dockerfile`, `.dockerignore`, `docker-compose.yml`) · volúmenes persistentes · API externa con su clave como secreto (`.env` no versionado, `.env.example`) · revisión acumulada de los seis frentes | Entregada (tag `practica-4`) |
-| 5 | `docs/practica5-notificaciones-reportes.md` | Contexto del agente y criterios de aceptación antes de delegar (§1.1) · Notificaciones (pieza 4: RF-NOT-01 a 07) · cola de correos completa (RF-NOT-08 a 13) · Reportes con agregación (pieza 5: RF-REP-01 a 05) · revisión acumulada de los seis frentes | En curso (tag `practica-5`) |
-| Asignación 3 | `docs/asignacion3-auditoria-delegacion.md` | Auditoría de lo construido en la Práctica 5 · al menos tres hallazgos con evidencia · un commit y una prueba de regresión por hallazgo · bitácora `docs/bitacora-asignacion-3.md` | Pendiente (tag `asignacion-3`) |
+| 5 | `docs/practica5-notificaciones-reportes.md` | Contexto del agente y criterios de aceptación antes de delegar (§1.1) · Notificaciones (pieza 4: RF-NOT-01 a 07) · cola de correos completa (RF-NOT-08 a 13) · Reportes con agregación (pieza 5: RF-REP-01 a 05) · revisión acumulada de los seis frentes | Entregada (tag `practica-5`) |
+| Asignación 3 | `docs/asignacion3-auditoria-delegacion.md` | Auditoría de lo construido en la Práctica 5 · al menos tres hallazgos con evidencia · un commit y una prueba de regresión por hallazgo · bitácora `docs/bitacora-asignacion-3.md` | En curso (tag `asignacion-3`) |
 | Asignación 4 | `docs/asignacion4-historial-auditoria.md` | Auditoría (pieza 6: RF-AUD-01 a 07, RF-DOC-06) · pruebas de cada evento auditado · bitácora `docs/bitacora-asignacion-4.md` con el paralelo con git | Pendiente (tag `asignacion-4`) |
 
 **Cuando llegue una práctica nueva:** agregar su transcripción literal a `docs/`, añadir su
