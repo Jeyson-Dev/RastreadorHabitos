@@ -15,6 +15,7 @@ using RastreadorHabitos.Core.GestionPermisos.Services;
 using RastreadorHabitos.Core.Notificaciones.Configuracion;
 using RastreadorHabitos.Core.Notificaciones.Data;
 using RastreadorHabitos.Core.Notificaciones.Services;
+using RastreadorHabitos.Core.Reportes.Services;
 using RastreadorHabitos.Modulo.Habitos.Data;
 using RastreadorHabitos.Modulo.Habitos.Services;
 using RastreadorHabitos.Modulo.Metas.Data;
@@ -105,6 +106,12 @@ builder.Services.AddScoped<HabitosService>();
 builder.Services.AddScoped<IHabitosService>(servicios => servicios.GetRequiredService<HabitosService>());
 builder.Services.AddScoped<IConsultaHabitos>(servicios => servicios.GetRequiredService<HabitosService>());
 builder.Services.AddScoped<IMetasService, MetasService>();
+builder.Services.AddScoped<IMetricasHabitos, MetricasHabitosService>();
+
+// Reportes: cada fuente entrega sus métricas ya agregadas y la pieza aplica el rol [RF-REP-01 a 05].
+builder.Services.AddScoped<IFuenteReporte, FuenteSolicitudesPorEstado>();
+builder.Services.AddScoped<IFuenteReporte, FuenteCumplimientoSemanal>();
+builder.Services.AddScoped<IReportesService, ReportesService>();
 
 // API externa de clima (WeatherAPI.com) para el plan de hoy. La clave solo llega por la variable
 // de entorno WeatherApi__Clave [RD-10]; sin ella la API arranca igual y solo esa operación se
