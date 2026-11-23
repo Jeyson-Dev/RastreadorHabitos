@@ -54,6 +54,16 @@ namespace RastreadorHabitos.Core.Notificaciones.Migrations
                     b.Property<DateTime?>("FechaEnvioUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("FechaUltimoIntentoUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Intentos")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UltimoError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Estado", "FechaCreacionUtc");
