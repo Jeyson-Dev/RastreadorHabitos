@@ -3,6 +3,74 @@
 Programación III (TDS-007) · ITLA · 2026-C-3. Instrucciones para cualquier agente de IA que
 trabaje en este repositorio.
 
+## 0. Contexto del proyecto en una página
+
+Es el archivo de contexto que exige la Práctica 5 (sección 1.1). Lo que sigue lo resume; las
+secciones 1 a 7 lo detallan.
+
+| | |
+|---|---|
+| **Propósito** | API de un rastreador de hábitos con metas. Un usuario define hábitos con sus días de la semana, registra cada día si los cumplió y agrupa hábitos en metas con un objetivo de cumplimientos y una fecha límite (máquina de estados de la Meta). Lo rodea el Core del curso: Control de acceso, Gestión de permisos, Manejador de documentos, Notificaciones con cola de correos, Reportes y Auditoría. |
+| **Lenguaje y framework** | C# sobre .NET 10 · ASP.NET Core Web API · Entity Framework Core 10 con SQL Server 2022 · xUnit para las pruebas · Docker Compose para ejecutar. |
+| **Cómo correrlo** | Desde la raíz de un clon limpio: `cp .env.example .env` y después `docker compose up --build`. La API queda en `http://localhost:5003` y los correos se leen en Mailpit, `http://localhost:8025`. Detener: `docker compose down` (sin `-v`, conserva los datos). |
+| **Cómo probarlo** | `dotnet test` desde la raíz. Toda la suite corre sin SQL Server, sin variables de entorno y sin levantar la API (bases EF Core en memoria). Debe pasar completa antes de cada commit. |
+| **Peticiones de ejemplo** | `src/Api/RastreadorHabitos.Api/RastreadorHabitos.Api.http` y las secciones del `README.md`. |
+
+**Convenciones de código** (siguen el código existente; ver también las secciones 4 y 6):
+
+- Todo en español: clases, métodos, propiedades, mensajes al usuario y comentarios. Los métodos
+  asíncronos terminan en `Async`.
+- Cada pieza es su propio `.csproj` con las carpetas `Entities/`, `Data/`, `DTOs/`, `Services/`,
+  `Reglas/`, `Configuracion/` y `Migrations/`. Cada servicio tiene su interfaz (`IXxxService`).
+- La lógica de negocio vive en los servicios y las reglas de cada pieza, nunca en los
+  controllers (RD-02). Un controller solo traduce la petición, toma el Id y el rol del usuario de
+  la sesión y llama al servicio.
+- Toda entrada externa se valida en el servicio, con un mensaje en español (RD-07). Los rechazos
+  esperados lanzan la excepción propia de la pieza (`RechazoXxxException`) y los traduce
+  `Errores/ManejadorErroresGlobal.cs`; cualquier otra excepción responde un 500 genérico (RD-08).
+- La exigencia de rol de cada operación se declara solo en
+  `src/Api/RastreadorHabitos.Api/Autorizacion/ExigenciasDeRol.cs` (RF-CA-05). Si falta una
+  operación, la API no arranca.
+- Las fechas y horas se guardan en UTC (`DateTime.UtcNow`, propiedades que terminan en `Utc`) y
+  salen en JSON marcadas como UTC. «Hoy» y los rangos de fechas `AAAA-MM-DD` son días locales
+  del servidor (`TimeProvider`, variable `TZ`) (RD-11).
+- Una pieza habla con otra solo por su interfaz, o por un puerto que declara y que la Api
+  conecta en `Adaptadores/`. Nunca agregues una referencia de proyecto fuera de la tabla de la
+  sección 4.
+- Las pruebas: una base en memoria con nombre único por prueba, las fases marcadas con
+  `// Preparar`, `// Actuar` y `// Verificar`, un nombre que dice el comportamiento y un
+  comentario con el requisito que verifican, por ejemplo `// [RF-NOT-05] …`.
+- Commits atómicos: `tipo(alcance): descripción en imperativo [ID-DEL-REQUISITO]`.
+
+**Restricciones: lo que el agente nunca hace.**
+
+- **Nunca lee ni escribe el archivo `.env`**, ni lo copia, ni lo muestra. Para saber qué
+  variables existen, usa `.env.example`, que solo tiene valores de ejemplo.
+- **Nunca escribe una credencial, una clave, una contraseña ni una cadena de conexión real** en
+  el código, en `appsettings*.json`, en `launchSettings.json`, en el `Dockerfile`, en el
+  `docker-compose.yml`, en la documentación ni en un mensaje de commit. Todo llega por
+  variables de entorno (RD-10, RF-NOT-13).
+- **No modifica sin autorización** lo ya entregado: Control de acceso, Gestión de permisos, el
+  Manejador de documentos, la máquina de estados de la Meta (`EstadoMeta.cs`,
+  `TransicionesMeta.cs`) ni las pruebas existentes. Si una tarea lo exige, lo consulta primero.
+  Agregar una operación de solo lectura o un puerto nuevo se informa en el pull request.
+- **No edita una migración ya aplicada**: todo cambio de esquema es una migración nueva.
+- **No toca los enunciados de `docs/`** (son transcripciones literales), ni los tags ya
+  entregados (`practica-1` a `practica-4`, `asignacion-2`, `practica-2-defecto-*`,
+  `practica-3-defecto-*`), ni las ramas `defecto-N` y `p3-defecto-N`, ni reescribe la historia
+  publicada.
+- **Nunca hace commits directos a `main`**, ni `git push --force`, ni merge a `main`: cada
+  cambio va en su rama y su pull request, y el merge y los tags los hace el usuario.
+- No construye nada que ningún enunciado pida (sección 1).
+
+**Nota sobre el historial de Notificaciones.** Los commits `5c8c2eb`, `72481d0`, `b0a26bc` y
+`9f5befd` (1 y 2 de octubre, alcance `feat(notificaciones)`) son la **cola mínima de correos de
+la Práctica 1** (sección 1.5 de su enunciado: encolar, enviador independiente, sin duplicados,
+SMTP por variables de entorno). La Práctica 5 la reconoce en su sección 1.3. **No son el motor
+de notificaciones**: este (entidad `Notificacion`, operación `notificar`, bandeja,
+preferencias) se construye en la Práctica 5 con el alcance `motor-notificaciones`, siempre
+después del commit que agrega este contexto y `docs/criterios-notificaciones-reportes.md`.
+
 ## 1. Fuentes de verdad
 
 Es un proyecto largo que se construye por prácticas, todas sobre el mismo diseño.
@@ -21,9 +89,12 @@ Es un proyecto largo que se construye por prácticas, todas sobre el mismo dise�
 |---|---|---|---|
 | 1 | `docs/practica1-control-acceso.md` (`practica1-p3.pdf`) | Control de acceso completo (pieza 1) · cola mínima de correos (RF-NOT-08, 09, 12, 13) · estructura de la máquina de estados del negocio (sección 1.6) | Entregada (tag `practica-1`) |
 | Asignación 2 | `docs/asignacion2-gestion-permisos.md` | Gestión de permisos (pieza 2): RF-GP-01 a 07 · suite de pruebas (RD-12) · bitácora `docs/bitacora-asignacion-2.md` | Entregada (tag `asignacion-2`) |
-| 2 | `docs/practica2-suite-defectos.md` | Suite sobre Gestión de permisos (RF-GP-01 a 07, una prueba identificada por requisito) · seis defectos plantados de la variante A (tags `practica-2-defecto-1` a `6`, ramas `defecto-N`, nunca en `main`) · sección «Defectos» del README · revisión acumulada de Control de acceso | En curso (tag `practica-2`) |
-| 3 | `docs/practica3-modulo-negocio.md` | Módulo de negocio funcionando (RF-NEG-02 a 06 y 09) · suite de la máquina de estados de Meta · cuatro defectos plantados (tags `practica-3-defecto-1` a `4`) · prueba de integración con Gestión de permisos · revisión acumulada de los cinco frentes | En curso (tag `practica-3`) |
-| 4 | `docs/practica4-contenedor-documentos-api.md` | Manejador de documentos (pieza 3: RF-DOC-01 a 05) · proyecto en contenedores con un solo comando (`Dockerfile`, `.dockerignore`, `docker-compose.yml`) · volúmenes persistentes · API externa con su clave como secreto (`.env` no versionado, `.env.example`) · revisión acumulada de los seis frentes | En curso (tag `practica-4`) |
+| 2 | `docs/practica2-suite-defectos.md` | Suite sobre Gestión de permisos (RF-GP-01 a 07, una prueba identificada por requisito) · seis defectos plantados de la variante A (tags `practica-2-defecto-1` a `6`, ramas `defecto-N`, nunca en `main`) · sección «Defectos» del README · revisión acumulada de Control de acceso | Entregada (tag `practica-2`) |
+| 3 | `docs/practica3-modulo-negocio.md` | Módulo de negocio funcionando (RF-NEG-02 a 06 y 09) · suite de la máquina de estados de Meta · cuatro defectos plantados (tags `practica-3-defecto-1` a `4`) · prueba de integración con Gestión de permisos · revisión acumulada de los cinco frentes | Entregada (tag `practica-3`) |
+| 4 | `docs/practica4-contenedor-documentos-api.md` | Manejador de documentos (pieza 3: RF-DOC-01 a 05) · proyecto en contenedores con un solo comando (`Dockerfile`, `.dockerignore`, `docker-compose.yml`) · volúmenes persistentes · API externa con su clave como secreto (`.env` no versionado, `.env.example`) · revisión acumulada de los seis frentes | Entregada (tag `practica-4`) |
+| 5 | `docs/practica5-notificaciones-reportes.md` | Contexto del agente y criterios de aceptación antes de delegar (§1.1) · Notificaciones (pieza 4: RF-NOT-01 a 07) · cola de correos completa (RF-NOT-08 a 13) · Reportes con agregación (pieza 5: RF-REP-01 a 05) · revisión acumulada de los seis frentes | En curso (tag `practica-5`) |
+| Asignación 3 | `docs/asignacion3-auditoria-delegacion.md` | Auditoría de lo construido en la Práctica 5 · al menos tres hallazgos con evidencia · un commit y una prueba de regresión por hallazgo · bitácora `docs/bitacora-asignacion-3.md` | Pendiente (tag `asignacion-3`) |
+| Asignación 4 | `docs/asignacion4-historial-auditoria.md` | Auditoría (pieza 6: RF-AUD-01 a 07, RF-DOC-06) · pruebas de cada evento auditado · bitácora `docs/bitacora-asignacion-4.md` con el paralelo con git | Pendiente (tag `asignacion-4`) |
 
 **Cuando llegue una práctica nueva:** agregar su transcripción literal a `docs/`, añadir su
 fila a esta tabla y adaptar el proyecto a ella **sin romper lo que exigen las prácticas
@@ -34,9 +105,9 @@ anteriores**. A partir de la Práctica 2 se recalifica lo entregado en la Práct
 `Estructura.md` → este archivo → el código existente.
 
 **No inventes requisitos ni alcance:**
-- No implementes en una pieza más de lo que pide la práctica que la define. Las piezas que
-  todavía no tienen práctica (Gestión de permisos, Auditoría, Reportes, Documentos, el
-  módulo de negocio y el resto de Notificaciones) no se construyen por adelantado.
+- No implementes en una pieza más de lo que pide la práctica que la define. Una pieza que
+  todavía no tiene práctica (hoy, Auditoría, hasta la Asignación 4) no se construye por
+  adelantado.
 - Si un identificador (RF-CA-XX, RF-NOT-XX, RF-NEG-XX, RD-XX) aparece citado sin su texto
   —por ejemplo RD-04, RD-06 o RD-10 en la Práctica 1—, pide su texto antes de asumir qué
   exige.
@@ -59,8 +130,9 @@ cada una con sus criterios de aceptación tal como están en el enunciado.
 - Ejecutar el enviador dos veces no duplica envíos (RF-NOT-12).
 - Las credenciales SMTP se leen de variables de entorno (RF-NOT-13, RD-10).
 - El correo se recibe de verdad: el profesor se registra con su propio correo.
-- **No implementar todavía** reintentos, estado fallido, último error ni consulta de la cola
-  por el Administrador: llegan en la semana 11, con la pieza 4.
+- Los reintentos, el estado fallido, el último error y la consulta de la cola por el
+  Administrador no eran de la Práctica 1: los pide la Práctica 5 (RF-NOT-10, RF-NOT-11), sin
+  romper lo de arriba.
 
 **Requisitos de diseño con texto en el enunciado:**
 - RD-05: dos usuarios con la misma contraseña no comparten el valor almacenado (hash con sal).
@@ -182,26 +254,37 @@ está en `docs/maquina-de-estados.md`):
   de acceso. Todavía no existen `CategoriaHabito`, `HistorialEstadoMeta`, archivar, rachas ni
   hábitos cuantitativos: se construyen cuando una práctica los pida.
 
-**Pendiente: Docker.** El profesor anunció que el proyecto deberá correr con Docker en su
-máquina, sin dar detalles todavía. No construir nada de Docker hasta que haya una indicación
-concreta, pero evitar decisiones que lo dificulten: toda la configuración por variables de
-entorno y nada atado a una máquina en particular. La autenticación de Windows en la cadena
-de conexión (`Trusted_Connection`) no funciona dentro de un contenedor Linux; cuando llegue
-Docker hará falta autenticación SQL, con las credenciales también por variable de entorno.
+**Docker (Práctica 4).** El proyecto corre con `docker compose up --build` tras copiar
+`.env.example` a `.env`. La composición tiene cuatro servicios: `app`, `sqlserver`, `enviador`
+(el procesador de la cola en bucle) y `mailpit`. Los datos van en los volúmenes con nombre
+`datos-sqlserver` y `documentos`, que sobreviven a `docker compose down` sin `-v`. Toda la
+configuración llega por variables de entorno. Una variable nueva se agrega a `.env.example`
+con un valor de ejemplo (nunca uno real), a `docker-compose.yml` como `${VARIABLE}` y a la
+tabla «Variables de entorno» del README.
 
 ## 5. Flujo de trabajo acordado con el usuario
 
 - Una rama `feature/<nombre-funcionalidad>` por funcionalidad, creada desde `main`
   actualizado.
-- Avanza **un sub-paso a la vez**: propón el diseño o el cambio, espera la aprobación
-  explícita del usuario y solo entonces impleméntalo. No generes código de un sub-paso no
-  aprobado.
+- Hasta la Práctica 4, se avanzó **un sub-paso a la vez**: proponer, esperar la aprobación
+  explícita del usuario y solo entonces implementar.
+- Desde la Práctica 5 el usuario **delega bloques completos**. Antes de cada bloque, el agente
+  explica en 3 a 5 líneas qué va a hacer y en qué requisito se basa. Al terminarlo, informa qué
+  hizo y cómo lo verificó. Consulta antes de actuar solo ante una decisión importante: un
+  conflicto entre un enunciado y el código, un cambio en algo ya entregado, el riesgo de romper
+  una práctica anterior, un dato que solo tiene el usuario o dos caminos con consecuencias
+  distintas. En cada consulta presenta opciones con pros y contras y su recomendación. Lo
+  demás lo resuelve con la opción más simple que cumpla y lo anota en «Supuestos» del pull
+  request.
+- Los criterios de aceptación de lo que se delega se escriben y se commitean **antes** del
+  código (`docs/criterios-notificaciones-reportes.md`); el trabajo se acepta solo si los cumple.
 - Un commit por sub-paso aprobado. Convención del proyecto para el asunto:
   `tipo(alcance): descripción corta en imperativo [ID-DEL-REQUISITO]`, por ejemplo
   `feat(control-acceso): agrega hash de contraseña con sal [RF-CA-02, RD-05]`.
 - Muestra siempre el comando git exacto antes de correrlo.
-- Nunca publiques (`git push`) ni abras un pull request sin confirmación del usuario.
-- Nunca hagas merge a `main` sin que el usuario lo confirme después de probar.
+- Publicar la rama del bloque (`git push -u origin <rama>`, nunca forzado) está autorizado desde
+  la Práctica 5. El agente entrega el texto de cada pull request (Qué cambia, Por qué, Cómo
+  probarlo, Qué NO incluye, Supuestos). **El merge a `main` y los tags los hace el usuario.**
 - Nunca commitees `bin/`, `obj/`, `.vs/` ni archivos con secretos.
 
 ## 6. Antes de crear una clase nueva
@@ -230,6 +313,14 @@ ninguna clase de ese tipo, pregunta antes de decidir la carpeta.
 - `docs/practica4-contenedor-documentos-api.md`: enunciado de la Práctica 4 (Manejador de
   documentos, contenedor con un solo comando, volúmenes persistentes y API externa con su clave
   como secreto).
+- `docs/practica5-notificaciones-reportes.md`: enunciado de la Práctica 5 (contexto y criterios
+  antes de delegar, notificaciones, cola de correos completa y reportes con agregación).
+- `docs/criterios-notificaciones-reportes.md`: criterios de aceptación de las notificaciones, la
+  cola y los reportes, escritos antes de construirlos (Práctica 5, sección 1.1).
+- `docs/asignacion3-auditoria-delegacion.md`: enunciado de la Asignación 3 (auditoría de lo
+  delegado en la Práctica 5, correcciones con su prueba y bitácora).
+- `docs/asignacion4-historial-auditoria.md`: enunciado de la Asignación 4 (historial de
+  auditoría, sus pruebas y la bitácora con el paralelo con git).
 - `docs/requerimientos-core.md`: Requerimientos del Core (RD-XX, RF-XX y entidades mínimas), igual
   para todos los proyectos.
 - `docs/diseno-componentes-detalle.md`: detalle del diseño de componentes (fronteras, interfaces,
