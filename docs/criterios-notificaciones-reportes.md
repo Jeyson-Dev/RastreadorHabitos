@@ -284,3 +284,55 @@ sobreviven a `docker compose down` (sin `-v`) y a volver a levantar.
 **CT-05 · Lo anterior sigue funcionando.** La suite completa (`dotnet test`) pasa, y los seis
 frentes de la revisión acumulada de la Práctica 5 (sección 1.5) siguen funcionando, incluido el
 correo de activación saliendo por la cola.
+
+## 5. Criterios agregados después de la auditoría (Asignación 3)
+
+Los criterios de arriba son los que se escribieron antes de delegar (Práctica 5). La auditoría de
+la Asignación 3 encontró cuatro defectos que esos criterios no detectaban porque no cubrían el
+caso: una entrada vacía (no solo mal formada), dos peticiones simultáneas, una zona horaria con
+horario de verano y los comandos de consola. Estos criterios cierran esos huecos; cada uno cita el
+hallazgo que lo originó (ver [`docs/bitacora-asignacion-3.md`](bitacora-asignacion-3.md)).
+
+**Regla para todo criterio nuevo** (aplicada a los de esta sección):
+- Un criterio de **entrada inválida** enumera, como mínimo, el valor ausente, el vacío, el de
+  solo espacios y el mal formado.
+- Un criterio de **«una sola vez»** (una notificación, un envío) incluye el caso de dos
+  peticiones o dos procesos **al mismo tiempo**.
+- Un criterio de **fechas o rangos** se comprueba también con una zona horaria con horario de
+  verano, no solo con la del servidor.
+- Un criterio de **RD-08** cubre también lo que ven los comandos de consola, no solo la API.
+
+**CC-10 · RF-NOT-10 · Un error inesperado de un correo no detiene la cola (Hallazgo 1).**
+Dado en la cola un correo `Pendiente` con el destinatario vacío (`''`) o solo con espacios y,
+creado después, un correo válido, cuando se ejecuta `enviar-correos`, entonces el comando termina
+normalmente (código 0 o 1, nunca una excepción sin manejar), el correo vacío suma un intento con
+el último error «La dirección del destinatario no es válida.» y el válido sale. Al tercer intento
+el vacío queda `Fallido`.
+*Comprobación:* insertar los dos correos con SQL, ejecutar el comando y `GET /api/correos` como
+Administrador.
+
+**CN-17 · RF-NOT-03 · Consultas simultáneas no duplican el aviso de una meta (Hallazgo 2).**
+Dado una meta `Pendiente` con el cumplimiento de hoy registrado, cuando llegan 8 consultas
+`GET /api/metas/{id}` al mismo tiempo, entonces la meta queda `EnProgreso` y su dueño tiene
+exactamente **una** notificación `MetaCambioEstado` y un solo correo encolado por ese cambio. Lo
+mismo vale si se completa la meta mientras otra consulta la está pasando de estado: una de las dos
+operaciones gana y la otra no avisa (una acción del dueño en conflicto responde `409`).
+*Comprobación:* 8 peticiones en paralelo y `GET /api/notificaciones`.
+
+**CR-10 · RF-REP-05, RD-07 · Los reportes respetan el horario de verano de la zona (Hallazgo 3).**
+Dado el servidor con una zona con horario de verano, cuando se consultan los reportes, entonces:
+- con `TZ=America/New_York`, una solicitud creada el 1 de agosto a las 00:30 locales (04:30 UTC)
+  sale en el grupo `2026-08` al consultar `?desde=2026-08-01&hasta=2026-08-01`, y no en
+  `2026-07`;
+- con `TZ=America/Havana`, donde el reloj salta de las 00:00 a la 01:00 el 8 de marzo de 2026,
+  `?desde=2026-03-08` y `?hasta=2026-03-07` responden `200` (el día empieza en su primer instante
+  válido), nunca `500`.
+*Comprobación:* levantar la app con esa `TZ` y consultar `GET /api/reportes/solicitudes-por-estado`.
+
+**CT-06 · RD-08 · Los comandos de consola no muestran trazas (Hallazgo 4).**
+Dado SQL Server detenido (`docker compose stop sqlserver`), cuando se ejecuta
+`enviar-correos` o `promover-administrador`, entonces la consola muestra solo «No se pudo
+completar el comando: la base de datos no está disponible o no respondió. …» y el comando termina
+con código 1: ninguna línea de traza (`at …`), ni el texto de la excepción, ni la cadena de
+conexión.
+*Comprobación:* la salida y el código de salida del comando.
