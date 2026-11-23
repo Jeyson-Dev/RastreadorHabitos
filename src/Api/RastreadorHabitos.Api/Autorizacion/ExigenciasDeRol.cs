@@ -76,6 +76,9 @@ public static class ExigenciasDeRol
         ["Notificaciones.MarcarLeida"] = Exigencia.EstandarOAdministrador,
         ["Notificaciones.ObtenerPreferencias"] = Exigencia.EstandarOAdministrador,
         ["Notificaciones.ActualizarPreferencias"] = Exigencia.EstandarOAdministrador,
+
+        // Cola de correos: solo el Administrador sabe qué pasó con cada correo [RF-NOT-11].
+        ["Correos.Listar"] = Exigencia.Administrador,
     };
 
     public static Exigencia De(string controlador, string accion) =>
