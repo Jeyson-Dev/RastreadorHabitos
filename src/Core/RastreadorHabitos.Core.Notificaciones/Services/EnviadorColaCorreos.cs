@@ -104,6 +104,14 @@ public class EnviadorColaCorreos : IEnviadorColaCorreos
         {
             return fallo.Message;
         }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Cualquier otro error del transporte es un fallo de ESTE correo: suma su intento y la
+            // cola sigue con los demás. Nunca detiene al procesador ni bloquea los correos que
+            // vienen detrás [Hallazgo 1 de la Asignación 3, RF-NOT-10]. El detalle técnico no se
+            // guarda: el último error lo ve el Administrador [RD-08].
+            return $"No se pudo enviar el correo por un error inesperado del transporte ({ex.GetType().Name}).";
+        }
     }
 
     // Bloqueo de aplicación de SQL Server, de sesión y sin espera. Fuera de SQL Server (las pruebas

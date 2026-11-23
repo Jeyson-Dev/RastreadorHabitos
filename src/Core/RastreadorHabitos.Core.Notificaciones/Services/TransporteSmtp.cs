@@ -35,7 +35,10 @@ public class TransporteSmtp : ITransporteCorreo
         {
             mensaje = new MailMessage(_opciones.Remitente!, destinatario, asunto, cuerpoHtml) { IsBodyHtml = true };
         }
-        catch (FormatException)
+        // MailMessage rechaza un destinatario mal formado con FormatException y uno vacío con
+        // ArgumentException: los dos son un destinatario inválido, no un error del procesador
+        // [Hallazgo 1 de la Asignación 3, RF-NOT-10].
+        catch (Exception ex) when (ex is FormatException or ArgumentException)
         {
             throw new FalloEnvioCorreoException("La dirección del destinatario no es válida.");
         }
