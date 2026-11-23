@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using RastreadorHabitos.Api.Adaptadores;
 using RastreadorHabitos.Api.Autenticacion;
 using RastreadorHabitos.Api.Autorizacion;
+using RastreadorHabitos.Api.Comandos;
 using RastreadorHabitos.Api.Errores;
 using RastreadorHabitos.Core.ControlAcceso.Configuracion;
 using RastreadorHabitos.Core.ControlAcceso.Data;
@@ -173,18 +174,29 @@ builder.Services.AddExceptionHandler<ManejadorErroresGlobal>();
 
 var app = builder.Build();
 
-// Cada pieza aplica sus propias migraciones; la base se crea si no existe [RD-09].
+// Comandos independientes (enviar-correos, promover-administrador): aplican las migraciones,
+// ejecutan su acción, escriben el resultado en la consola y terminan con su código de salida.
+if (comando is not null)
+{
+    using var scope = app.Services.CreateScope();
+    var servicios = scope.ServiceProvider;
+    Environment.ExitCode = await ComandosConsola.EjecutarAsync(
+        () => ComandosConsola.MigrarAsync(servicios),
+        () => comando == ComandoEnviarCorreos
+            ? ComandosConsola.EnviarCorreosAsync(servicios.GetRequiredService<IEnviadorColaCorreos>(), Console.Out)
+            : ComandosConsola.PromoverAdministradorAsync(servicios.GetRequiredService<IAdministracionUsuariosService>(),
+                                                          correoAPromover, Console.Out),
+        Console.Out);
+    return;
+}
+
+// La API: cada pieza aplica sus propias migraciones; la base se crea si no existe [RD-09]. Si no
+// se puede, el detalle queda en el log del servidor y la API no arranca.
 using (var scope = app.Services.CreateScope())
 {
-    var servicios = scope.ServiceProvider;
     try
     {
-        await servicios.GetRequiredService<ControlAccesoDbContext>().Database.MigrateAsync();
-        await servicios.GetRequiredService<NotificacionesDbContext>().Database.MigrateAsync();
-        await servicios.GetRequiredService<MetasDbContext>().Database.MigrateAsync();
-        await servicios.GetRequiredService<GestionPermisosDbContext>().Database.MigrateAsync();
-        await servicios.GetRequiredService<HabitosDbContext>().Database.MigrateAsync();
-        await servicios.GetRequiredService<DocumentosDbContext>().Database.MigrateAsync();
+        await ComandosConsola.MigrarAsync(scope.ServiceProvider);
     }
     catch (Exception ex)
     {
@@ -193,61 +205,6 @@ using (var scope = app.Services.CreateScope())
             NombreConexion);
         throw;
     }
-}
-
-// Comando independiente: hace un intento por cada correo pendiente y termina. Ejecutarlo dos
-// veces no duplica envíos [RF-NOT-12]; un correo que falla 3 veces queda Fallido [RF-NOT-10].
-if (comando == ComandoEnviarCorreos)
-{
-    using var scope = app.Services.CreateScope();
-    var resultado = await scope.ServiceProvider.GetRequiredService<IEnviadorColaCorreos>().EnviarPendientesAsync();
-
-    if (!resultado.SmtpConfigurado)
-    {
-        Console.WriteLine($"SMTP sin configurar (variables Smtp__*): {resultado.Pendientes} correo(s) siguen pendientes.");
-    }
-    else if (resultado.OtroProcesadorEnCurso)
-    {
-        Console.WriteLine($"Otro procesador de la cola está en curso: no se envió nada. Pendientes: {resultado.Pendientes}.");
-    }
-    else
-    {
-        Console.WriteLine($"Correos enviados: {resultado.Enviados}. Con error en este intento: {resultado.ConError} " +
-                          $"(pasaron a Fallido: {resultado.PasaronAFallido}). Pendientes: {resultado.Pendientes}.");
-        if (resultado.UltimoError is not null)
-        {
-            Console.WriteLine($"Último error: {resultado.UltimoError}");
-        }
-    }
-
-    Environment.ExitCode = resultado.Exito || resultado.OtroProcesadorEnCurso ? 0 : 1;
-    return;
-}
-
-// Comando independiente: convierte en Administrador a un usuario ya registrado. Así nace el
-// primer Administrador, sin credenciales en el repositorio ni en variables [RF-CA-04].
-if (comando == ComandoPromoverAdministrador)
-{
-    if (string.IsNullOrWhiteSpace(correoAPromover))
-    {
-        Console.WriteLine($"Uso: dotnet run --no-build --project src/Api/RastreadorHabitos.Api -- {ComandoPromoverAdministrador} <correo>");
-        Environment.ExitCode = 1;
-        return;
-    }
-
-    using var scope = app.Services.CreateScope();
-    try
-    {
-        await scope.ServiceProvider.GetRequiredService<IAdministracionUsuariosService>()
-            .PromoverAdministradorAsync(correoAPromover);
-        Console.WriteLine($"El usuario {correoAPromover.Trim().ToLowerInvariant()} ahora es Administrador.");
-    }
-    catch (RechazoControlAccesoException rechazo)
-    {
-        Console.WriteLine(rechazo.Message);
-        Environment.ExitCode = 1;
-    }
-    return;
 }
 
 app.UseExceptionHandler();
