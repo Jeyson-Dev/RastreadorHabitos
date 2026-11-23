@@ -70,6 +70,17 @@ Enunciado completo: [`docs/practica4-contenedor-documentos-api.md`](docs/practic
 
 Enunciado completo: [`docs/practica5-notificaciones-reportes.md`](docs/practica5-notificaciones-reportes.md).
 
+## Estado de la Asignación 3 — Auditoría de lo delegado
+
+| Entregable | Requisitos | Estado |
+|---|---|---|
+| Auditoría de notificaciones, cola y reportes con revisores independientes: 4 hallazgos reproducidos ejecutando el proyecto | A3 §1.1 | ✅ [`docs/bitacora-asignacion-3.md`](docs/bitacora-asignacion-3.md) |
+| Un commit por hallazgo, corrigiendo la causa | A3 §1.2 | ✅ `a9094a4`, `30094f5`, `1bb3606`, `39dfe60` |
+| Una prueba de regresión por hallazgo, que falla antes y pasa después | A3 §1.3 | ✅ [Pruebas de regresión de la Asignación 3](#pruebas-de-regresión-de-la-asignación-3) |
+| Bitácora y cambios en el contexto y en los criterios | A3 §1.4 | ✅ Bitácora, `AGENTS.md` («Reglas que salen de la auditoría») y la sección 5 de los criterios |
+
+Enunciado completo: [`docs/asignacion3-auditoria-delegacion.md`](docs/asignacion3-auditoria-delegacion.md).
+
 ## Stack
 
 - C# / ASP.NET Core Web API (.NET 10)
@@ -418,6 +429,11 @@ veces**; al tercer fallo queda `Fallido` y no se vuelve a intentar (ver
 | `Correos enviados: X. Con error en este intento: Y (pasaron a Fallido: Z). Pendientes: P.` y en la línea siguiente `Último error: <motivo>` | `Y` correos no salieron en este intento (servidor caído, destinatario inválido, rechazo del servidor); `Z` de ellos agotaron sus 3 intentos | 1 |
 | `SMTP sin configurar (variables Smtp__*): N correo(s) siguen pendientes.` | Faltan las variables SMTP; no se consume ningún intento | 1 |
 | `Otro procesador de la cola está en curso: no se envió nada. Pendientes: N.` | Otra ejecución (por ejemplo el servicio `enviador`) está procesando la cola | 0 |
+| `No se pudo completar el comando: la base de datos no está disponible o no respondió. …` | SQL Server no responde (por ejemplo, `docker compose stop sqlserver`). Nunca se muestra la traza ni la cadena de conexión; vale también para `promover-administrador` | 1 |
+
+Un correo con un destinatario vacío o inválido, o cualquier error del servidor de correo con un
+correo, cuenta como un intento fallido de ESE correo: el procesador sigue con los demás y nunca
+termina con una excepción.
 
 **Ejecutarlo dos veces no duplica envíos (RF-NOT-12):** el enviador solo toma correos en
 estado `Pendiente`, cada correo se marca `Enviado` inmediatamente después de salir y solo un
@@ -1332,6 +1348,9 @@ semana completa da `diasProgramados: 7`, `diasCumplidos: 3` y `porcentajeCumplim
 `?desde=AAAA-MM-DD&hasta=AAAA-MM-DD`, los dos opcionales (sin uno de ellos, ese lado queda
 abierto). **Los dos días están incluidos**, completos en hora local: `hasta=2026-11-23` cuenta lo
 ocurrido hasta las 23:59:59 locales de ese día. Un rango sin datos responde `200` con `filas: []`.
+La hora local es la de `TZ`, con su horario de verano si lo tiene: cada mes del reporte del Core
+usa los límites de ese mes, y un día cuya medianoche no existe (el reloj se adelanta a las 00:00,
+como en `America/Havana`) empieza en su primer instante válido.
 
 ### Endpoints
 
@@ -1506,6 +1525,45 @@ fechas fijas y un reloj fijo, así no depende del día en que corre. Cada prueba
 ```bash
 dotnet test --filter "FullyQualifiedName~Tests.Reportes"
 ```
+
+### Pruebas de regresión de la Asignación 3
+
+Una prueba por hallazgo de la auditoría ([`docs/bitacora-asignacion-3.md`](docs/bitacora-asignacion-3.md)).
+Las ejecuta el mismo `dotnet test`, sin levantar la aplicación. El nombre de la clase cita el
+hallazgo y cada prueba lleva el comentario `// [Hallazgo N] …`.
+
+| Hallazgo | Prueba | Qué verifica |
+|---|---|---|
+| 1 · destinatario vacío | `Notificaciones/Hallazgo1DestinatarioVacioTests.cs` | `TransporteSmtp` informa un destinatario vacío como fallo del correo; un error inesperado del transporte con un correo suma su intento y el siguiente sale |
+| 2 · consultas simultáneas de una meta | `Notificaciones/Hallazgo2ConsultasSimultaneasMetaTests.cs` | Una consulta que leyó la meta antes de que otra la cambiara no aplica de nuevo la transición ni repite el aviso `MetaCambioEstado` |
+| 3 · zonas con horario de verano | `Reportes/Hallazgo3ZonaHorariaReportesTests.cs` | Con una zona con horario de verano, una solicitud del 1 de agosto a las 00:30 cuenta en `2026-08`; con una zona que adelanta el reloj a medianoche, el filtro de ese día no falla y cuenta lo del día |
+| 4 · trazas en la consola | `Notificaciones/Hallazgo4ComandosSinTrazasTests.cs` | Con la base caída al migrar o durante el envío, el comando escribe un mensaje comprensible y termina con 1, sin traza ni datos de conexión |
+
+```bash
+dotnet test --filter "FullyQualifiedName~Hallazgo"
+```
+
+**Cada una falla sobre el código anterior a su corrección.** Para comprobarlo, se toma el commit
+anterior a la corrección, se le ponen las pruebas del commit corregido y se ejecuta la del
+hallazgo:
+
+| Hallazgo | Commit de la corrección | Commit anterior |
+|---|---|---|
+| 1 | `a9094a4` | `a160350` (`practica-5`) |
+| 2 | `30094f5` | `a9094a4` |
+| 3 | `1bb3606` | `30094f5` |
+| 4 | `39dfe60` | `594c115` (preparación sin cambio de comportamiento) |
+
+```bash
+git checkout a160350
+git checkout a9094a4 -- tests
+dotnet test --filter "FullyQualifiedName~Hallazgo1"    # falla: Failed 2
+git checkout a9094a4
+dotnet test --filter "FullyQualifiedName~Hallazgo1"    # pasa: Passed 2
+```
+
+(Igual con los demás. Antes de cambiar de commit, `git checkout -- tests` descarta las pruebas
+copiadas. Al terminar, `git checkout main`.)
 
 ## Defectos
 
