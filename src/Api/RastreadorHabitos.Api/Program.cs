@@ -97,6 +97,7 @@ builder.Services.AddScoped<IDirectorioDestinatarios, DirectorioDestinatariosPorC
 builder.Services.AddScoped<INotificador, Notificador>();
 builder.Services.AddScoped<INotificacionesService, NotificacionesService>();
 builder.Services.AddScoped<IAvisoSolicitudes, AvisoSolicitudesPorNotificaciones>();
+builder.Services.AddScoped<IConsultaColaCorreos, ConsultaColaCorreos>();
 
 // Módulo de negocio. "Hoy" sale del reloj del servidor, nunca de la petición.
 builder.Services.AddSingleton(TimeProvider.System);
