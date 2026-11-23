@@ -6,6 +6,7 @@ using RastreadorHabitos.Api.Autorizacion;
 using RastreadorHabitos.Api.Comandos;
 using RastreadorHabitos.Api.Errores;
 using RastreadorHabitos.Core.Auditoria.Data;
+using RastreadorHabitos.Core.Auditoria.Services;
 using RastreadorHabitos.Core.ControlAcceso.Configuracion;
 using RastreadorHabitos.Core.ControlAcceso.Data;
 using RastreadorHabitos.Core.ControlAcceso.Services;
@@ -117,6 +118,10 @@ builder.Services.AddScoped<IMetricasHabitos, MetricasHabitosService>();
 builder.Services.AddScoped<IFuenteReporte, FuenteSolicitudesPorEstado>();
 builder.Services.AddScoped<IFuenteReporte, FuenteCumplimientoSemanal>();
 builder.Services.AddScoped<IReportesService, ReportesService>();
+
+// Historial de auditoría: solo consulta [RF-AUD-07]. Las piezas escriben su registro desde sus propios
+// contextos, en el mismo guardado que su cambio.
+builder.Services.AddScoped<IHistorialAuditoria, HistorialAuditoria>();
 
 // API externa de clima (WeatherAPI.com) para el plan de hoy. La clave solo llega por la variable
 // de entorno WeatherApi__Clave [RD-10]; sin ella la API arranca igual y solo esa operación se

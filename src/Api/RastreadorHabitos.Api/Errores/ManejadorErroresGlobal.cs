@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Diagnostics;
+using RastreadorHabitos.Core.Auditoria.Services;
 using RastreadorHabitos.Core.ControlAcceso.Services;
 using RastreadorHabitos.Core.Documentos.Services;
 using RastreadorHabitos.Core.GestionPermisos.Services;
@@ -99,6 +100,13 @@ public class ManejadorErroresGlobal : IExceptionHandler
                 _ => StatusCodes.Status400BadRequest
             };
             await httpContext.Response.WriteAsJsonAsync(new { error = rechazoNotificaciones.Message }, cancellationToken);
+            return true;
+        }
+
+        if (exception is RechazoAuditoriaException rechazoAuditoria)
+        {
+            httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await httpContext.Response.WriteAsJsonAsync(new { error = rechazoAuditoria.Message }, cancellationToken);
             return true;
         }
 
