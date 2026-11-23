@@ -97,6 +97,45 @@ public class SolicitudesPermisoService : ISolicitudesPermisoService
         return SolicitudPermisoDto.Desde(solicitud);
     }
 
+    public async Task<IReadOnlyList<ConteoSolicitudesPorMesDto>> ContarSolicitudesPorEstadoAsync(
+        Guid? solicitanteId, DateTime? desdeUtc, DateTime? hastaUtc, int desplazamientoMinutos)
+    {
+        var consulta = _context.SolicitudesPermiso.AsNoTracking();
+        if (solicitanteId is { } id)
+        {
+            consulta = consulta.Where(s => s.SolicitanteId == id);
+        }
+        if (desdeUtc is { } desde)
+        {
+            consulta = consulta.Where(s => s.FechaCreacionUtc >= desde);
+        }
+        if (hastaUtc is { } hasta)
+        {
+            consulta = consulta.Where(s => s.FechaCreacionUtc < hasta);
+        }
+
+        // Una sola consulta GROUP BY: SQL Server agrupa por mes y cuenta cada estado; nunca se
+        // traen las solicitudes para contarlas aquí [RF-REP-03].
+        return await consulta
+            .GroupBy(s => new
+            {
+                s.FechaCreacionUtc.AddMinutes(desplazamientoMinutos).Year,
+                s.FechaCreacionUtc.AddMinutes(desplazamientoMinutos).Month
+            })
+            .Select(g => new ConteoSolicitudesPorMesDto
+            {
+                Anio = g.Key.Year,
+                Mes = g.Key.Month,
+                Pendiente = g.Count(s => s.Estado == EstadoSolicitud.Pendiente),
+                Aprobada = g.Count(s => s.Estado == EstadoSolicitud.Aprobada),
+                Aplicada = g.Count(s => s.Estado == EstadoSolicitud.Aplicada),
+                Rechazada = g.Count(s => s.Estado == EstadoSolicitud.Rechazada),
+                Total = g.Count()
+            })
+            .OrderBy(c => c.Anio).ThenBy(c => c.Mes)
+            .ToListAsync();
+    }
+
     // Si otra operación resolvió la solicitud después de leerla, el estado guardado ya no es el
     // leído: se rechaza como cualquier transición fuera de la tabla y no cambia nada [RF-GP-06].
     private async Task GuardarAsync()

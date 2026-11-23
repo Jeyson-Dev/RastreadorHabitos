@@ -19,4 +19,11 @@ public interface ISolicitudesPermisoService
 
     // Sin motivo escrito el rechazo no se completa [RF-GP-04].
     Task<SolicitudPermisoDto> RechazarAsync(Guid solicitudId, Guid administradorId, RechazoSolicitudPermisoDto rechazo);
+
+    // contarSolicitudesPorEstado: solicitudes creadas entre desdeUtc (incluido) y hastaUtc
+    // (excluido), agrupadas por el mes local de su creación y contadas por estado, en el motor de
+    // datos [RF-REP-01, RF-REP-03]. Con solicitanteId, solo las de ese usuario [RF-REP-04].
+    // desplazamientoMinutos es la diferencia de la hora local con UTC, para que el mes sea el local.
+    Task<IReadOnlyList<ConteoSolicitudesPorMesDto>> ContarSolicitudesPorEstadoAsync(
+        Guid? solicitanteId, DateTime? desdeUtc, DateTime? hastaUtc, int desplazamientoMinutos);
 }
