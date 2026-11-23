@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RastreadorHabitos.Core.Auditoria.Data;
 using RastreadorHabitos.Core.GestionPermisos.Data;
 using RastreadorHabitos.Core.GestionPermisos.DTOs;
 using RastreadorHabitos.Core.GestionPermisos.Entities;
@@ -72,6 +73,12 @@ public class SolicitudesPermisoService : ISolicitudesPermisoService
         // Sin intervención manual: Control de acceso aplica el permiso y la solicitud queda Aplicada.
         await _aplicador.AplicarAsync(solicitud.SolicitanteId, solicitud.Permiso, administradorId);
         solicitud.MarcarAplicada();
+        // El registro entra en el mismo guardado y la misma transacción que la resolución:
+        // si algo falla, no queda ni la aprobación ni su registro [RF-AUD-02].
+        _context.RegistrarEvento(administradorId, EventosAuditoria.SolicitudAprobada, EventosAuditoria.Entidad,
+            solicitud.Id.ToString(), new { estado = nameof(EstadoSolicitud.Pendiente) },
+            new { estado = solicitud.Estado.ToString(), permiso = solicitud.Permiso, solicitanteId = solicitud.SolicitanteId },
+            solicitud.FechaResolucionUtc!.Value);
         await GuardarAsync();
 
         await transaccion.CommitAsync();
@@ -88,6 +95,11 @@ public class SolicitudesPermisoService : ISolicitudesPermisoService
         var solicitud = await BuscarAsync(solicitudId);
 
         solicitud.Rechazar(administradorId, rechazo.Motivo, DateTime.UtcNow);
+        _context.RegistrarEvento(administradorId, EventosAuditoria.SolicitudRechazada, EventosAuditoria.Entidad,
+            solicitud.Id.ToString(), new { estado = nameof(EstadoSolicitud.Pendiente) },
+            new { estado = solicitud.Estado.ToString(), permiso = solicitud.Permiso, solicitanteId = solicitud.SolicitanteId,
+                  motivo = solicitud.MotivoRechazo },
+            solicitud.FechaResolucionUtc!.Value);
 
         await GuardarAsync();
 
