@@ -1293,6 +1293,86 @@ destinatario no es válida.») y no impide que salgan los demás.
 ejecutar el comando dos veces seguidas: la primera informa «Correos enviados: 1», la segunda
 «Correos enviados: 0», y el correo aparece una sola vez en `http://localhost:8025`.
 
+## Reportes
+
+Pieza 5 del Core (`src/Core/RastreadorHabitos.Core.Reportes`), Práctica 5. Criterios: CR-01 a CR-09
+de [`docs/criterios-notificaciones-reportes.md`](docs/criterios-notificaciones-reportes.md).
+
+Dos reportes con **agregación real** (RF-REP-03): devuelven filas agrupadas, nunca el listado de
+registros. La agrupación la hace SQL Server (`GROUP BY`) dentro de la pieza dueña de los datos, y
+Reportes las recibe ya calculadas por el puerto `IFuenteReporte`, sin conocer las entidades de
+nadie (RD-03). Reportes decide el **alcance por rol** (RF-REP-04): un Estándar solo obtiene sus
+propios datos y un Administrador los de todos. Ningún parámetro de la petición cambia eso.
+
+| Reporte | Pregunta que responde | Una fila por | Valores |
+|---|---|---|---|
+| **Del Core** (RF-REP-01): `GET /api/reportes/solicitudes-por-estado` | ¿Cuántas solicitudes de permiso hubo en cada estado, mes por mes? | Mes local de creación (`AAAA-MM`) | `Pendiente`, `Aprobada`, `Aplicada`, `Rechazada` y `Total` |
+| **Del negocio** (RF-REP-02): `GET /api/reportes/cumplimiento-semanal` | ¿Qué porcentaje de los días programados de sus hábitos cumplió cada semana? | Semana de lunes a domingo (la fecha de su lunes) | `diasProgramados`, `diasCumplidos` y `porcentajeCumplimiento` |
+
+El reporte del negocio no cuenta filas: cruza el calendario de cada hábito (sus días de la semana,
+desde el día en que se creó y hasta hoy; los días futuros no cuentan) con los registros diarios
+cumplidos, que SQL Server agrupa por semana. Por ejemplo, un hábito diario cumplido 3 días de una
+semana completa da `diasProgramados: 7`, `diasCumplidos: 3` y `porcentajeCumplimiento: 42.9`.
+`Aprobada` del reporte del Core es casi siempre `0`, porque aprobar deja la solicitud en
+`Aplicada` en la misma operación (ver [Gestión de permisos](#gestión-de-permisos--asignación-2)).
+
+**Filtro por rango de fechas (RF-REP-05).** Los dos reportes aceptan
+`?desde=AAAA-MM-DD&hasta=AAAA-MM-DD`, los dos opcionales (sin uno de ellos, ese lado queda
+abierto). **Los dos días están incluidos**, completos en hora local: `hasta=2026-11-23` cuenta lo
+ocurrido hasta las 23:59:59 locales de ese día. Un rango sin datos responde `200` con `filas: []`.
+
+### Endpoints
+
+Requieren `Authorization: Bearer <token>` (exigencia `EstandarOAdministrador` en
+`Autorizacion/ExigenciasDeRol.cs`). Sin sesión → `401`.
+
+| Método | Ruta | Respuesta |
+|---|---|---|
+| `GET` | `/api/reportes/solicitudes-por-estado?desde=…&hasta=…` | `200` el reporte · `400` fecha inválida o rango invertido |
+| `GET` | `/api/reportes/cumplimiento-semanal?desde=…&hasta=…` | `200` el reporte · `400` fecha inválida o rango invertido |
+
+Cada reporte se devuelve como
+`{ "reporte", "pregunta", "desde", "hasta", "alcance", "filas": [ { "grupo", "valores": { … } } ] }`,
+con `alcance` igual a `"Todos los usuarios"` (Administrador) o `"Solo sus datos"` (Estándar).
+Rechazos controlados (RD-07), `400`:
+- una fecha que no tiene el formato `AAAA-MM-DD` o no existe (`30/11/2026`, `hoy`, `2026-02-30`):
+  «La fecha «desde» debe tener el formato AAAA-MM-DD y ser una fecha que existe (por ejemplo
+  2026-11-01).»;
+- una fecha anterior a 2000-01-01 o posterior a 2100-12-31;
+- `desde` posterior a `hasta`: «La fecha «desde» no puede ser posterior a «hasta».»
+
+### Cómo consultar ambos con un rango de fechas
+
+Se necesitan un Administrador **A** y dos Estándar **E1** y **E2**, activados y con sesión (ver
+[Notificaciones — Preparación](#preparación-3)). Reemplazar `<hoy>` y `<ayer>` por las fechas
+locales en formato `AAAA-MM-DD`.
+
+1. **Datos.** Con el token de E1, crear dos hábitos programados todos los días
+   (`POST /api/habitos` con `"dias": [1, 2, 3, 4, 5, 6, 7]`), registrar hoy uno como cumplido y el
+   otro como no cumplido (`POST /api/habitos/{id}/registros` con `{ "cumplido": true }` y
+   `{ "cumplido": false }`), y crear una solicitud de permiso. Con el token de E2, crear un hábito
+   diario cumplido hoy y dos solicitudes. Con el token de A, aprobar una solicitud de E2 y
+   rechazar la otra con un motivo.
+2. **Reporte del negocio de E1, solo hoy:**
+   `GET /api/reportes/cumplimiento-semanal?desde=<hoy>&hasta=<hoy>` con el token de E1 → una fila
+   para la semana de hoy con `diasProgramados: 2`, `diasCumplidos: 1` y
+   `porcentajeCumplimiento: 50`, y `"alcance": "Solo sus datos"`: no incluye el hábito de E2.
+3. **Reporte del Core de E1, solo hoy:**
+   `GET /api/reportes/solicitudes-por-estado?desde=<hoy>&hasta=<hoy>` con el token de E1 → una fila
+   para el mes actual con `Pendiente: 1` y `Total: 1`: solo su solicitud.
+4. **Los mismos reportes como Administrador:** con el token de A → los valores incluyen los datos de
+   E1 y de E2 (por ejemplo, en el del Core, `Aplicada: 1`, `Rechazada: 1` y `Total: 3`) y
+   `"alcance": "Todos los usuarios"`.
+5. **Otro rango, otros resultados:** repetir los pasos 2 a 4 con `?desde=<ayer>&hasta=<ayer>` → el
+   reporte del Core no tiene filas y el del negocio no tiene ningún día cumplido de hoy.
+6. **El último día incluido:** con `?hasta=<hoy>` (sin `desde`) los datos de hoy se cuentan; con
+   `?hasta=<ayer>` no.
+7. **Rango sin datos:** `?desde=2020-01-01&hasta=2020-01-31` → `200` con `"filas": []`.
+8. **Rango inválido:** `?desde=<hoy>&hasta=<ayer>` o `?desde=30/11/2026` → `400`.
+
+Un Estándar que agrega `?usuarioId=<id-de-otro>` a la petición sigue recibiendo solo sus datos:
+el parámetro no existe y se ignora.
+
 ## Pruebas
 
 Un solo comando, desde la raíz de un clon limpio del repositorio, ejecuta toda la suite. No
@@ -1392,6 +1472,27 @@ memoria de nombre único, y un reloj fijo para el módulo de negocio. Cada prueb
 
 ```bash
 dotnet test --filter "FullyQualifiedName~Tests.Notificaciones"
+```
+
+### Suite de Reportes (Práctica 5)
+
+Está en `tests/RastreadorHabitos.Tests/Reportes/ReportesTests.cs` y la ejecuta el mismo
+`dotnet test`. Usa las dos fuentes reales (`contarSolicitudesPorEstado` de Gestión de permisos y
+las métricas de Hábitos) sobre bases en memoria de nombre único, con los datos sembrados en
+fechas fijas y un reloj fijo, así no depende del día en que corre. Cada prueba cita su criterio
+(`CR-xx`).
+
+| Prueba | Qué verifica |
+|---|---|
+| `SolicitudesPorEstado_AgrupaPorMesYCuentaCadaEstado` | Una fila por mes con cada estado y el total (RF-REP-01, RF-REP-03) |
+| `SolicitudesPorEstado_UsaElMesLocalDeLaCreacion` | Una solicitud de las 22:00 locales del 31 de octubre cuenta en octubre |
+| `SolicitudesPorEstado_UnEstandarSoloVeLasSuyasYElAdministradorLasDeTodos` y `CumplimientoSemanal_UnEstandarSoloVeSusHabitos` | El alcance por rol (RF-REP-04) |
+| `SolicitudesPorEstado_IncluyeElUltimoDiaCompletoYDosRangosDanResultadosDistintos`, `CumplimientoSemanal_FiltraPorElRangoConLosDosDiasIncluidos` y `RangoFechas_HastaIncluyeElDiaCompletoEnHoraLocal` | El último día incluido hasta las 23:59 locales y dos rangos con resultados distintos (RF-REP-05) |
+| `CumplimientoSemanal_DaElPorcentajeDeDiasProgramadosCumplidosPorSemana` | El porcentaje semanal de días programados cumplidos, sin contar días futuros; dos filas que resumen seis registros (RF-REP-02, RF-REP-03) |
+| `Reportes_ConUnRangoSinDatos_DevuelvenFilasVacias` y `Reportes_ConUnRangoInvalido_SeRechazan` | Un rango sin datos no es un error; un rango invertido, una fecha mal escrita, inexistente o fuera de 2000 a 2100 se rechaza (RD-07) |
+
+```bash
+dotnet test --filter "FullyQualifiedName~Tests.Reportes"
 ```
 
 ## Defectos
