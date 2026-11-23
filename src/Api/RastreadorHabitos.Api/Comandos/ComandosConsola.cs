@@ -29,11 +29,26 @@ public static class ComandosConsola
         await servicios.GetRequiredService<DocumentosDbContext>().Database.MigrateAsync();
     }
 
-    // Aplica las migraciones, ejecuta la acción del comando y devuelve su código de salida.
+    public const string MensajeFallo =
+        "No se pudo completar el comando: la base de datos no está disponible o no respondió. " +
+        "Revise que SQL Server esté levantado y la variable ConnectionStrings__RastreadorHabitos.";
+
+    // Aplica las migraciones, ejecuta la acción del comando y devuelve su código de salida. Si algo
+    // falla (por ejemplo, la base no responde), quien ejecuta el comando ve un mensaje comprensible
+    // y el código 1: nunca la traza, la excepción ni la cadena de conexión [Hallazgo 4 de la
+    // Asignación 3, RD-08]. Vale para los dos comandos.
     public static async Task<int> EjecutarAsync(Func<Task> migrar, Func<Task<int>> accion, TextWriter salida)
     {
-        await migrar();
-        return await accion();
+        try
+        {
+            await migrar();
+            return await accion();
+        }
+        catch (Exception)
+        {
+            await salida.WriteLineAsync(MensajeFallo);
+            return 1;
+        }
     }
 
     // Hace un intento por cada correo pendiente [RF-NOT-09, RF-NOT-10]. Ejecutarlo dos veces no
