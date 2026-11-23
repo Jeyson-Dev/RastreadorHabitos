@@ -180,9 +180,14 @@ El resto del README sirve igual con el contenedor. Donde dice:
   docker compose exec sqlserver bash -c '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -d RastreadorHabitos'
   ```
 
-- **«Apagar el servidor SMTP»:** `docker compose stop mailpit`. Los correos quedan `Pendiente` y
-  el enviador informa en su log (`docker compose logs enviador`) que no pudo enviar. Con
-  `docker compose start mailpit` salen en la siguiente vuelta, una sola vez.
+- **«Apagar el servidor SMTP»:** `docker compose stop mailpit`. Cada vuelta del enviador suma un
+  intento fallido a cada correo pendiente y lo informa en su log (`docker compose logs enviador`).
+  Un correo se intenta **como máximo 3 veces** y después queda `Fallido` (ver
+  [Cola de correos](#cola-de-correos)). Con el enviador automático, eso pasa en unos 30 segundos.
+  Para ver salir un correo que estaba pendiente: con `docker compose start mailpit` dentro de esos
+  30 segundos sale en la siguiente vuelta, una sola vez. Para controlar cada intento a mano,
+  detener antes el enviador automático (`docker compose stop enviador`) y ejecutarlo como dice el
+  punto anterior.
 - **«Reiniciar la aplicación»:** `docker compose restart app`, o `docker compose down` y
   `docker compose up`.
 
@@ -372,9 +377,10 @@ En Visual Studio: abrir `RastreadorHabitos.slnx`, elegir el perfil **`http`** y 
 
 ## Enviar los correos pendientes (enviador de la cola)
 
-Las operaciones que generan correos (registro y reenvío del enlace) **no los envían**: los
-registran en la tabla `Notificaciones.CorreosEnCola` en estado `Pendiente` y responden de
-inmediato, aunque el servidor SMTP no esté disponible (RF-NOT-08).
+Las operaciones que generan correos (registro, reenvío del enlace, recuperación de contraseña y
+toda notificación) **no los envían**: los registran en la tabla `Notificaciones.CorreosEnCola` en
+estado `Pendiente` y responden de inmediato, aunque el servidor SMTP no esté disponible
+(RF-NOT-08).
 
 Los envía un **comando independiente** (RF-NOT-09). Con Docker lo ejecuta solo el servicio
 `enviador`, o a mano `docker compose exec app dotnet RastreadorHabitos.Api.dll enviar-correos`
@@ -389,23 +395,27 @@ dotnet run --no-build --project src/Api/RastreadorHabitos.Api -- enviar-correos
 (`--no-build` usa la compilación existente; si la API nunca se compiló, ejecutar antes
 `dotnet build`.)
 
-El comando envía todos los correos `Pendiente` por SMTP, marca cada uno como `Enviado` en
-cuanto sale y termina mostrando un resumen:
+Cada ejecución hace **un intento** por cada correo `Pendiente`: marca como `Enviado` el que sale y
+suma un intento fallido, con su último error, al que no. Un correo se intenta **como máximo 3
+veces**; al tercer fallo queda `Fallido` y no se vuelve a intentar (ver
+[Cola de correos](#cola-de-correos)). Termina mostrando un resumen:
 
 | Salida | Significado | Código de salida |
 |---|---|---|
-| `Correos enviados: N. Pendientes: 0.` | Se enviaron todos los pendientes | 0 |
-| `Correos enviados: 0. Pendientes: 0.` | No había nada que enviar | 0 |
-| `SMTP sin configurar (variables Smtp__*): N correo(s) siguen pendientes.` | Faltan las variables SMTP | 1 |
-| `No se pudo enviar: <motivo>. Correos enviados: X. Pendientes: Y.` | El servidor SMTP no respondió o rechazó el envío; los no enviados siguen pendientes | 1 |
+| `Correos enviados: N. Con error en este intento: 0 (pasaron a Fallido: 0). Pendientes: 0.` | Se enviaron todos los pendientes (`N` = 0 si no había nada que enviar) | 0 |
+| `Correos enviados: X. Con error en este intento: Y (pasaron a Fallido: Z). Pendientes: P.` y en la línea siguiente `Último error: <motivo>` | `Y` correos no salieron en este intento (servidor caído, destinatario inválido, rechazo del servidor); `Z` de ellos agotaron sus 3 intentos | 1 |
+| `SMTP sin configurar (variables Smtp__*): N correo(s) siguen pendientes.` | Faltan las variables SMTP; no se consume ningún intento | 1 |
+| `Otro procesador de la cola está en curso: no se envió nada. Pendientes: N.` | Otra ejecución (por ejemplo el servicio `enviador`) está procesando la cola | 0 |
 
 **Ejecutarlo dos veces no duplica envíos (RF-NOT-12):** el enviador solo toma correos en
-estado `Pendiente`, y cada correo se marca `Enviado` inmediatamente después de salir.
+estado `Pendiente`, cada correo se marca `Enviado` inmediatamente después de salir y solo un
+procesador trabaja a la vez.
 
-Consultar la cola:
+Consultar la cola: como Administrador, `GET /api/correos` (ver
+[Cola de correos](#cola-de-correos)), o con SQL:
 
 ```sql
-SELECT Destinatario, Estado, FechaCreacionUtc, FechaEnvioUtc
+SELECT Destinatario, Estado, Intentos, FechaCreacionUtc, FechaUltimoIntentoUtc, FechaEnvioUtc, UltimoError
 FROM Notificaciones.CorreosEnCola ORDER BY FechaCreacionUtc;
 ```
 
@@ -1218,6 +1228,71 @@ en `GET /api/notificaciones` de E2, pero la consulta SQL de la cola no tiene nin
 para E2. Con `{ "correoActivo": true }` las siguientes vuelven a encolarse. `{}`,
 `{ "correoActivo": "no" }` o un JSON mal formado → `400`.
 
+### Cola de correos
+
+Todo correo del sistema (activación, recuperación de contraseña y notificaciones) se **encola**
+y lo envía después un **procesador independiente** (RF-NOT-08, RF-NOT-09). Cada correo registra
+su estado (`Pendiente`, `Enviado` o `Fallido`), sus intentos, su fecha de creación, la de su
+último intento, la de envío y su último error (RF-NOT-11). Las credenciales del servidor de
+correo solo llegan por las variables `Smtp__*` (RF-NOT-13, ver
+[Variables de entorno](#variables-de-entorno)).
+
+**Máximo de intentos: 3** (`src/Core/RastreadorHabitos.Core.Notificaciones/Reglas/ReglasCola.cs`).
+Cada ejecución del procesador hace a lo sumo un intento por correo `Pendiente`. Si falla, el
+correo sigue `Pendiente` con su intento y su último error. Al tercer intento fallido queda
+`Fallido` y no se vuelve a intentar (RF-NOT-10). Un correo nunca se borra, y uno `Enviado` o
+`Fallido` nunca vuelve a salir (RF-NOT-12). Sin las variables `Smtp__*` no se consume ningún
+intento. Cada envío espera como máximo 10 segundos.
+
+**Ejecutar el procesador.** Con Docker lo ejecuta solo el servicio `enviador`, cada 10 segundos.
+A mano, en cualquier momento:
+
+```bash
+docker compose exec app dotnet RastreadorHabitos.Api.dll enviar-correos
+```
+
+La salida y los códigos de salida están en
+[Enviar los correos pendientes](#enviar-los-correos-pendientes-enviador-de-la-cola). Solo un
+procesador trabaja a la vez (un bloqueo de aplicación en SQL Server): si se ejecuta a mano
+mientras el servicio `enviador` procesa, uno de los dos responde «Otro procesador de la cola está
+en curso: no se envió nada.» y ningún correo sale dos veces.
+
+**Consultar la cola (solo Administrador).**
+
+| Método | Ruta | Respuesta |
+|---|---|---|
+| `GET` | `/api/correos` (opcional `?estado=Pendiente`, `Enviado` o `Fallido`) | `200` lista del más reciente al más antiguo, cada correo con `{ "id", "destinatario", "asunto", "estado", "intentos", "fechaCreacionUtc", "fechaUltimoIntentoUtc", "fechaEnvioUtc", "ultimoError" }` · `400` estado que no existe · `401` sin sesión · `403` Estándar |
+
+No devuelve el cuerpo de los correos, que lleva enlaces de activación y códigos de recuperación.
+
+**Cómo provocar un fallo de envío y ver los reintentos.**
+1. Detener el procesador automático, para controlar cada intento, y el servidor de correo:
+
+   ```bash
+   docker compose stop enviador
+   docker compose stop mailpit
+   ```
+
+2. Generar un correo: por ejemplo, registrar un usuario (`POST /api/cuentas/registro`) → `201` de
+   inmediato (RF-NOT-08). Con el token de un Administrador, `GET /api/correos?estado=Pendiente`
+   → el correo, con `"intentos": 0`.
+3. Ejecutar el procesador a mano (comando de arriba) → «Correos enviados: 0. Con error en este
+   intento: 1 (pasaron a Fallido: 0). Pendientes: 1.» y «Último error: No se pudo enviar por el
+   servidor de correo: …». `GET /api/correos` → `"estado": "Pendiente"`, `"intentos": 1`, con
+   `fechaUltimoIntentoUtc` y `ultimoError`.
+4. Ejecutarlo otra vez → `"intentos": 2`. Una tercera vez → «pasaron a Fallido: 1» y
+   `GET /api/correos?estado=Fallido` lo muestra con `"intentos": 3` y su `ultimoError`.
+5. Volver a encender Mailpit (`docker compose start mailpit`) y ejecutar el procesador → el correo
+   `Fallido` no se vuelve a intentar: sigue con 3 intentos y no llega a Mailpit.
+6. `docker compose start enviador` para volver al procesador automático.
+
+Un correo con destinatario inválido también cuenta como intento fallido («La dirección del
+destinatario no es válida.») y no impide que salgan los demás.
+
+**Ejecutar el procesador dos veces (RF-NOT-12).** Con Mailpit encendido y un correo pendiente,
+ejecutar el comando dos veces seguidas: la primera informa «Correos enviados: 1», la segunda
+«Correos enviados: 0», y el correo aparece una sola vez en `http://localhost:8025`.
+
 ## Pruebas
 
 Un solo comando, desde la raíz de un clon limpio del repositorio, ejecuta toda la suite. No
@@ -1313,6 +1388,7 @@ memoria de nombre único, y un reloj fijo para el módulo de negocio. Cada prueb
 | `BandejaNotificacionesTests.cs` | Cada uno ve solo las suyas, con leídas y no leídas (RF-NOT-04); marcar la propia, otra vez sin cambios, la de otro (rechazo y no cambia) o una inexistente (RF-NOT-05); la preferencia empieza activa, se cambia y sin valor se rechaza (RF-NOT-07, RD-07) |
 | `AvisosSolicitudesTests.cs` | Crear una solicitud notifica solo a los Administradores activos, ni desactivados, ni sin activar, ni al propio solicitante, y sin Administradores activos no notifica a nadie (RF-NOT-01); aprobar y rechazar notifican al solicitante, con el motivo, y una resolución rechazada no notifica (RF-NOT-02) |
 | `AvisosMetaTests.cs` | Cada cambio de estado de una meta (En progreso, Fallida, Completada) notifica a su dueño, y una consulta sin cambio o una transición rechazada no (RF-NOT-03) |
+| `ColaCorreosTests.cs` | Con un transporte de correo falso (`TransporteFalso`): encolar no envía (RF-NOT-08); el procesador envía y deja `Enviado` con 1 intento (RF-NOT-09); dos ejecuciones no duplican (RF-NOT-12); un fallo suma su intento y su último error, al tercero queda `Fallido` y no se vuelve a intentar, un destinatario que falla no bloquea a los demás y sin SMTP no se consumen intentos (RF-NOT-10); la consulta filtra por estado, rechaza un estado inexistente, no expone el cuerpo y está reservada al Administrador (RF-NOT-11) |
 
 ```bash
 dotnet test --filter "FullyQualifiedName~Tests.Notificaciones"
