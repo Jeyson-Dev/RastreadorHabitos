@@ -18,5 +18,6 @@ public interface IContrasenaService
 
     // Lo ordena un Administrador: la contraseña anterior deja de servir, se cierran las sesiones
     // y el usuario recibe por la cola el código para definir una nueva [RF-CA-13, RF-CA-12].
-    Task ForzarRestablecimientoAsync(Guid usuarioId);
+    // Quién lo forzó queda en el historial de auditoría [RF-CA-13, RF-AUD-05].
+    Task ForzarRestablecimientoAsync(Guid usuarioId, Guid administradorId);
 }

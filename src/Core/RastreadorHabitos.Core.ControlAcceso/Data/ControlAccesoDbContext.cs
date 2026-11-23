@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RastreadorHabitos.Core.Auditoria.Data;
 using RastreadorHabitos.Core.ControlAcceso.Entities;
 
 namespace RastreadorHabitos.Core.ControlAcceso.Data;
@@ -33,11 +34,19 @@ public class ControlAccesoDbContext : DbContext
         }
     }
 
+    // El historial de auditoría no se modifica ni se borra desde este contexto [RF-AUD-06].
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
+        optionsBuilder.ProtegerHistorialAuditoria();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.HasDefaultSchema(Esquema);
+
+        // El registro de auditoría se escribe en el mismo guardado que el cambio; la tabla la crea
+        // la migración de Auditoría, no la de esta pieza [RF-AUD-04, RF-AUD-05].
+        modelBuilder.MapearHistorialAuditoria(excluirDeMigraciones: true);
 
         modelBuilder.Entity<Rol>(builder =>
         {

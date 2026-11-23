@@ -12,4 +12,9 @@
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.19.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Para escribir su registro de auditoría en el mismo guardado que su cambio [RF-AUD-02 a 05]. -->
+    <ProjectReference Include="..\RastreadorHabitos.Core.Auditoria\RastreadorHabitos.Core.Auditoria.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using RastreadorHabitos.Core.Auditoria.Data;
+using RastreadorHabitos.Core.Auditoria.Entities;
 using RastreadorHabitos.Core.ControlAcceso.Data;
 using RastreadorHabitos.Core.ControlAcceso.DTOs;
 using RastreadorHabitos.Core.ControlAcceso.Entities;
+using RastreadorHabitos.Core.ControlAcceso.Reglas;
 
 namespace RastreadorHabitos.Core.ControlAcceso.Services;
 
@@ -27,8 +30,9 @@ public class AdministracionUsuariosService : IAdministracionUsuariosService
                 "No existe un usuario registrado con ese correo.");
         }
 
-        // Cada usuario tiene exactamente un rol: promover reemplaza el rol Estándar [RF-CA-04].
-        usuario.RolId = Rol.IdAdministrador;
+        // Cada usuario tiene exactamente un rol: promover reemplaza el rol Estándar [RF-CA-04]. Lo
+        // ejecuta el comando de consola, sin sesión: actúa el sistema [RF-AUD-04].
+        AplicarRol(usuario, Rol.IdAdministrador, RegistroAuditoria.Sistema);
         await _context.SaveChangesAsync();
     }
 
@@ -71,7 +75,7 @@ public class AdministracionUsuariosService : IAdministracionUsuariosService
         var usuario = await BuscarAsync(usuarioId);
 
         // El cambio se aplica desde la siguiente petición del usuario: el rol se lee de la base.
-        usuario.RolId = rolId;
+        AplicarRol(usuario, rolId, administradorId);
         await _context.SaveChangesAsync();
     }
 
@@ -84,21 +88,52 @@ public class AdministracionUsuariosService : IAdministracionUsuariosService
         }
 
         var usuario = await BuscarAsync(usuarioId);
-        usuario.CuentaHabilitada = false;
+        var ahoraUtc = DateTime.UtcNow;
+        if (usuario.CuentaHabilitada)
+        {
+            usuario.CuentaHabilitada = false;
+            _context.RegistrarEvento(administradorId, EventosAuditoria.UsuarioDesactivado, EventosAuditoria.Entidad,
+                usuario.Id.ToString(), new { cuentaHabilitada = true }, new { cuentaHabilitada = false }, ahoraUtc);
+        }
 
         // Sus sesiones abiertas se cierran en el mismo guardado: dejan de ser válidas ya, y una
-        // reactivación posterior no revive credenciales emitidas antes.
-        await _context.CerrarSesionesAbiertasAsync(usuarioId, DateTime.UtcNow);
+        // reactivación posterior no revive credenciales emitidas antes. El registro de auditoría
+        // entra en el mismo guardado [RF-AUD-04].
+        await _context.CerrarSesionesAbiertasAsync(usuarioId, ahoraUtc);
 
         await _context.SaveChangesAsync();
     }
 
-    public async Task ReactivarAsync(Guid usuarioId)
+    public async Task ReactivarAsync(Guid usuarioId, Guid administradorId)
     {
         var usuario = await BuscarAsync(usuarioId);
+        if (usuario.CuentaHabilitada)
+        {
+            return; // Ya estaba activa: no hay cambio que registrar.
+        }
+
         usuario.CuentaHabilitada = true;
+        _context.RegistrarEvento(administradorId, EventosAuditoria.UsuarioReactivado, EventosAuditoria.Entidad,
+            usuario.Id.ToString(), new { cuentaHabilitada = false }, new { cuentaHabilitada = true }, DateTime.UtcNow);
         await _context.SaveChangesAsync();
     }
+
+    // Cambia el rol y, si de verdad cambió, deja su registro en el mismo guardado [RF-AUD-04].
+    private void AplicarRol(Usuario usuario, int rolId, Guid quienActua)
+    {
+        if (usuario.RolId == rolId)
+        {
+            return;
+        }
+
+        var anterior = NombreRol(usuario.RolId);
+        usuario.RolId = rolId;
+        _context.RegistrarEvento(quienActua, EventosAuditoria.RolCambiado, EventosAuditoria.Entidad,
+            usuario.Id.ToString(), new { rol = anterior }, new { rol = NombreRol(rolId) }, DateTime.UtcNow);
+    }
+
+    private static string NombreRol(int rolId) =>
+        rolId == Rol.IdAdministrador ? Rol.NombreAdministrador : Rol.NombreEstandar;
 
     private async Task<Usuario> BuscarAsync(Guid usuarioId) =>
         await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId)

@@ -19,5 +19,6 @@ public interface IAdministracionUsuariosService
     // Un Administrador no puede desactivarse a sí mismo [RF-CA-20].
     Task DesactivarAsync(Guid usuarioId, Guid administradorId);
 
-    Task ReactivarAsync(Guid usuarioId);
+    // Quién reactiva queda en el historial de auditoría [RF-CA-20, RF-AUD-04].
+    Task ReactivarAsync(Guid usuarioId, Guid administradorId);
 }

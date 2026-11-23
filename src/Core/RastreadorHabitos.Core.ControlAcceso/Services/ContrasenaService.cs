@@ -1,6 +1,7 @@
 using System.Net;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
+using RastreadorHabitos.Core.Auditoria.Data;
 using RastreadorHabitos.Core.ControlAcceso.Data;
 using RastreadorHabitos.Core.ControlAcceso.DTOs;
 using RastreadorHabitos.Core.ControlAcceso.Entities;
@@ -18,6 +19,14 @@ public class ContrasenaService : IContrasenaService
         _context = context;
         _correoSaliente = correoSaliente;
     }
+
+    // Registro del restablecimiento, sin guardar: entra con el cambio de contraseña. Dice quién lo
+    // inició y por qué medio, nunca la contraseña, su hash ni el código [RF-AUD-05].
+    private void RegistrarRestablecimiento(Guid quienActua, Guid usuarioId, string accion, string iniciadoPor,
+                                           string medio, DateTime ahoraUtc) =>
+        _context.RegistrarEvento(quienActua, accion, EventosAuditoria.Entidad, usuarioId.ToString(),
+            new { contrasena = "anterior vigente" },
+            new { contrasena = "reemplazada", iniciadoPor, medio, sesionesCerradas = true }, ahoraUtc);
 
     public async Task SolicitarRecuperacionAsync(RecuperacionSolicitudDto solicitud)
     {
@@ -72,6 +81,11 @@ public class ContrasenaService : IContrasenaService
         // Quien demuestra que controla el correo no sigue bloqueado por intentos con la contraseña vieja.
         PoliticaBloqueo.RegistrarExito(usuario);
 
+        // Lo inició el propio usuario; nunca se guarda la contraseña, su hash ni el código
+        // [RF-AUD-05]. Entra en el mismo guardado que el cambio.
+        RegistrarRestablecimiento(usuario.Id, usuario.Id, EventosAuditoria.RestablecimientoPropio,
+                                  EventosAuditoria.IniciadoPorUsuario, "código de recuperación", ahoraUtc);
+
         await _context.SaveChangesAsync();
     }
 
@@ -90,12 +104,15 @@ public class ContrasenaService : IContrasenaService
         ValidarPolitica(solicitud.ContrasenaNueva); // [RF-CA-14]
 
         // Todas las sesiones abiertas antes del cambio dejan de ser válidas, también la actual [RF-CA-12].
+        var ahoraUtc = DateTime.UtcNow;
         usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(solicitud.ContrasenaNueva, CuentaService.FactorTrabajoBCrypt);
-        await _context.CerrarSesionesAbiertasAsync(usuario.Id, DateTime.UtcNow);
+        await _context.CerrarSesionesAbiertasAsync(usuario.Id, ahoraUtc);
+        RegistrarRestablecimiento(usuario.Id, usuario.Id, EventosAuditoria.RestablecimientoPropio,
+                                  EventosAuditoria.IniciadoPorUsuario, "contraseña actual", ahoraUtc);
         await _context.SaveChangesAsync();
     }
 
-    public async Task ForzarRestablecimientoAsync(Guid usuarioId)
+    public async Task ForzarRestablecimientoAsync(Guid usuarioId, Guid administradorId)
     {
         var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId)
             ?? throw new RechazoControlAccesoException(MotivoRechazo.NoEncontrado, "El usuario no existe.");
@@ -107,6 +124,8 @@ public class ContrasenaService : IContrasenaService
         usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(contrasenaDescartable, CuentaService.FactorTrabajoBCrypt);
         await _context.CerrarSesionesAbiertasAsync(usuario.Id, ahoraUtc); // [RF-CA-12]
         var codigo = await PrepararCodigoAsync(usuario.Id, ahoraUtc);
+        RegistrarRestablecimiento(administradorId, usuario.Id, EventosAuditoria.RestablecimientoForzado,
+                                  EventosAuditoria.IniciadoPorAdministrador, "código enviado por correo", ahoraUtc);
         await _context.SaveChangesAsync();
 
         await EnviarCodigoAsync(usuario, codigo,
