@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using RastreadorHabitos.Core.Notificaciones.Services;
 using RastreadorHabitos.Modulo.Habitos.Services;
 using RastreadorHabitos.Modulo.Metas.Data;
 using RastreadorHabitos.Modulo.Metas.DTOs;
 using RastreadorHabitos.Modulo.Metas.Entities;
+using RastreadorHabitos.Modulo.Metas.Reglas;
 
 namespace RastreadorHabitos.Modulo.Metas.Services;
 
@@ -13,12 +15,17 @@ public class MetasService : IMetasService
     private readonly MetasDbContext _context;
     private readonly IConsultaHabitos _habitos;
     private readonly TimeProvider _reloj;
+    private readonly INotificador? _notificador;
 
-    public MetasService(MetasDbContext context, IConsultaHabitos habitos, TimeProvider reloj)
+    // Sin notificador el módulo funciona igual, sin avisos; la Api siempre conecta el de
+    // Notificaciones [RF-NOT-03].
+    public MetasService(MetasDbContext context, IConsultaHabitos habitos, TimeProvider reloj,
+                        INotificador? notificador = null)
     {
         _context = context;
         _habitos = habitos;
         _reloj = reloj;
+        _notificador = notificador;
     }
 
     public async Task<MetaDto> CrearAsync(Guid usuarioId, CreacionMetaDto meta)
@@ -95,8 +102,10 @@ public class MetasService : IMetasService
         var hoy = Hoy();
         var meta = await BuscarActualizadaAsync(usuarioId, metaId, hoy);
 
+        var anterior = meta.Estado;
         meta.Completar(await AvanceAsync(meta), hoy);
         await _context.SaveChangesAsync();
+        await AvisarSiCambioAsync(meta, anterior);
 
         return await ActualizarYDescribirAsync(meta, hoy);
     }
@@ -111,8 +120,10 @@ public class MetasService : IMetasService
         var hoy = Hoy();
         var meta = await BuscarActualizadaAsync(usuarioId, metaId, hoy);
 
+        var anterior = meta.Estado;
         meta.Reactivar(nuevaFechaLimite, await AvanceAsync(meta), hoy);
         await _context.SaveChangesAsync();
+        await AvisarSiCambioAsync(meta, anterior);
 
         return await ActualizarYDescribirAsync(meta, hoy);
     }
@@ -129,9 +140,24 @@ public class MetasService : IMetasService
     private async Task<MetaDto> ActualizarYDescribirAsync(Meta meta, DateOnly hoy)
     {
         var avance = await AvanceAsync(meta);
+        var anterior = meta.Estado;
         meta.AplicarTransicionesDelSistema(avance, hoy);
         await _context.SaveChangesAsync();
+        await AvisarSiCambioAsync(meta, anterior);
         return MetaDto.Desde(meta, avance);
+    }
+
+    // Solo cuando el estado cambió y ya quedó guardado: consultar una meta que no cambia, o una
+    // transición rechazada, no avisa [RF-NOT-03].
+    private async Task AvisarSiCambioAsync(Meta meta, EstadoMeta anterior)
+    {
+        if (_notificador is null || meta.Estado == anterior)
+        {
+            return;
+        }
+
+        await _notificador.NotificarAsync(meta.UsuarioId, AvisosMeta.TipoCambioEstado,
+                                          AvisosMeta.MensajeCambioEstado(meta, anterior));
     }
 
     // contarCumplidos de Hábitos, entre la fecha de inicio y la fecha límite de la meta.

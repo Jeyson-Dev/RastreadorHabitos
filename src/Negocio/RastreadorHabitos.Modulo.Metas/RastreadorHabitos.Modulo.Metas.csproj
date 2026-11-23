@@ -13,6 +13,8 @@
   <ItemGroup>
     <!-- Metas depende de Hábitos (contarCumplidos), nunca al revés. -->
     <ProjectReference Include="..\RastreadorHabitos.Modulo.Habitos\RastreadorHabitos.Modulo.Habitos.csproj" />
+    <!-- Solo para notificar el cambio de estado de una meta a su dueño [RF-NOT-03]. -->
+    <ProjectReference Include="..\..\Core\RastreadorHabitos.Core.Notificaciones\RastreadorHabitos.Core.Notificaciones.csproj" />
   </ItemGroup>
 
 </Project>
