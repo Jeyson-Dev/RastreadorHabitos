@@ -1094,6 +1094,130 @@ válida.»
 Un Administrador también puede eliminar el documento de otro usuario (`DELETE` con el token de A
 → `200`).
 
+## Notificaciones
+
+Pieza 4 del Core (`src/Core/RastreadorHabitos.Core.Notificaciones`), Práctica 5. Los criterios con
+los que se acepta están en
+[`docs/criterios-notificaciones-reportes.md`](docs/criterios-notificaciones-reportes.md) (CN-01 a
+CN-16).
+
+Cada notificación tiene destinatario, tipo, mensaje, si está leída y su fecha (tabla
+`Notificaciones.Notificaciones`). Toda notificación llega por **dos canales** (RF-NOT-06): queda en
+la bandeja interna del destinatario y, en la misma operación, se **encola** un correo con el mismo
+mensaje en `Notificaciones.CorreosEnCola`. El correo no se envía dentro de la operación: lo envía
+el procesador de la cola. El destinatario puede apagar el canal de correo; el interno no se apaga
+(RF-NOT-07).
+
+**Arranque.** No necesita nada aparte: se ejecuta la API como dice [Contenedor](#contenedor), con
+el mismo `.env`. Al arrancar se crean las tablas `Notificaciones.Notificaciones` y
+`Notificaciones.PreferenciasNotificacion`.
+
+### Endpoints
+
+Todos requieren `Authorization: Bearer <token>`, con la exigencia `EstandarOAdministrador` en la
+tabla única `Autorizacion/ExigenciasDeRol.cs` (RD-06). Sin sesión → `401`. Ninguna ruta recibe el
+Id de un usuario: el servidor usa siempre el de la sesión.
+
+| Método | Ruta | Cuerpo | Respuesta |
+|---|---|---|---|
+| `GET` | `/api/notificaciones` | — (opcional `?leida=true` o `?leida=false`) | `200 { "noLeidas", "notificaciones": [ … ] }` solo con las propias, de la más reciente a la más antigua · `400` filtro inválido |
+| `POST` | `/api/notificaciones/{id}/leida` | — | `200` la notificación con `leida: true` · `403` es de otro usuario · `404` no existe |
+| `GET` | `/api/notificaciones/preferencias` | — | `200 { "correoActivo": true \| false }` (por defecto `true`) |
+| `PUT` | `/api/notificaciones/preferencias` | `{ "correoActivo": true \| false }` | `200` la preferencia guardada · `400` sin valor, valor que no es booleano o JSON mal formado |
+
+Cada notificación se devuelve como
+`{ "id", "tipo", "mensaje", "leida", "fechaUtc", "fechaLecturaUtc" }`, con las fechas en UTC
+(terminan en `Z`).
+
+### Eventos que notifican
+
+| Tipo | Cuándo | Quién la recibe |
+|---|---|---|
+| `SolicitudPermisoCreada` | Un usuario crea una solicitud de permiso (RF-NOT-01) | Cada Administrador **activo** (cuenta activada y no desactivada), salvo el propio solicitante si es Administrador (no puede resolverla, RF-GP-07). Ningún Estándar |
+| `SolicitudPermisoAprobada` | Un Administrador aprueba una solicitud (RF-NOT-02) | El solicitante |
+| `SolicitudPermisoRechazada` | Un Administrador rechaza una solicitud; el mensaje incluye el motivo, literal (RF-NOT-02) | El solicitante |
+| `MetaCambioEstado` | **Evento del módulo de negocio** (RF-NOT-03): una meta cambia de estado, por el sistema (primer cumplimiento → En progreso; vence sin alcanzar el objetivo → Fallida) o por su dueño (completar, reactivar). El mensaje dice el estado anterior y el nuevo | El dueño de la meta |
+
+Una operación rechazada (`400`, `403`, `409`) no notifica: por ejemplo, aprobar dos veces la
+misma solicitud o completar una meta Pendiente. Consultar una meta que no cambia de estado
+tampoco.
+
+### Preparación
+
+Cuatro usuarios activados (ver
+[Registro y activación](#cómo-provocar-cada-criterio-de-aceptación--registro-y-activación)):
+**A1** y **A2**, Administradores (comando `promover-administrador`), y **E1** y **E2**, Estándar.
+Cada uno inicia sesión con `POST /api/sesion/iniciar` y usa su `token`. Para ver lo guardado:
+
+```sql
+SELECT DestinatarioId, Tipo, Mensaje, Leida, FechaUtc FROM Notificaciones.Notificaciones ORDER BY FechaUtc;
+SELECT Destinatario, Asunto, Estado, FechaCreacionUtc FROM Notificaciones.CorreosEnCola ORDER BY FechaCreacionUtc;
+SELECT UsuarioId, CorreoActivo FROM Notificaciones.PreferenciasNotificacion;
+```
+
+### Cómo provocar cada evento
+
+**RF-NOT-01 — Crear una solicitud notifica a los Administradores activos.** Con el token de E1,
+`POST /api/solicitudes-permiso` con `{ "permiso": "LIMITE_HABITOS_AMPLIADO" }` → `201`. Guardar su
+`id` como **S1**. `GET /api/notificaciones`:
+- con el token de A1 y con el de A2 → cada uno tiene una notificación `SolicitudPermisoCreada`,
+  `leida: false`, que nombra el permiso;
+- con el token de E1 y con el de E2 → ninguna de ese tipo.
+
+Variantes: desactivar a A2 (`POST /api/usuarios/{id-de-A2}/desactivar` con el token de A1) y crear
+otra solicitud → A2 no recibe nada nuevo (consulta SQL). Sin ningún Administrador activo, la
+solicitud se crea igual (`201`) y nadie recibe la notificación. Si A1 crea una solicitud propia,
+solo la recibe A2.
+
+**RF-NOT-02 — Resolver notifica al solicitante.**
+- Con el token de A1, `POST /api/solicitudes-permiso/S1/aprobar` → `200`. E1 tiene una
+  notificación `SolicitudPermisoAprobada`: «Su solicitud del permiso LIMITE_HABITOS_AMPLIADO fue
+  aprobada y el permiso ya está aplicado.» Nadie más la recibe. Aprobarla otra vez → `409` y E1 no
+  recibe nada nuevo.
+- Con el token de E2, crear una solicitud **S2** (`{ "permiso": "Administrador" }`). Con el token
+  de A1, `POST /api/solicitudes-permiso/S2/rechazar` con
+  `{ "motivo": "No necesita administrar usuarios." }` → `200`. E2 tiene una notificación
+  `SolicitudPermisoRechazada`: «Su solicitud del permiso Administrador fue rechazada. Motivo: No
+  necesita administrar usuarios.»
+
+**RF-NOT-03 — Evento del negocio: una meta cambia de estado.** Con el token de E1:
+1. Crear un hábito programado todos los días: `POST /api/habitos` con
+   `{ "nombre": "Leer 20 minutos", "dias": [1, 2, 3, 4, 5, 6, 7] }` → guardar su `id` como **H**.
+2. Crear una meta con ese hábito: `POST /api/metas` con
+   `{ "nombre": "Leer 2 veces", "objetivoCumplimientos": 2, "fechaLimite": "<dentro de 10 días>", "habitoIds": ["H"] }`
+   → `201`, `Pendiente`. Guardar su `id` como **M**. Todavía no hay notificación.
+3. Registrar el cumplimiento de hoy: `POST /api/habitos/H/registros` con `{ "cumplido": true }`.
+4. `GET /api/metas/M` → `"estado": "EnProgreso"`. `GET /api/notificaciones` → E1 tiene una
+   notificación `MetaCambioEstado`: «Su meta «Leer 2 veces» cambió de estado: estaba en Pendiente y
+   ahora está en En progreso.» Volver a consultar la meta no crea otra. E2 no la recibe.
+5. Vencer la meta con la consulta SQL de [Máquina de estados de la Meta](#máquina-de-estados-de-la-meta)
+   (`UPDATE Metas.Metas SET FechaLimite = …`) y `GET /api/metas/M` → `"estado": "Fallida"`. E1 recibe
+   otra notificación `MetaCambioEstado` con «ahora está en Fallida».
+
+**RF-NOT-04 — Consultar solo las propias, leídas y no leídas.** `GET /api/notificaciones` con el
+token de E1 → solo las de E1, cada una con `leida`, y `noLeidas` con cuántas tiene sin leer. Con
+`?leida=false` solo las no leídas; con `?leida=true` solo las leídas. Con el token de E2 no
+aparece ninguna de E1.
+
+**RF-NOT-05 — Marcar como leída; la de otro se rechaza.** Tomar el `id` de una notificación de E1:
+- con el token de E2, `POST /api/notificaciones/{id}/leida` → `403` «No puede marcar como leída la
+  notificación de otro usuario.», y sigue `leida: false` para E1;
+- con el token de E1 → `200`, `leida: true` con su `fechaLecturaUtc`, y `noLeidas` baja en uno.
+  Marcarla otra vez → `200`, sin cambios.
+- un `id` que no existe (o que no es un Id) → `404`.
+
+**RF-NOT-06 — Doble canal.** Cada notificación de arriba dejó además un correo `Pendiente` en
+`Notificaciones.CorreosEnCola` para su destinatario (consulta SQL), con la misma hora. El
+procesador de la cola lo envía y aparece en Mailpit (`http://localhost:8025`) con el asunto
+«Tienes una notificación nueva - Rastreador de hábitos».
+
+**RF-NOT-07 — Desactivar el correo sin perder el interno.** Con el token de E2,
+`PUT /api/notificaciones/preferencias` con `{ "correoActivo": false }` → `200`. Generar una
+notificación para E2 (por ejemplo, que cree otra solicitud y A1 la rechace con un motivo): aparece
+en `GET /api/notificaciones` de E2, pero la consulta SQL de la cola no tiene ningún correo nuevo
+para E2. Con `{ "correoActivo": true }` las siguientes vuelven a encolarse. `{}`,
+`{ "correoActivo": "no" }` o un JSON mal formado → `400`.
+
 ## Pruebas
 
 Un solo comando, desde la raíz de un clon limpio del repositorio, ejecuta toda la suite. No
@@ -1173,6 +1297,25 @@ Para ejecutar solo la integración:
 
 ```bash
 dotnet test --filter "FullyQualifiedName~Integracion"
+```
+
+### Suite de Notificaciones (Práctica 5)
+
+Está en `tests/RastreadorHabitos.Tests/Notificaciones/` y la ejecuta el mismo `dotnet test`. Usa las
+piezas reales (Notificaciones, Control de acceso, Gestión de permisos, Hábitos y Metas) conectadas
+con los mismos adaptadores de la Api (`PiezasNotificaciones.cs`), cada una con su base EF Core en
+memoria de nombre único, y un reloj fijo para el módulo de negocio. Cada prueba cita su criterio
+(`CN-xx`) y su requisito.
+
+| Archivo | Qué verifica |
+|---|---|
+| `NotificadorTests.cs` | `notificar` deja la interna y encola su correo `Pendiente` (RF-NOT-06); con el correo desactivado no encola nada y la preferencia es por usuario (RF-NOT-07); la interna y su correo tienen la misma hora en UTC (RD-11); el mensaje se codifica como HTML en el correo |
+| `BandejaNotificacionesTests.cs` | Cada uno ve solo las suyas, con leídas y no leídas (RF-NOT-04); marcar la propia, otra vez sin cambios, la de otro (rechazo y no cambia) o una inexistente (RF-NOT-05); la preferencia empieza activa, se cambia y sin valor se rechaza (RF-NOT-07, RD-07) |
+| `AvisosSolicitudesTests.cs` | Crear una solicitud notifica solo a los Administradores activos, ni desactivados, ni sin activar, ni al propio solicitante, y sin Administradores activos no notifica a nadie (RF-NOT-01); aprobar y rechazar notifican al solicitante, con el motivo, y una resolución rechazada no notifica (RF-NOT-02) |
+| `AvisosMetaTests.cs` | Cada cambio de estado de una meta (En progreso, Fallida, Completada) notifica a su dueño, y una consulta sin cambio o una transición rechazada no (RF-NOT-03) |
+
+```bash
+dotnet test --filter "FullyQualifiedName~Tests.Notificaciones"
 ```
 
 ## Defectos

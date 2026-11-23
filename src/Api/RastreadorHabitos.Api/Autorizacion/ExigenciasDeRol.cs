@@ -69,6 +69,13 @@ public static class ExigenciasDeRol
         ["Documentos.Listar"] = Exigencia.EstandarOAdministrador,
         ["Documentos.Descargar"] = Exigencia.EstandarOAdministrador,
         ["Documentos.Eliminar"] = Exigencia.EstandarOAdministrador,
+
+        // Notificaciones: sesión válida y uno de los dos roles [RD-06]. Cada uno solo ve, marca y
+        // configura las suyas; lo decide la pieza con el Id de la sesión [RF-NOT-04, RF-NOT-05].
+        ["Notificaciones.ListarPropias"] = Exigencia.EstandarOAdministrador,
+        ["Notificaciones.MarcarLeida"] = Exigencia.EstandarOAdministrador,
+        ["Notificaciones.ObtenerPreferencias"] = Exigencia.EstandarOAdministrador,
+        ["Notificaciones.ActualizarPreferencias"] = Exigencia.EstandarOAdministrador,
     };
 
     public static Exigencia De(string controlador, string accion) =>
