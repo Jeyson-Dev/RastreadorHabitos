@@ -60,6 +60,56 @@ namespace RastreadorHabitos.Core.Notificaciones.Migrations
 
                     b.ToTable("CorreosEnCola", "Notificaciones");
                 });
+
+            modelBuilder.Entity("RastreadorHabitos.Core.Notificaciones.Entities.Notificacion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DestinatarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("FechaLecturaUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("Leida")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Mensaje")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DestinatarioId", "Leida", "FechaUtc");
+
+                    b.ToTable("Notificaciones", "Notificaciones");
+                });
+
+            modelBuilder.Entity("RastreadorHabitos.Core.Notificaciones.Entities.PreferenciaNotificacion", b =>
+                {
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("CorreoActivo")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("FechaActualizacionUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("UsuarioId");
+
+                    b.ToTable("PreferenciasNotificacion", "Notificaciones");
+                });
 #pragma warning restore 612, 618
         }
     }
