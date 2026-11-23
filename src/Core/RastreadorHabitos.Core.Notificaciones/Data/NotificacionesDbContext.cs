@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RastreadorHabitos.Core.Notificaciones.Entities;
+using RastreadorHabitos.Core.Notificaciones.Reglas;
 
 namespace RastreadorHabitos.Core.Notificaciones.Data;
 
@@ -38,6 +39,7 @@ public class NotificacionesDbContext : DbContext
             builder.Property(c => c.Asunto).IsRequired().HasMaxLength(256);
             builder.Property(c => c.CuerpoHtml).IsRequired();
             builder.Property(c => c.Estado).IsRequired().HasMaxLength(20);
+            builder.Property(c => c.UltimoError).HasMaxLength(ReglasCola.LongitudMaximaError);
 
             // El enviador toma los pendientes en orden de llegada.
             builder.HasIndex(c => new { c.Estado, c.FechaCreacionUtc });
