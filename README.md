@@ -58,6 +58,18 @@ Enunciado completo: [`docs/practica3-modulo-negocio.md`](docs/practica3-modulo-n
 
 Enunciado completo: [`docs/practica4-contenedor-documentos-api.md`](docs/practica4-contenedor-documentos-api.md).
 
+## Estado de la Práctica 5 — Notificaciones, cola de correos y reportes
+
+| Entregable | Requisitos | Estado |
+|---|---|---|
+| Archivo de contexto del agente y criterios de aceptación, escritos antes de delegar | P5 §1.1 | ✅ [`AGENTS.md`](AGENTS.md) (sección 0) y [`docs/criterios-notificaciones-reportes.md`](docs/criterios-notificaciones-reportes.md) |
+| Notificaciones: solicitud creada y resuelta, evento del negocio, bandeja propia, marcar como leída, doble canal y preferencia de correo | RF-NOT-01 a 07 · RD-06 | ✅ [Notificaciones](#notificaciones) |
+| Cola de correos: encolar, procesador independiente, 3 intentos y Fallido, consulta del Administrador, sin duplicados, SMTP por variables | RF-NOT-08 a 13 · RD-10 | ✅ [Cola de correos](#cola-de-correos) |
+| Reportes con agregación: solicitudes por estado y mes (Core) y cumplimiento semanal (negocio), por rol y por rango de fechas | RF-REP-01 a 05 · RD-07 | ✅ [Reportes](#reportes) |
+| Los seis frentes de la revisión acumulada siguen funcionando | P5 §1.5 | ✅ Mismas instrucciones de este README, desde [Contenedor](#contenedor) |
+
+Enunciado completo: [`docs/practica5-notificaciones-reportes.md`](docs/practica5-notificaciones-reportes.md).
+
 ## Stack
 
 - C# / ASP.NET Core Web API (.NET 10)
