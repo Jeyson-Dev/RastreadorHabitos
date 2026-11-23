@@ -202,8 +202,10 @@ src/
     └── RastreadorHabitos.Tests/                 → referencia los proyectos que vaya cubriendo
 ```
 
-Referencias actuales: Api → ControlAcceso, Notificaciones, GestionPermisos, Documentos, Modulo.Habitos,
-Modulo.Metas · Modulo.Habitos → ControlAcceso · Modulo.Metas → Modulo.Habitos, Notificaciones (solo
+Referencias actuales: Api → ControlAcceso, Notificaciones, GestionPermisos, Documentos, Reportes,
+Modulo.Habitos, Modulo.Metas · Reportes no referencia a nadie: las métricas le llegan ya agregadas
+por el puerto `IFuenteReporte`, que la Api conecta con `contarSolicitudesPorEstado` de Gestión de
+permisos y con `IMetricasHabitos` del módulo de negocio · Modulo.Habitos → ControlAcceso · Modulo.Metas → Modulo.Habitos, Notificaciones (solo
 `notificar`, para avisar los cambios de estado de una meta) ·
 Tests → ControlAcceso, GestionPermisos, Modulo.Habitos, Modulo.Metas, Api (solo por los adaptadores
 reales que usan las pruebas de integración y de notificaciones). Gestión de permisos no referencia a
