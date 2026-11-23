@@ -3,6 +3,7 @@ using RastreadorHabitos.Core.ControlAcceso.Services;
 using RastreadorHabitos.Core.Documentos.Services;
 using RastreadorHabitos.Core.GestionPermisos.Services;
 using RastreadorHabitos.Core.Notificaciones.Services;
+using RastreadorHabitos.Core.Reportes.Services;
 using RastreadorHabitos.Modulo.Habitos.Services;
 using RastreadorHabitos.Modulo.Metas.Services;
 
@@ -98,6 +99,15 @@ public class ManejadorErroresGlobal : IExceptionHandler
                 _ => StatusCodes.Status400BadRequest
             };
             await httpContext.Response.WriteAsJsonAsync(new { error = rechazoNotificaciones.Message }, cancellationToken);
+            return true;
+        }
+
+        if (exception is RechazoReportesException rechazoReportes)
+        {
+            httpContext.Response.StatusCode = rechazoReportes.Tipo == TipoRechazoReportes.NoEncontrado
+                ? StatusCodes.Status404NotFound
+                : StatusCodes.Status400BadRequest;
+            await httpContext.Response.WriteAsJsonAsync(new { error = rechazoReportes.Message }, cancellationToken);
             return true;
         }
 

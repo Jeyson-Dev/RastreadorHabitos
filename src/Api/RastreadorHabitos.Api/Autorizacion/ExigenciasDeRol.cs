@@ -79,6 +79,11 @@ public static class ExigenciasDeRol
 
         // Cola de correos: solo el Administrador sabe qué pasó con cada correo [RF-NOT-11].
         ["Correos.Listar"] = Exigencia.Administrador,
+
+        // Reportes: sesión válida y uno de los dos roles [RD-06]. Qué datos ve cada uno (solo los
+        // suyos el Estándar, los de todos el Administrador) lo decide la pieza [RF-REP-04].
+        ["Reportes.SolicitudesPorEstado"] = Exigencia.EstandarOAdministrador,
+        ["Reportes.CumplimientoSemanal"] = Exigencia.EstandarOAdministrador,
     };
 
     public static Exigencia De(string controlador, string accion) =>
