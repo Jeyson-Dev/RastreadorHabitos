@@ -10,11 +10,15 @@ public class SolicitudesPermisoService : ISolicitudesPermisoService
 {
     private readonly GestionPermisosDbContext _context;
     private readonly IAplicadorPermiso _aplicador;
+    private readonly IAvisoSolicitudes _aviso;
 
-    public SolicitudesPermisoService(GestionPermisosDbContext context, IAplicadorPermiso aplicador)
+    // Sin aviso, la pieza trabaja sola (sus pruebas); la Api siempre conecta el de Notificaciones.
+    public SolicitudesPermisoService(GestionPermisosDbContext context, IAplicadorPermiso aplicador,
+                                     IAvisoSolicitudes? aviso = null)
     {
         _context = context;
         _aplicador = aplicador;
+        _aviso = aviso ?? SinAvisoSolicitudes.Instancia;
     }
 
     public async Task<SolicitudPermisoDto> CrearAsync(Guid solicitanteId, CreacionSolicitudPermisoDto solicitud)
@@ -27,6 +31,11 @@ public class SolicitudesPermisoService : ISolicitudesPermisoService
         var nueva = new SolicitudPermiso(solicitanteId, permiso, DateTime.UtcNow);
         _context.SolicitudesPermiso.Add(nueva);
         await _context.SaveChangesAsync();
+
+        // Ya guardada, se avisa a quienes pueden resolverla: los Administradores activos, salvo el
+        // propio solicitante, que no puede resolver su solicitud [RF-NOT-01, RF-GP-07].
+        await _aviso.AvisarAdministradoresAsync(AvisosSolicitud.TipoCreada, AvisosSolicitud.MensajeCreada(nueva),
+                                                excluidoId: solicitanteId);
 
         return SolicitudPermisoDto.Desde(nueva);
     }
@@ -66,6 +75,10 @@ public class SolicitudesPermisoService : ISolicitudesPermisoService
         await GuardarAsync();
 
         await transaccion.CommitAsync();
+
+        // Solo después de confirmar: una aprobación que no ocurrió no se avisa [RF-NOT-02].
+        await _aviso.AvisarUsuarioAsync(solicitud.SolicitanteId, AvisosSolicitud.TipoAprobada,
+                                        AvisosSolicitud.MensajeAprobada(solicitud));
         return SolicitudPermisoDto.Desde(solicitud);
     }
 
@@ -77,6 +90,10 @@ public class SolicitudesPermisoService : ISolicitudesPermisoService
         solicitud.Rechazar(administradorId, rechazo.Motivo, DateTime.UtcNow);
 
         await GuardarAsync();
+
+        // El solicitante sabe que se rechazó y por qué [RF-NOT-02].
+        await _aviso.AvisarUsuarioAsync(solicitud.SolicitanteId, AvisosSolicitud.TipoRechazada,
+                                        AvisosSolicitud.MensajeRechazada(solicitud));
         return SolicitudPermisoDto.Desde(solicitud);
     }
 
