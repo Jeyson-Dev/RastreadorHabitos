@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router';
+import Marco from './layout/Marco';
 import RutaProtegida from './sesion/RutaProtegida';
 import RutaPublica from './sesion/RutaPublica';
 import { ROL_ADMINISTRADOR } from './sesion/contextoSesion';
@@ -8,16 +8,8 @@ import NoEncontrada from './paginas/NoEncontrada';
 
 const pendiente = (titulo) => <EnConstruccion titulo={titulo} />;
 
-function MarcoProvisional() {
-  return (
-    <main className="mx-auto max-w-5xl p-6">
-      <Outlet />
-    </main>
-  );
-}
-
 // Árbol de rutas: las de acceso son públicas; el resto exige sesión y las de /admin, el rol.
-export function crearRutas({ Marco = MarcoProvisional } = {}) {
+export function crearRutas() {
   return [
     {
       element: <RutaPublica />,

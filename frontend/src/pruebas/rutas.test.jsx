@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import ProveedorSesion from '../sesion/ProveedorSesion';
+import ProveedorTema from '../tema/ProveedorTema';
 import { crearRutas } from '../rutas';
 
 const EN_OCHO_HORAS = new Date(Date.now() + 8 * 3600 * 1000).toISOString();
@@ -33,9 +34,11 @@ function abrir(ruta) {
   const enrutador = createMemoryRouter(crearRutas(), { initialEntries: [ruta] });
   render(
     <QueryClientProvider client={consultas}>
-      <ProveedorSesion>
-        <RouterProvider router={enrutador} />
-      </ProveedorSesion>
+      <ProveedorTema>
+        <ProveedorSesion>
+          <RouterProvider router={enrutador} />
+        </ProveedorSesion>
+      </ProveedorTema>
     </QueryClientProvider>,
   );
   return enrutador;
@@ -83,6 +86,7 @@ describe('rutas protegidas por sesión y rol', () => {
 
     // Verificar
     expect(await screen.findByText('Esta sección es solo para administradores')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Auditoría' })).not.toBeInTheDocument();
   });
 
   it('un Administrador sí entra a las secciones de administración', async () => {
@@ -94,7 +98,8 @@ describe('rutas protegidas por sesión y rol', () => {
     abrir('/admin/usuarios');
 
     // Verificar
-    expect(await screen.findByText('Usuarios y roles')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Usuarios y roles' })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Auditoría' }).length).toBeGreaterThan(0);
   });
 
   it('al iniciar sesión vuelve a la ruta que se pidió y envía el token', async () => {
@@ -112,7 +117,7 @@ describe('rutas protegidas por sesión y rol', () => {
     await persona.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
 
     // Verificar
-    expect(await screen.findByText('Metas')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Metas' })).toBeInTheDocument();
     expect(enrutador.state.location.pathname).toBe('/metas');
     const llamadaUsuario = fetchFalso.mock.calls.find(([url]) => url === '/api/sesion/usuario');
     expect(llamadaUsuario[1].headers.Authorization).toBe('Bearer nuevo-token');
