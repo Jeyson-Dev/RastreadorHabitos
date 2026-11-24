@@ -11,9 +11,11 @@ import { useNombresUsuarios, useUsuarios } from './consultas';
 const NOMBRE_ENTIDAD = { Usuario: 'Usuario', SolicitudPermiso: 'Solicitud de permiso', Documento: 'Documento' };
 const VACIO = { usuarioId: '', entidad: '', desde: '', hasta: '' };
 
-// Un valor anterior o nuevo llega como texto (normalmente JSON): se muestra con formato si se puede.
+// El valor anterior o nuevo llega como objeto JSON (o, en registros viejos, como texto): siempre se
+// convierte a texto con formato, porque React no puede mostrar un objeto.
 function legible(valor) {
-  if (!valor) return '—';
+  if (valor === null || valor === undefined || valor === '') return '—';
+  if (typeof valor !== 'string') return JSON.stringify(valor, null, 2);
   try {
     return JSON.stringify(JSON.parse(valor), null, 2);
   } catch {

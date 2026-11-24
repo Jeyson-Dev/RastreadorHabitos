@@ -139,6 +139,23 @@ describe('cola de correos y auditoría', () => {
     expect(llamadasA(falso, 'GET', '/api/correos').some((l) => l.url.includes('estado=Fallido'))).toBe(true);
   });
 
+  it('muestra el cambio aunque la API entregue los valores como objetos JSON', async () => {
+    // Preparar: así responde la API real (valorAnterior y valorNuevo son objetos, no texto).
+    api({
+      '/api/auditoria': [
+        200,
+        { total: 1, registros: [{ id: 'r1', usuarioId: 'a1', accion: 'RolCambiado', entidad: 'Usuario', entidadId: 'u2', fechaUtc: '2026-11-23T10:00:00', valorAnterior: { rol: 'Estandar' }, valorNuevo: { rol: 'Administrador' } }] },
+      ],
+    });
+
+    // Actuar
+    abrir('/admin/auditoria');
+
+    // Verificar
+    expect(await screen.findByText('RolCambiado')).toBeInTheDocument();
+    expect(screen.getByText(/"rol": "Administrador"/)).toBeInTheDocument();
+  });
+
   it('filtra la auditoría por entidad y no aplica un rango invertido', async () => {
     // Preparar
     const falso = api({
