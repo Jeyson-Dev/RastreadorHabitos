@@ -84,6 +84,10 @@ public static class ExigenciasDeRol
         // suyos el Estándar, los de todos el Administrador) lo decide la pieza [RF-REP-04].
         ["Reportes.SolicitudesPorEstado"] = Exigencia.EstandarOAdministrador,
         ["Reportes.CumplimientoSemanal"] = Exigencia.EstandarOAdministrador,
+
+        // Historial de auditoría: solo el Administrador lo consulta; no hay ninguna operación para
+        // editarlo ni borrarlo [RF-AUD-06, RF-AUD-07].
+        ["Auditoria.Consultar"] = Exigencia.Administrador,
     };
 
     public static Exigencia De(string controlador, string accion) =>
