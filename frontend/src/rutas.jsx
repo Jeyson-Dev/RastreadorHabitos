@@ -12,10 +12,12 @@ import Habitos from './paginas/habitos/Habitos';
 import Hoy from './paginas/habitos/Hoy';
 import Metas from './paginas/metas/Metas';
 import Notificaciones from './paginas/notificaciones/Notificaciones';
-import EnConstruccion from './paginas/EnConstruccion';
+import Documentos from './paginas/documentos/Documentos';
+import Auditoria from './paginas/admin/Auditoria';
+import Correos from './paginas/admin/Correos';
+import Solicitudes from './paginas/admin/Solicitudes';
+import Usuarios from './paginas/admin/Usuarios';
 import NoEncontrada from './paginas/NoEncontrada';
-
-const pendiente = (titulo) => <EnConstruccion titulo={titulo} />;
 
 // Árbol de rutas: las de acceso son públicas; el resto exige sesión y las de /admin, el rol.
 export function crearRutas() {
@@ -51,16 +53,16 @@ export function crearRutas() {
               handle: { titulo: 'Reportes' },
             },
             { path: 'notificaciones', element: <Notificaciones />, handle: { titulo: 'Notificaciones' } },
-            { path: 'documentos', element: pendiente('Documentos'), handle: { titulo: 'Documentos' } },
+            { path: 'documentos', element: <Documentos />, handle: { titulo: 'Documentos' } },
             { path: 'perfil', element: <Perfil />, handle: { titulo: 'Mi cuenta' } },
             {
               path: 'admin',
               element: <RutaProtegida rol={ROL_ADMINISTRADOR} />,
               children: [
-                { path: 'solicitudes', element: pendiente('Solicitudes de permiso'), handle: { titulo: 'Solicitudes de permiso' } },
-                { path: 'usuarios', element: pendiente('Usuarios y roles'), handle: { titulo: 'Usuarios y roles' } },
-                { path: 'correos', element: pendiente('Cola de correos'), handle: { titulo: 'Cola de correos' } },
-                { path: 'auditoria', element: pendiente('Auditoría'), handle: { titulo: 'Auditoría' } },
+                { path: 'solicitudes', element: <Solicitudes />, handle: { titulo: 'Solicitudes de permiso' } },
+                { path: 'usuarios', element: <Usuarios />, handle: { titulo: 'Usuarios y roles' } },
+                { path: 'correos', element: <Correos />, handle: { titulo: 'Cola de correos' } },
+                { path: 'auditoria', element: <Auditoria />, handle: { titulo: 'Auditoría' } },
               ],
             },
             { path: '*', element: <NoEncontrada />, handle: { titulo: 'No encontrada' } },
