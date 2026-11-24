@@ -1,8 +1,13 @@
 import Marco from './layout/Marco';
+import MarcoAcceso from './layout/MarcoAcceso';
 import RutaProtegida from './sesion/RutaProtegida';
 import RutaPublica from './sesion/RutaPublica';
 import { ROL_ADMINISTRADOR } from './sesion/contextoSesion';
+import Activar from './paginas/acceso/Activar';
 import IniciarSesion from './paginas/acceso/IniciarSesion';
+import Recuperar from './paginas/acceso/Recuperar';
+import Registro from './paginas/acceso/Registro';
+import Perfil from './paginas/Perfil';
 import EnConstruccion from './paginas/EnConstruccion';
 import NoEncontrada from './paginas/NoEncontrada';
 
@@ -12,15 +17,20 @@ const pendiente = (titulo) => <EnConstruccion titulo={titulo} />;
 export function crearRutas() {
   return [
     {
-      element: <RutaPublica />,
+      element: <MarcoAcceso />,
       children: [
-        { path: '/iniciar-sesion', element: <IniciarSesion /> },
-        { path: '/registro', element: <main className="p-6">{pendiente('Crear cuenta')}</main> },
-        { path: '/recuperar', element: <main className="p-6">{pendiente('Recuperar contraseña')}</main> },
+        {
+          element: <RutaPublica />,
+          children: [
+            { path: '/iniciar-sesion', element: <IniciarSesion /> },
+            { path: '/registro', element: <Registro /> },
+            { path: '/recuperar', element: <Recuperar /> },
+          ],
+        },
+        // La activación funciona con o sin sesión: llega desde el enlace del correo.
+        { path: '/activar', element: <Activar /> },
       ],
     },
-    // La activación funciona con o sin sesión: llega desde el enlace del correo.
-    { path: '/activar', element: <main className="p-6">{pendiente('Activar cuenta')}</main> },
     {
       element: <RutaProtegida />,
       children: [
@@ -33,7 +43,7 @@ export function crearRutas() {
             { path: 'reportes', element: pendiente('Reportes'), handle: { titulo: 'Reportes' } },
             { path: 'notificaciones', element: pendiente('Notificaciones'), handle: { titulo: 'Notificaciones' } },
             { path: 'documentos', element: pendiente('Documentos'), handle: { titulo: 'Documentos' } },
-            { path: 'perfil', element: pendiente('Mi cuenta'), handle: { titulo: 'Mi cuenta' } },
+            { path: 'perfil', element: <Perfil />, handle: { titulo: 'Mi cuenta' } },
             {
               path: 'admin',
               element: <RutaProtegida rol={ROL_ADMINISTRADOR} />,

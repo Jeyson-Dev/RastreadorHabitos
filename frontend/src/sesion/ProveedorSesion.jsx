@@ -19,13 +19,13 @@ export default function ProveedorSesion({ children }) {
   const [aviso, setAviso] = useState(null);
 
   // tokenRechazado: si llega, solo se cierra cuando es el de la sesión vigente (un 401 tardío de una
-  // sesión anterior no debe cerrar la nueva).
+  // sesión anterior no debe cerrar la nueva). El aviso se muestra en el inicio de sesión.
   const terminar = useCallback(
-    (mensaje, tokenRechazado) => {
+    (mensaje, tokenRechazado, tipo = 'aviso') => {
       if (tokenRechazado !== undefined && tokenRechazado !== tokenActual()) return;
       borrarSesion();
       setSesion(null);
-      setAviso(mensaje ?? null);
+      setAviso(mensaje ? { tipo, texto: mensaje } : null);
       clienteConsultas.cancelQueries();
       clienteConsultas.clear();
     },
@@ -78,6 +78,9 @@ export default function ProveedorSesion({ children }) {
     terminar();
   }, [terminar]);
 
+  // El servidor ya cerró todas las sesiones (por ejemplo, tras cambiar la contraseña): solo se olvida
+  // aquí, sin llamar a /cerrar, y se deja el mensaje de éxito para el inicio de sesión.
+  const olvidarSesion = useCallback((mensaje) => terminar(mensaje, undefined, 'exito'), [terminar]);
   const limpiarAviso = useCallback(() => setAviso(null), []);
   const usuario = consultaUsuario.data ?? null;
   const tienePermiso = useCallback((codigo) => Boolean(usuario?.permisos?.includes(codigo)), [usuario]);
@@ -93,10 +96,11 @@ export default function ProveedorSesion({ children }) {
       tienePermiso,
       iniciarSesion,
       cerrarSesion,
+      olvidarSesion,
       aviso,
       limpiarAviso,
     }),
-    [sesion, usuario, consultaUsuario.isPending, consultaUsuario.error, consultaUsuario.refetch, tienePermiso, iniciarSesion, cerrarSesion, aviso, limpiarAviso],
+    [sesion, usuario, consultaUsuario.isPending, consultaUsuario.error, consultaUsuario.refetch, tienePermiso, iniciarSesion, cerrarSesion, olvidarSesion, aviso, limpiarAviso],
   );
 
   return <ContextoSesion.Provider value={valor}>{children}</ContextoSesion.Provider>;
