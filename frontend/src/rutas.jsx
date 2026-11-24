@@ -12,7 +12,6 @@ import Habitos from './paginas/habitos/Habitos';
 import Hoy from './paginas/habitos/Hoy';
 import Metas from './paginas/metas/Metas';
 import Notificaciones from './paginas/notificaciones/Notificaciones';
-import Reportes from './paginas/reportes/Reportes';
 import EnConstruccion from './paginas/EnConstruccion';
 import NoEncontrada from './paginas/NoEncontrada';
 
@@ -45,7 +44,12 @@ export function crearRutas() {
             { index: true, element: <Hoy />, handle: { titulo: 'Hoy' } },
             { path: 'habitos', element: <Habitos />, handle: { titulo: 'Hábitos' } },
             { path: 'metas', element: <Metas />, handle: { titulo: 'Metas' } },
-            { path: 'reportes', element: <Reportes />, handle: { titulo: 'Reportes' } },
+            {
+              path: 'reportes',
+              // Carga diferida: Recharts solo se descarga al abrir Reportes.
+              lazy: async () => ({ Component: (await import('./paginas/reportes/Reportes')).default }),
+              handle: { titulo: 'Reportes' },
+            },
             { path: 'notificaciones', element: <Notificaciones />, handle: { titulo: 'Notificaciones' } },
             { path: 'documentos', element: pendiente('Documentos'), handle: { titulo: 'Documentos' } },
             { path: 'perfil', element: <Perfil />, handle: { titulo: 'Mi cuenta' } },
