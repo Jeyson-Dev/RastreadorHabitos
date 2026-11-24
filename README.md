@@ -81,6 +81,17 @@ Enunciado completo: [`docs/practica5-notificaciones-reportes.md`](docs/practica5
 
 Enunciado completo: [`docs/asignacion3-auditoria-delegacion.md`](docs/asignacion3-auditoria-delegacion.md).
 
+## Estado de la Asignación 4 — Historial de auditoría
+
+| Entregable | Requisitos | Estado |
+|---|---|---|
+| Registro de auditoría con usuario, acción, entidad, identificador, fecha y hora, y valor anterior y nuevo, en el mismo guardado que cada cambio | RF-AUD-01 a 05 · RF-DOC-06 · RD-03 · RD-11 | ✅ [Auditoría](#auditoría) |
+| Consulta solo para el Administrador, por usuario, entidad y rango de fechas; sin ninguna operación de edición ni borrado | RF-AUD-06, 07 · RD-06, 07 | ✅ [Auditoría](#auditoría) |
+| Pruebas de cada evento, del rechazo al Estándar y de la inmutabilidad | A4 §1.2 · RD-12 | ✅ [Pruebas de la auditoría](#pruebas-de-la-auditoría-asignación-4) |
+| Bitácora con el agente y paralelo con git | A4 §1.3 | ✅ [`docs/bitacora-asignacion-4.md`](docs/bitacora-asignacion-4.md) |
+
+Enunciado completo: [`docs/asignacion4-historial-auditoria.md`](docs/asignacion4-historial-auditoria.md).
+
 ## Stack
 
 - C# / ASP.NET Core Web API (.NET 10)
@@ -1404,6 +1415,84 @@ locales en formato `AAAA-MM-DD`.
 Un Estándar que agrega `?usuarioId=<id-de-otro>` a la petición sigue recibiendo solo sus datos:
 el parámetro no existe y se ignora.
 
+## Auditoría
+
+Pieza 6 del Core (`src/Core/RastreadorHabitos.Core.Auditoria`), Asignación 4. Cada registro
+guarda **quién actuó** (`usuarioId`), la **acción**, la **entidad** afectada y su **identificador**,
+la **fecha y hora** en UTC y el **valor anterior** y el **valor nuevo** en JSON, con solo los campos
+que cambian (RF-AUD-01). Nunca guarda una contraseña, su hash, un token ni un código.
+
+**Dónde se escribe.** Cada pieza auditada (Control de acceso, Gestión de permisos y Documentos)
+escribe su registro **en el mismo guardado** (`SaveChanges`) que su cambio, en la misma tabla
+`Auditoria.RegistrosAuditoria`: no puede quedar un cambio sin su registro. Auditoría no referencia
+a ninguna pieza ni al módulo de negocio (RD-03). El historial **no se modifica ni se borra**: no
+existe ninguna operación para eso y cualquier guardado que lo intente se rechaza (RF-AUD-06).
+Sobrevive a reiniciar y a `docker compose down` sin `-v` (RD-09).
+
+| Acción | Entidad | Cuándo | `valorAnterior` → `valorNuevo` |
+|---|---|---|---|
+| `SolicitudAprobada` | `SolicitudPermiso` | Un Administrador aprueba (RF-AUD-02) | `{"estado":"Pendiente"}` → `{"estado":"Aplicada","permiso":…,"solicitanteId":…}` |
+| `SolicitudRechazada` | `SolicitudPermiso` | Un Administrador rechaza (RF-AUD-02) | `{"estado":"Pendiente"}` → `{"estado":"Rechazada",…,"motivo":…}` |
+| `DocumentoSubido` | `Documento` | Se sube un documento (RF-AUD-03) | `{}` → `{"nombre":…,"tipo":…,"tamanoBytes":…,"subidoPorId":…,"eliminado":false}` |
+| `DocumentoEliminado` | `Documento` | Se elimina, de forma lógica (RF-AUD-03) | `{"eliminado":false}` → `{"eliminado":true,"nombre":…}` |
+| `RolCambiado` | `Usuario` | Cambio de rol desde la API, al aprobar un permiso `Administrador`, o con el comando `promover-administrador` (RF-AUD-04) | `{"rol":"Estandar"}` → `{"rol":"Administrador"}` |
+| `UsuarioDesactivado` · `UsuarioReactivado` | `Usuario` | Un Administrador desactiva o reactiva (RF-AUD-04) | `{"cuentaHabilitada":true}` → `{"cuentaHabilitada":false}` y al revés |
+| `RestablecimientoContrasenaPropio` | `Usuario` | El propio usuario, con el código de recuperación o cambiándola con la actual (RF-AUD-05) | `{"contrasena":"anterior vigente"}` → `{"contrasena":"reemplazada","iniciadoPor":"Usuario","medio":…}` |
+| `RestablecimientoContrasenaForzado` | `Usuario` | Un Administrador lo fuerza (RF-AUD-05) | `{"contrasena":"anterior vigente"}` → `{"contrasena":"reemplazada","iniciadoPor":"Administrador",…}` |
+
+`usuarioId` es quien actuó: el Administrador en las acciones de administración, el propio usuario
+en sus restablecimientos y al subir o eliminar sus documentos, y
+`00000000-0000-0000-0000-000000000000` (el sistema) en el comando `promover-administrador`. Una
+operación que no cambia nada (por ejemplo, reactivar a alguien que ya estaba activo) no deja
+registro.
+
+### Consultar el historial (solo Administrador)
+
+| Método | Ruta | Respuesta |
+|---|---|---|
+| `GET` | `/api/auditoria` (opcionales `?usuarioId=`, `?entidad=`, `?desde=AAAA-MM-DD`, `?hasta=AAAA-MM-DD`) | `200 { "total", "registros": [ { "id", "usuarioId", "accion", "entidad", "entidadId", "fechaUtc", "valorAnterior", "valorNuevo" } ] }`, del más reciente al más antiguo · `400` filtro inválido · `401` sin sesión · `403` Estándar |
+
+- **Por usuario:** `?usuarioId=<id>`, lo que hizo ese usuario (el `id` sale de `GET /api/usuarios`).
+- **Por entidad:** `?entidad=Usuario`, `SolicitudPermiso` o `Documento`.
+- **Por rango de fechas:** `?desde=2026-11-01&hasta=2026-11-30`, los **dos días incluidos**, en hora
+  local; `hasta=<hoy>` incluye lo de hoy hasta las 23:59:59.
+- Se combinan: `?entidad=Usuario&desde=<hoy>&hasta=<hoy>`.
+- Rechazo controlado (`400`): `usuarioId` que no es un GUID, `entidad` con algo que no sean letras,
+  una fecha que no es `AAAA-MM-DD` o no existe, fuera de 2000 a 2100, o `desde` posterior a `hasta`.
+
+No existe `PUT`, `PATCH`, `DELETE` ni `POST` sobre el historial: esos métodos responden `405`.
+
+### Cómo provocar cada evento
+
+Con Docker ([Contenedor](#contenedor)). En una base vacía **no hay ningún Administrador**: se crea
+registrando y activando un usuario **A** y ejecutando
+`docker compose exec app dotnet RastreadorHabitos.Api.dll promover-administrador <correo-de-A>`
+(eso ya deja un `RolCambiado` hecho por el sistema). Se registra y activa además un Estándar **E**.
+Cada uno inicia sesión. Después de cada paso, con el token de A, `GET /api/auditoria` muestra el
+registro nuevo arriba de todo.
+
+1. **Aprobar y rechazar (RF-AUD-02):** E crea dos solicitudes (`POST /api/solicitudes-permiso`); A
+   aprueba una (`POST /api/solicitudes-permiso/{id}/aprobar`) y rechaza la otra con un motivo
+   (`…/rechazar` con `{ "motivo": "No corresponde." }`) → `SolicitudAprobada` y `SolicitudRechazada`,
+   con `usuarioId` de A.
+2. **Subir y eliminar un documento (RF-AUD-03):** E sube uno (`POST /api/documentos`, campo `archivo`)
+   y lo elimina (`DELETE /api/documentos/{id}`) → `DocumentoSubido` y `DocumentoEliminado`.
+3. **Cambiar un rol (RF-AUD-04):** A cambia el rol de E (`PUT /api/usuarios/{id-de-E}/rol` con
+   `{ "rol": "Administrador" }` y después `{ "rol": "Estandar" }`) → dos `RolCambiado` con el rol
+   anterior y el nuevo.
+4. **Desactivar y reactivar (RF-AUD-04):** A, `POST /api/usuarios/{id-de-E}/desactivar` y después
+   `…/reactivar` → `UsuarioDesactivado` y `UsuarioReactivado`.
+5. **Restablecimiento forzado (RF-AUD-05):** A, `POST /api/usuarios/{id-de-E}/restablecer-contrasena`
+   → `RestablecimientoContrasenaForzado`, con `usuarioId` de A e `iniciadoPor: "Administrador"`.
+6. **Restablecimiento propio (RF-AUD-05):** E pide un código (`POST /api/contrasena/recuperar`), lo
+   lee en Mailpit y lo usa (`POST /api/contrasena/restablecer`) → `RestablecimientoContrasenaPropio`,
+   con `usuarioId` de E e `iniciadoPor: "Usuario"`. Ningún registro contiene la contraseña ni el código.
+7. **El Estándar no consulta:** `GET /api/auditoria` con el token de E → `403`.
+8. **El historial persiste:** `docker compose down` (sin `-v`), `docker compose up`, iniciar sesión
+   otra vez como A y `GET /api/auditoria` → los mismos registros.
+
+Consulta SQL: `SELECT UsuarioId, Accion, Entidad, EntidadId, FechaUtc, ValorAnterior, ValorNuevo FROM Auditoria.RegistrosAuditoria ORDER BY FechaUtc;`
+
 ## Pruebas
 
 Un solo comando, desde la raíz de un clon limpio del repositorio, ejecuta toda la suite. No
@@ -1524,6 +1613,20 @@ fechas fijas y un reloj fijo, así no depende del día en que corre. Cada prueba
 
 ```bash
 dotnet test --filter "FullyQualifiedName~Tests.Reportes"
+```
+
+### Pruebas de la auditoría (Asignación 4)
+
+En `tests/RastreadorHabitos.Tests/Auditoria/`, ejecutadas por el mismo `dotnet test` sin levantar
+la aplicación. Cada prueba cita su requisito.
+
+| Archivo | Qué verifica |
+|---|---|
+| `EventosAuditadosTests.cs` | **Una prueba por tipo de evento**, con todos los campos del registro y el valor anterior y el nuevo: aprobar y rechazar una solicitud (RF-AUD-02); subir y eliminar un documento (RF-AUD-03); cambiar un rol, desactivar y reactivar (RF-AUD-04); restablecer la contraseña con el código, iniciado por el usuario, y forzado, por el Administrador, sin contraseña, hash ni código en el registro (RF-AUD-05) |
+| `HistorialAuditoriaTests.cs` | Los filtros por usuario, entidad y rango con el último día incluido; seis filtros inválidos rechazados; **un Estándar no consulta el historial** (RF-AUD-07); **ninguna operación expuesta edita ni borra registros**, y si un código lo intentara, el guardado se rechaza (RF-AUD-06); Core.Auditoria no depende de nadie (RD-03) |
+
+```bash
+dotnet test --filter "FullyQualifiedName~Tests.Auditoria"
 ```
 
 ### Pruebas de regresión de la Asignación 3
