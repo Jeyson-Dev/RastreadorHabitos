@@ -15,4 +15,8 @@ public interface IHabitosService
     // Registra si hoy cumplió el hábito. Solo en un día programado; registrar otra vez el mismo
     // día corrige el registro.
     Task<RegistroDiarioDto> RegistrarCumplimientoAsync(Guid usuarioId, Guid habitoId, RegistroCumplimientoDto registro);
+
+    // Solo lectura: los registros de un hábito propio entre dos días locales AAAA-MM-DD (por
+    // defecto, los últimos 30 días hasta hoy) y sus rachas.
+    Task<HistorialHabitoDto> ConsultarRegistrosAsync(Guid usuarioId, Guid habitoId, string? desde, string? hasta);
 }
