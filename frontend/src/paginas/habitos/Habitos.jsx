@@ -8,6 +8,9 @@ import EstadoError from '../../componentes/EstadoError';
 import EstadoVacio from '../../componentes/EstadoVacio';
 import PanelLateral from '../../componentes/PanelLateral';
 import { describirDias } from '../../utilidades/fechas';
+import { PERMISO_LIMITE_AMPLIADO } from '../../api/solicitudes';
+import { useSesion } from '../../sesion/contextoSesion';
+import AvisoLimite from './AvisoLimite';
 import { useHabitos } from './consultas';
 import DetalleHabito from './DetalleHabito';
 import FormularioHabito from './FormularioHabito';
@@ -18,6 +21,9 @@ import TiraDias, { LeyendaDias } from './TiraDias';
 // «?nuevo=1» abre directamente el panel para crear (lo usa la pantalla Hoy).
 export default function Habitos() {
   const habitos = useHabitos();
+  const { tienePermiso } = useSesion();
+  const ampliado = tienePermiso(PERMISO_LIMITE_AMPLIADO);
+  const limite = ampliado ? 20 : 10;
   const [parametros, setParametros] = useSearchParams();
   const [idDetalle, setIdDetalle] = useState(null);
   const [creado, setCreado] = useState(null);
@@ -88,7 +94,14 @@ export default function Habitos() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-semibold">Tus hábitos</h2>
+        <h2 className="font-semibold">
+          Tus hábitos{' '}
+          {habitos.data && (
+            <span className="numeros ml-1 text-sm font-normal text-suave">
+              {habitos.data.length} de {limite}
+            </span>
+          )}
+        </h2>
         {habitos.data?.length > 0 && (
           <Boton onClick={abrirCrear}>
             <Plus className="size-4" aria-hidden="true" />
@@ -97,6 +110,7 @@ export default function Habitos() {
         )}
       </div>
       {creado && <Aviso tipo="exito">Creaste «{creado}».</Aviso>}
+      {habitos.data && <AvisoLimite cantidad={habitos.data.length} limite={limite} ampliado={ampliado} />}
       {contenido}
 
       <PanelLateral abierto={creando} alCerrar={cerrarCrear} titulo="Nuevo hábito">

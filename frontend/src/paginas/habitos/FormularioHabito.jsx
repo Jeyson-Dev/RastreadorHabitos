@@ -5,6 +5,9 @@ import Boton from '../../componentes/Boton';
 import Campo from '../../componentes/Campo';
 import SelectorDias from '../../componentes/SelectorDias';
 import { enfocarPrimerInvalido } from '../../utilidades/formularios';
+import { PERMISO_LIMITE_AMPLIADO } from '../../api/solicitudes';
+import { useSesion } from '../../sesion/contextoSesion';
+import AvisoLimite from './AvisoLimite';
 import { useCrearHabito } from './consultas';
 
 const MAX_NOMBRE = 100;
@@ -23,6 +26,9 @@ function validarHabito({ nombre, descripcion, dias }) {
 
 export default function FormularioHabito({ alCrear }) {
   const crear = useCrearHabito();
+  const { tienePermiso } = useSesion();
+  const ampliado = tienePermiso(PERMISO_LIMITE_AMPLIADO);
+  const limite = ampliado ? 20 : 10;
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [dias, setDias] = useState([]);
@@ -48,10 +54,14 @@ export default function FormularioHabito({ alCrear }) {
 
   return (
     <form ref={formulario} onSubmit={alEnviar} noValidate className="flex flex-col gap-5">
-      {crear.isError && (
-        <Aviso tipo="error" titulo={crear.error?.estado === 403 ? 'Llegaste al límite de hábitos' : undefined}>
-          {mensajeDeError(crear.error)}
-        </Aviso>
+      {crear.isError && crear.error?.estado !== 403 && <Aviso tipo="error">{mensajeDeError(crear.error)}</Aviso>}
+      {crear.error?.estado === 403 && (
+        <>
+          <Aviso tipo="error" titulo="Llegaste al límite de hábitos">
+            {mensajeDeError(crear.error)}
+          </Aviso>
+          <AvisoLimite cantidad={limite} limite={limite} ampliado={ampliado} alLlegarAlLimite />
+        </>
       )}
       <Campo
         etiqueta="Nombre"
