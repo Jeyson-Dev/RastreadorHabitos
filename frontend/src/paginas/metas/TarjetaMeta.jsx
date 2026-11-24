@@ -20,7 +20,7 @@ function textoPlazo(meta, hoy) {
 // Tarjeta de una meta: estado, avance, plazo y la única acción posible según la máquina de estados.
 // Completar exige estar En progreso con avance ≥ objetivo (Pendiente → Completada está prohibida);
 // una Fallida se reactiva con una fecha nueva. El servidor vuelve a validar todo.
-export default function TarjetaMeta({ meta, nombresHabitos, alReactivar }) {
+export default function TarjetaMeta({ meta, nombresHabitos, alReactivar, alCompletar }) {
   const completar = useCompletarMeta();
   const [confirmando, setConfirmando] = useState(false);
   const hoy = diaLocalDe(new Date());
@@ -32,7 +32,14 @@ export default function TarjetaMeta({ meta, nombresHabitos, alReactivar }) {
     accion = confirmando ? (
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Confirmar que la meta está completada">
         <span className="text-sm">¿Marcar como completada? No se puede deshacer.</span>
-        <Boton tamano="sm" cargando={completar.isPending} onClick={() => completar.mutate(meta.id)}>
+        <Boton tamano="sm" cargando={completar.isPending} onClick={() =>
+            completar.mutate(meta.id, {
+              onSuccess: () => {
+                setConfirmando(false);
+                alCompletar?.(meta.nombre);
+              },
+            })
+          }>
           Sí, completar
         </Boton>
         <Boton tamano="sm" variante="fantasma" onClick={() => setConfirmando(false)} disabled={completar.isPending}>

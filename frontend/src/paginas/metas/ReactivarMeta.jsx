@@ -9,6 +9,19 @@ import { useReactivarMeta } from './consultas';
 
 // Reactivar una meta Fallida: pide una fecha límite nueva y futura (el servidor la valida).
 export default function ReactivarMeta({ meta, alCerrar }) {
+  return (
+    <Dialogo
+      abierto={Boolean(meta)}
+      alCerrar={alCerrar}
+      titulo={meta ? `Reactivar «${meta.nombre}»` : ''}
+      descripcion="La meta vuelve a En progreso con una fecha límite nueva. El avance sigue contando desde su inicio."
+    >
+      {meta && <FormularioReactivar key={meta.id} meta={meta} alCerrar={alCerrar} />}
+    </Dialogo>
+  );
+}
+
+function FormularioReactivar({ meta, alCerrar }) {
   const reactivar = useReactivarMeta();
   const manana = sumarDias(diaLocalDe(new Date()), 1);
   const [fecha, setFecha] = useState(manana);
@@ -30,12 +43,6 @@ export default function ReactivarMeta({ meta, alCerrar }) {
   }
 
   return (
-    <Dialogo
-      abierto
-      alCerrar={alCerrar}
-      titulo={`Reactivar «${meta.nombre}»`}
-      descripcion="La meta vuelve a En progreso con una fecha límite nueva. El avance sigue contando desde su inicio."
-    >
       <form onSubmit={alEnviar} noValidate className="flex flex-col gap-4">
         {reactivar.isError && <Aviso tipo="error">{mensajeDeError(reactivar.error)}</Aviso>}
         <Campo
@@ -56,6 +63,5 @@ export default function ReactivarMeta({ meta, alCerrar }) {
           </Boton>
         </div>
       </form>
-    </Dialogo>
   );
 }

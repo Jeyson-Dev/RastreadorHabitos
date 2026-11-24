@@ -24,13 +24,17 @@ export default function Metas() {
   const [parametros, setParametros] = useSearchParams();
   const [aReactivar, setAReactivar] = useState(null);
   const [creada, setCreada] = useState(null);
+  const [completada, setCompletada] = useState(null);
   const creando = parametros.get('nueva') === '1';
 
   useEffect(() => {
-    if (!creada) return undefined;
-    const temporizador = setTimeout(() => setCreada(null), 5000);
+    if (!creada && !completada) return undefined;
+    const temporizador = setTimeout(() => {
+      setCreada(null);
+      setCompletada(null);
+    }, 6000);
     return () => clearTimeout(temporizador);
-  }, [creada]);
+  }, [creada, completada]);
 
   const abrirCrear = () => setParametros({ nueva: '1' }, { replace: true });
   const cerrarCrear = () => setParametros({}, { replace: true });
@@ -61,7 +65,7 @@ export default function Metas() {
       .sort((a, b) => (a.estado === b.estado ? porFechaLimite(a, b) : a.estado === ESTADOS_META.EnProgreso ? -1 : 1));
     const fallidas = metas.data.filter((m) => m.estado === ESTADOS_META.Fallida).sort(porFechaLimite);
     const completadas = metas.data.filter((m) => m.estado === ESTADOS_META.Completada).sort((a, b) => porFechaLimite(b, a));
-    const tarjeta = (meta) => <TarjetaMeta key={meta.id} meta={meta} nombresHabitos={nombresDe(meta)} alReactivar={setAReactivar} />;
+    const tarjeta = (meta) => <TarjetaMeta key={meta.id} meta={meta} nombresHabitos={nombresDe(meta)} alReactivar={setAReactivar} alCompletar={setCompletada} />;
 
     contenido = (
       <div className="flex flex-col gap-8">
@@ -99,6 +103,7 @@ export default function Metas() {
           </Boton>
         )}
       </div>
+      {completada && <Aviso tipo="exito">¡Completaste «{completada}»!</Aviso>}
       {creada && <Aviso tipo="exito">Creaste la meta «{creada}». Empieza Pendiente hasta el primer cumplimiento.</Aviso>}
       {contenido}
 
@@ -117,7 +122,7 @@ export default function Metas() {
           />
         )}
       </PanelLateral>
-      {aReactivar && <ReactivarMeta meta={aReactivar} alCerrar={() => setAReactivar(null)} />}
+      <ReactivarMeta meta={aReactivar} alCerrar={() => setAReactivar(null)} />
     </div>
   );
 }

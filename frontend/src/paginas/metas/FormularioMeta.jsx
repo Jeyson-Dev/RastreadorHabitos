@@ -1,11 +1,11 @@
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { mensajeDeError } from '../../api/cliente';
 import Aviso from '../../componentes/Aviso';
 import Boton from '../../componentes/Boton';
 import Campo from '../../componentes/Campo';
 import { describirDias, diaLocalDe } from '../../utilidades/fechas';
-import { enfocarPrimerInvalido } from '../../utilidades/formularios';
+import { enfocarInicial, enfocarPrimerInvalido } from '../../utilidades/formularios';
 import { useCrearMeta } from './consultas';
 
 const MAX_NOMBRE = 150;
@@ -21,6 +21,10 @@ export default function FormularioMeta({ habitos, alCrear }) {
   const [habitoIds, setHabitoIds] = useState([]);
   const [errores, setErrores] = useState({});
   const formulario = useRef(null);
+
+  useEffect(() => {
+    enfocarInicial(formulario.current);
+  }, []);
   const idErrorHabitos = useId();
 
   const alternarHabito = (id) => setHabitoIds((actuales) => (actuales.includes(id) ? actuales.filter((h) => h !== id) : [...actuales, id]));
@@ -91,7 +95,11 @@ export default function FormularioMeta({ habitos, alCrear }) {
           error={errores.fechaLimite}
         />
       </div>
-      <fieldset aria-describedby={errores.habitos ? idErrorHabitos : undefined} className="flex flex-col gap-2">
+      <fieldset
+        aria-describedby={errores.habitos ? idErrorHabitos : undefined}
+        aria-invalid={errores.habitos ? true : undefined}
+        className="flex flex-col gap-2"
+      >
         <legend className="mb-1.5 text-sm font-medium">Hábitos que cuentan</legend>
         <ul className="flex flex-col divide-y divide-borde rounded-lg border border-borde">
           {habitos.map((habito) => (
@@ -101,7 +109,6 @@ export default function FormularioMeta({ habitos, alCrear }) {
                   type="checkbox"
                   checked={habitoIds.includes(habito.id)}
                   onChange={() => alternarHabito(habito.id)}
-                  aria-invalid={errores.habitos ? true : undefined}
                   className="size-4 accent-[var(--acento)]"
                 />
                 <span className="flex min-w-0 flex-col">

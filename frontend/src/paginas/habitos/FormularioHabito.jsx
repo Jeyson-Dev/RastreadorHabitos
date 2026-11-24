@@ -1,10 +1,10 @@
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { mensajeDeError } from '../../api/cliente';
 import Aviso from '../../componentes/Aviso';
 import Boton from '../../componentes/Boton';
 import Campo from '../../componentes/Campo';
 import SelectorDias from '../../componentes/SelectorDias';
-import { enfocarPrimerInvalido } from '../../utilidades/formularios';
+import { enfocarInicial, enfocarPrimerInvalido } from '../../utilidades/formularios';
 import { PERMISO_LIMITE_AMPLIADO } from '../../api/solicitudes';
 import { useSesion } from '../../sesion/contextoSesion';
 import AvisoLimite from './AvisoLimite';
@@ -34,6 +34,10 @@ export default function FormularioHabito({ alCrear }) {
   const [dias, setDias] = useState([]);
   const [errores, setErrores] = useState({});
   const formulario = useRef(null);
+
+  useEffect(() => {
+    enfocarInicial(formulario.current);
+  }, []);
   const idDescripcion = useId();
   const idErrorDias = useId();
 
