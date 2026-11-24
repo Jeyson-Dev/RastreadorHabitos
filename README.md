@@ -539,7 +539,9 @@ SELECT Email, CorreoConfirmado, CuentaHabilitada FROM ControlAcceso.Usuarios;
 el correo y la contraseña correctos → `403` «La cuenta no está activa. Revise su correo para
 activarla.»
 
-**3. Abrir el enlace recibido (RF-CA-16).** → «Cuenta activada. Ya puede iniciar sesión.» El
+**3. Abrir el enlace recibido (RF-CA-16).** El enlace abre la página `/activar?token=…` del
+frontend, que llama a `GET /api/cuentas/activar?token=…` (la misma operación puede llamarse
+directo con el token del enlace) → «Cuenta activada. Ya puede iniciar sesión.» El
 usuario pasa a `CorreoConfirmado = 1`. Iniciar sesión ahora → `200` con el `token`.
 
 **4. Abrir el enlace por segunda vez (RF-CA-16).** → `400` «El enlace de activación no es

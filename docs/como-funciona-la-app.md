@@ -23,7 +23,8 @@ El primer Administrador se crea con
 ## 2. Flujo completo
 
 1. **Registro y activación.** `POST /api/cuentas/registro` → el correo de activación sale por la
-   cola → el usuario abre `GET /api/cuentas/activar?token=…`. Sin activar, iniciar sesión da `403`.
+   cola con un enlace a la página `/activar?token=…` del frontend, que llama a
+   `GET /api/cuentas/activar?token=…`. Sin activar, iniciar sesión da `403`.
 2. **Sesión.** `POST /api/sesion/iniciar` devuelve `{ token, expiraUtc }` (JWT, 8 horas). Se manda en
    todas las peticiones: `Authorization: Bearer <token>`. `GET /api/sesion/usuario` da el `rol`
    (para mostrar u ocultar opciones; el servidor igual lo verifica). `POST /api/sesion/cerrar`
