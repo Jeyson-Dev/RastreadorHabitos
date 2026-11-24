@@ -896,8 +896,9 @@ de la semana son números: `1` = lunes … `7` = domingo.
 | # | Funcionalidad | Método y ruta | Cuerpo | Respuesta |
 |---|---|---|---|---|
 | F1 | Crear un hábito | `POST /api/habitos` | `{ "nombre", "descripcion" (opcional), "dias": [1, …, 7] }` | `201` el hábito · `400` dato inválido · `403` límite de hábitos alcanzado |
-| F2 | Listar mis hábitos | `GET /api/habitos` | — | `200` lista con `id`, `nombre`, `descripcion`, `dias`, `fechaCreacionUtc` |
+| F2 | Listar mis hábitos | `GET /api/habitos` | — | `200` lista con `id`, `nombre`, `descripcion`, `dias`, `fechaCreacionUtc`, `rachaActual`, `mejorRacha`, `programadoHoy` y `cumplidoHoy` (`null` si hoy no se registró) |
 | F3 | Registrar el cumplimiento de hoy | `POST /api/habitos/{id}/registros` | `{ "cumplido": true \| false }` | `200 { "habitoId", "fecha", "cumplido" }` · `400` sin `cumplido` · `404` hábito inexistente o de otro usuario · `409` hoy no es un día programado |
+| F3b | Consultar el historial y las rachas de un hábito (solo lectura) | `GET /api/habitos/{id}/registros?desde=&hasta=` | — | `200 { "habitoId", "desde", "hasta", "rachaActual", "mejorRacha", "registros": [ { "habitoId", "fecha", "cumplido" } ] }`; sin fechas, los últimos 30 días hasta hoy · `400` fecha mal formada, rango invertido o de más de 366 días · `404` hábito inexistente o de otro usuario |
 | F4 | Crear una meta | `POST /api/metas` | `{ "nombre", "objetivoCumplimientos", "fechaLimite", "habitoIds": [ … ] }` | `201` la meta, en `Pendiente` · `400` dato inválido |
 | F5 | Consultar mis metas | `GET /api/metas` y `GET /api/metas/{id}` | — | `200` la meta (o la lista) con su `avance` y su `estado` al día · `404` meta inexistente o de otro usuario |
 | F6 | Completar una meta | `POST /api/metas/{id}/completar` | — | `200` la meta en `Completada` · `404` · `409` transición no permitida o condición no cumplida |
