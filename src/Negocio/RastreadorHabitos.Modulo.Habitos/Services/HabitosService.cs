@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using RastreadorHabitos.Core.ControlAcceso.Services;
 using RastreadorHabitos.Modulo.Habitos.Data;
@@ -11,6 +12,8 @@ public class HabitosService : IHabitosService, IConsultaHabitos
 {
     private const int LongitudMaximaNombre = 100;
     private const int LongitudMaximaDescripcion = 500;
+    private const int DiasPorDefectoHistorial = 30;
+    private const int DiasMaximosHistorial = 366;
 
     private readonly HabitosDbContext _context;
     private readonly IPermisosUsuarioService _permisos;
@@ -64,7 +67,7 @@ public class HabitosService : IHabitosService, IConsultaHabitos
         _context.Habitos.Add(nuevo);
         await _context.SaveChangesAsync();
 
-        return HabitoDto.Desde(nuevo);
+        return HabitoDto.Desde(nuevo, Hoy(), new Dictionary<DateOnly, bool>(), (0, 0));
     }
 
     public async Task<IReadOnlyList<HabitoDto>> ListarAsync(Guid usuarioId)
@@ -76,7 +79,63 @@ public class HabitosService : IHabitosService, IConsultaHabitos
             .OrderBy(h => h.FechaCreacionUtc)
             .ToListAsync();
 
-        return habitos.Select(HabitoDto.Desde).ToList();
+        var ids = habitos.Select(h => h.Id).ToList();
+        var registros = (await _context.RegistrosDiarios
+                .AsNoTracking()
+                .Where(r => ids.Contains(r.HabitoId))
+                .Select(r => new { r.HabitoId, r.Fecha, r.Cumplido })
+                .ToListAsync())
+            .ToLookup(r => r.HabitoId);
+
+        var hoy = Hoy();
+        return habitos.Select(habito =>
+        {
+            var delHabito = registros[habito.Id].ToDictionary(r => r.Fecha, r => r.Cumplido);
+            return HabitoDto.Desde(habito, hoy, delHabito, CalcularRachas(habito, delHabito, hoy));
+        }).ToList();
+    }
+
+    public async Task<HistorialHabitoDto> ConsultarRegistrosAsync(Guid usuarioId, Guid habitoId, string? desde, string? hasta)
+    {
+        var hoy = Hoy();
+        var fin = LeerFecha(hasta, "hasta") ?? hoy;
+        var inicio = LeerFecha(desde, "desde") ?? fin.AddDays(-(DiasPorDefectoHistorial - 1));
+        if (inicio > fin)
+        {
+            throw DatosInvalidos("La fecha desde no puede ser posterior a la fecha hasta.");
+        }
+        if (fin.DayNumber - inicio.DayNumber + 1 > DiasMaximosHistorial)
+        {
+            throw DatosInvalidos($"El rango de fechas puede abarcar como máximo {DiasMaximosHistorial} días.");
+        }
+
+        // Un hábito de otro usuario se trata como inexistente: no revela que existe.
+        var habito = await _context.Habitos
+            .AsNoTracking()
+            .Include(h => h.Dias)
+            .FirstOrDefaultAsync(h => h.Id == habitoId && h.UsuarioId == usuarioId)
+            ?? throw new RechazoHabitosException(TipoRechazoHabitos.NoEncontrado, "No existe un hábito con ese id.");
+
+        var registros = await _context.RegistrosDiarios
+            .AsNoTracking()
+            .Where(r => r.HabitoId == habitoId)
+            .ToListAsync();
+        var porFecha = registros.ToDictionary(r => r.Fecha, r => r.Cumplido);
+        var rachas = CalcularRachas(habito, porFecha, hoy);
+
+        return new HistorialHabitoDto
+        {
+            HabitoId = habitoId,
+            Desde = inicio,
+            Hasta = fin,
+            RachaActual = rachas.Actual,
+            MejorRacha = rachas.Mejor,
+            Registros = registros
+                .Where(r => r.Fecha >= inicio && r.Fecha <= fin)
+                .OrderBy(r => r.Fecha)
+                .Select(RegistroDiarioDto.Desde)
+                .ToList()
+        };
     }
 
     public async Task<RegistroDiarioDto> RegistrarCumplimientoAsync(Guid usuarioId, Guid habitoId,
@@ -94,7 +153,7 @@ public class HabitosService : IHabitosService, IConsultaHabitos
             ?? throw new RechazoHabitosException(TipoRechazoHabitos.NoEncontrado, "No existe un hábito con ese id.");
 
         // La fecha la asigna el servidor: solo hoy, y solo si hoy es un día programado.
-        var hoy = DateOnly.FromDateTime(_reloj.GetLocalNow().DateTime);
+        var hoy = Hoy();
         if (habito.Dias.All(d => d.DiaSemana != DiasSemana.De(hoy)))
         {
             throw new RechazoHabitosException(TipoRechazoHabitos.ReglaIncumplida,
@@ -123,6 +182,38 @@ public class HabitosService : IHabitosService, IConsultaHabitos
     public async Task<int> ContarCumplidosAsync(IReadOnlyCollection<Guid> habitoIds, DateOnly desde, DateOnly hasta) =>
         await _context.RegistrosDiarios
             .CountAsync(r => habitoIds.Contains(r.HabitoId) && r.Cumplido && r.Fecha >= desde && r.Fecha <= hasta);
+
+    // «Hoy» es el día local del servidor [RD-11].
+    private DateOnly Hoy() => DateOnly.FromDateTime(_reloj.GetLocalNow().DateTime);
+
+    // Las rachas se cuentan desde el día local en que se creó el hábito, convertido con las reglas
+    // de la zona para esa fecha (no con la diferencia horaria de hoy).
+    private (int Actual, int Mejor) CalcularRachas(Habito habito, IReadOnlyDictionary<DateOnly, bool> registros, DateOnly hoy)
+    {
+        var creacionUtc = DateTime.SpecifyKind(habito.FechaCreacionUtc, DateTimeKind.Utc);
+        var desde = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(creacionUtc, _reloj.LocalTimeZone));
+        if (registros.Count > 0 && registros.Keys.Min() < desde)
+        {
+            desde = registros.Keys.Min();
+        }
+
+        var dias = habito.Dias.Select(d => d.DiaSemana).ToHashSet();
+        return Rachas.Calcular(dias, registros, desde, hoy);
+    }
+
+    // Una fecha AAAA-MM-DD opcional: ausente, vacía o en blanco toma el valor por defecto.
+    private static DateOnly? LeerFecha(string? valor, string nombre)
+    {
+        if (string.IsNullOrWhiteSpace(valor))
+        {
+            return null;
+        }
+        if (!DateOnly.TryParseExact(valor.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var fecha))
+        {
+            throw DatosInvalidos($"La fecha {nombre} debe tener el formato AAAA-MM-DD (por ejemplo 2026-11-23).");
+        }
+        return fecha;
+    }
 
     private static RechazoHabitosException DatosInvalidos(string mensaje) =>
         new(TipoRechazoHabitos.DatosInvalidos, mensaje);

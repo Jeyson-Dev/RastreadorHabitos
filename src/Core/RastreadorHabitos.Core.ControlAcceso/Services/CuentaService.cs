@@ -152,7 +152,8 @@ public class CuentaService : ICuentaService
 
     private Task SolicitarCorreoActivacionAsync(Usuario usuario, string tokenPlano)
     {
-        var enlace = $"{_opcionesEnlaces.UrlBase}/api/cuentas/activar?token={tokenPlano}";
+        // El enlace abre la página /activar del frontend, que llama a GET /api/cuentas/activar.
+        var enlace = $"{_opcionesEnlaces.UrlBase}/activar?token={tokenPlano}";
         var nombre = WebUtility.HtmlEncode(usuario.NombreCompleto);
 
         var cuerpoHtml = $"""
