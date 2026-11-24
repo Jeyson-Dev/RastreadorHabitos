@@ -121,7 +121,23 @@ describe('cliente de la API', () => {
     await pedir('/api/habitos').catch(() => {});
 
     // Verificar
-    expect(sesionInvalida).toHaveBeenCalledWith('Se requiere una sesión válida.');
+    expect(sesionInvalida).toHaveBeenCalledWith('Se requiere una sesión válida.', 'vencido');
+  });
+
+  it('un 401 tardío informa el token con el que salió, no el actual', async () => {
+    // Preparar: la petición sale con el token A y, antes de que responda, ya hay otra sesión (B).
+    token = 'token-A';
+    let responder;
+    fetchFalso.mockReturnValue(new Promise((resolver) => (responder = resolver)));
+    const peticion = pedir('/api/habitos').catch(() => {});
+    token = 'token-B';
+
+    // Actuar
+    responder(respuestaJson(401, { error: 'Se requiere una sesión válida.' }));
+    await peticion;
+
+    // Verificar
+    expect(sesionInvalida).toHaveBeenCalledWith('Se requiere una sesión válida.', 'token-A');
   });
 
   it('un 401 sin sesión (credenciales incorrectas) no cierra nada', async () => {

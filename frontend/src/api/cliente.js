@@ -92,8 +92,9 @@ export async function pedir(ruta, { metodo = 'GET', cuerpo, consulta, senal, com
   const mensajeServidor = typeof datos?.error === 'string' && datos.error.trim() ? datos.error : null;
   const mensaje = mensajeServidor ?? MENSAJES_POR_ESTADO[respuesta.status] ?? MENSAJE_SERVIDOR;
 
-  // Un 401 con token significa que la sesión ya no sirve (vencida, cerrada o desactivada).
-  if (respuesta.status === 401 && token) alSesionInvalida(mensaje);
+  // Un 401 con token significa que esa sesión ya no sirve (vencida, cerrada o desactivada). Se
+  // informa qué token se rechazó: si entretanto se inició otra sesión, esta no se toca.
+  if (respuesta.status === 401 && token) alSesionInvalida(mensaje, token);
 
   // Ante un 500 nunca se muestra lo que haya venido: solo el mensaje genérico.
   throw new ErrorApi(respuesta.status >= 500 && respuesta.status !== 503 ? MENSAJE_SERVIDOR : mensaje, respuesta.status, datos);
