@@ -10,6 +10,7 @@ import Registro from './paginas/acceso/Registro';
 import Perfil from './paginas/Perfil';
 import Habitos from './paginas/habitos/Habitos';
 import Hoy from './paginas/habitos/Hoy';
+import Metas from './paginas/metas/Metas';
 import EnConstruccion from './paginas/EnConstruccion';
 import NoEncontrada from './paginas/NoEncontrada';
 
@@ -41,7 +42,7 @@ export function crearRutas() {
           children: [
             { index: true, element: <Hoy />, handle: { titulo: 'Hoy' } },
             { path: 'habitos', element: <Habitos />, handle: { titulo: 'Hábitos' } },
-            { path: 'metas', element: pendiente('Metas'), handle: { titulo: 'Metas' } },
+            { path: 'metas', element: <Metas />, handle: { titulo: 'Metas' } },
             { path: 'reportes', element: pendiente('Reportes'), handle: { titulo: 'Reportes' } },
             { path: 'notificaciones', element: pendiente('Notificaciones'), handle: { titulo: 'Notificaciones' } },
             { path: 'documentos', element: pendiente('Documentos'), handle: { titulo: 'Documentos' } },
