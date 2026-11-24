@@ -390,3 +390,7 @@ appsettings*.local.json
 Thumbs.db
 ehthumbs.db
 [Dd]esktop.ini
+
+# Frontend: el build se genera en el wwwroot de la API (no se versiona).
+src/Api/RastreadorHabitos.Api/wwwroot/
+frontend/dist/

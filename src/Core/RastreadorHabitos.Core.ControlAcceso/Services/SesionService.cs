@@ -96,14 +96,23 @@ public class SesionService : ISesionService
             .Where(s => s.Id == sesionId)
             .Select(s => new UsuarioAutenticadoDto
             {
+                Id = s.UsuarioId,
                 Email = s.Usuario.Email,
                 NombreCompleto = s.Usuario.NombreCompleto,
                 Rol = s.Usuario.Rol.Nombre
             })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync()
+            ?? throw new RechazoControlAccesoException(MotivoRechazo.NoAutenticado,
+                "Se requiere una sesión válida.");
 
-        return usuario ?? throw new RechazoControlAccesoException(MotivoRechazo.NoAutenticado,
-            "Se requiere una sesión válida.");
+        usuario.Permisos = await _context.PermisosUsuario
+            .AsNoTracking()
+            .Where(p => p.UsuarioId == usuario.Id)
+            .OrderBy(p => p.Codigo)
+            .Select(p => p.Codigo)
+            .ToListAsync();
+
+        return usuario;
     }
 
     public async Task CerrarAsync(Guid sesionId)
