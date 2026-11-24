@@ -21,4 +21,6 @@ export default [
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },
+  // Las ayudas de las pruebas no son componentes que se recarguen en caliente.
+  { files: ['src/pruebas/**'], rules: { 'react-refresh/only-export-components': 'off' } },
 ];
