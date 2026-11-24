@@ -1,0 +1,96 @@
+@import 'tailwindcss';
+
+/* El tema oscuro se activa con la clase .dark en <html> (ver tema/ProveedorTema.jsx). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Tokens del diseño: superficies neutras (zinc), acento esmeralda y colores de estado. */
+:root {
+  --fondo: #fafafa;
+  --superficie: #ffffff;
+  --superficie-suave: #f4f4f5;
+  --borde: #e4e4e7;
+  --texto: #18181b;
+  --texto-suave: #52525b;
+  --acento: #047857;
+  --acento-hover: #065f46;
+  --acento-suave: #ecfdf5;
+  --sobre-acento: #ffffff;
+  --racha: #b45309;
+  --peligro: #be123c;
+  --peligro-suave: #fff1f2;
+  --info: #0369a1;
+  --info-suave: #f0f9ff;
+  --aviso: #a16207;
+  --aviso-suave: #fefce8;
+}
+
+.dark {
+  --fondo: #09090b;
+  --superficie: #18181b;
+  --superficie-suave: #27272a;
+  --borde: #3f3f46;
+  --texto: #fafafa;
+  --texto-suave: #a1a1aa;
+  --acento: #34d399;
+  --acento-hover: #6ee7b7;
+  --acento-suave: #022c22;
+  --sobre-acento: #022c22;
+  --racha: #fbbf24;
+  --peligro: #fb7185;
+  --peligro-suave: #4c0519;
+  --info: #38bdf8;
+  --info-suave: #082f49;
+  --aviso: #facc15;
+  --aviso-suave: #422006;
+}
+
+@theme inline {
+  --color-fondo: var(--fondo);
+  --color-superficie: var(--superficie);
+  --color-superficie-suave: var(--superficie-suave);
+  --color-borde: var(--borde);
+  --color-texto: var(--texto);
+  --color-suave: var(--texto-suave);
+  --color-acento: var(--acento);
+  --color-acento-hover: var(--acento-hover);
+  --color-acento-suave: var(--acento-suave);
+  --color-sobre-acento: var(--sobre-acento);
+  --color-racha: var(--racha);
+  --color-peligro: var(--peligro);
+  --color-peligro-suave: var(--peligro-suave);
+  --color-info: var(--info);
+  --color-info-suave: var(--info-suave);
+  --color-aviso: var(--aviso);
+  --color-aviso-suave: var(--aviso-suave);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  /* Foco visible y consistente para teclado en toda la app. */
+  :focus-visible {
+    outline: 2px solid var(--acento);
+    outline-offset: 2px;
+  }
+  /* Números de rachas, avances y contadores alineados. */
+  .numeros {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
