@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RastreadorHabitos.Core.Auditoria.Data;
 using RastreadorHabitos.Core.GestionPermisos.Entities;
 
 namespace RastreadorHabitos.Core.GestionPermisos.Data;
@@ -14,11 +15,19 @@ public class GestionPermisosDbContext : DbContext
 
     public DbSet<SolicitudPermiso> SolicitudesPermiso => Set<SolicitudPermiso>();
 
+    // El historial de auditoría no se modifica ni se borra desde este contexto [RF-AUD-06].
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
+        optionsBuilder.ProtegerHistorialAuditoria();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.HasDefaultSchema(Esquema);
+
+        // El registro de auditoría se escribe en el mismo guardado que la resolución; la tabla la
+        // crea la migración de Auditoría, no la de esta pieza [RF-AUD-02].
+        modelBuilder.MapearHistorialAuditoria(excluirDeMigraciones: true);
 
         modelBuilder.Entity<SolicitudPermiso>(builder =>
         {

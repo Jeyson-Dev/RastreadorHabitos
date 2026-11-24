@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RastreadorHabitos.Core.Auditoria.Data;
 using RastreadorHabitos.Core.Documentos.Data;
 using RastreadorHabitos.Core.Documentos.DTOs;
 using RastreadorHabitos.Core.Documentos.Entities;
@@ -41,6 +42,12 @@ public class DocumentosService : IDocumentosService
         try
         {
             _context.Documentos.Add(documento);
+            // Registro en el mismo guardado que el documento [RF-DOC-06, RF-AUD-03].
+            _context.RegistrarEvento(usuarioId, EventosAuditoria.DocumentoSubido, EventosAuditoria.Entidad,
+                documento.Id.ToString(), null,
+                new { nombre = documento.Nombre, tipo = documento.Tipo, tamanoBytes = documento.TamanoBytes,
+                      subidoPorId = documento.SubidoPorId, eliminado = false },
+                documento.FechaSubidaUtc);
             await _context.SaveChangesAsync();
         }
         catch
@@ -85,7 +92,10 @@ public class DocumentosService : IDocumentosService
             "Solo el dueño del documento o un Administrador pueden eliminarlo.");
 
         // Solo se marca: no se borra la fila ni el archivo [RF-DOC-04].
-        documento.MarcarEliminado(_reloj.GetUtcNow().UtcDateTime);
+        var ahoraUtc = _reloj.GetUtcNow().UtcDateTime;
+        documento.MarcarEliminado(ahoraUtc);
+        _context.RegistrarEvento(usuarioId, EventosAuditoria.DocumentoEliminado, EventosAuditoria.Entidad,
+            documento.Id.ToString(), new { eliminado = false }, new { eliminado = true, nombre = documento.Nombre }, ahoraUtc);
         await _context.SaveChangesAsync();
     }
 

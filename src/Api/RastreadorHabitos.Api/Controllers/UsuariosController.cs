@@ -43,14 +43,14 @@ public class UsuariosController : ControllerBase
     [HttpPost("{id:guid}/reactivar")]
     public async Task<IActionResult> Reactivar(Guid id)
     {
-        await _administracion.ReactivarAsync(id);
+        await _administracion.ReactivarAsync(id, UsuarioActual());
         return Ok(new { mensaje = "Usuario reactivado." });
     }
 
     [HttpPost("{id:guid}/restablecer-contrasena")]
     public async Task<IActionResult> ForzarRestablecimientoContrasena(Guid id)
     {
-        await _contrasenas.ForzarRestablecimientoAsync(id);
+        await _contrasenas.ForzarRestablecimientoAsync(id, UsuarioActual());
         return Ok(new { mensaje = "Contraseña restablecida. El usuario recibirá por correo un código para definir una nueva." });
     }
 
