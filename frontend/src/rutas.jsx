@@ -18,27 +18,30 @@ import Correos from './paginas/admin/Correos';
 import Solicitudes from './paginas/admin/Solicitudes';
 import Usuarios from './paginas/admin/Usuarios';
 import NoEncontrada from './paginas/NoEncontrada';
+import PaginaError from './paginas/PaginaError';
 
 // Árbol de rutas: las de acceso son públicas; el resto exige sesión y las de /admin, el rol.
 export function crearRutas() {
   return [
     {
       element: <MarcoAcceso />,
+      errorElement: <PaginaError />,
       children: [
         {
           element: <RutaPublica />,
           children: [
-            { path: '/iniciar-sesion', element: <IniciarSesion /> },
-            { path: '/registro', element: <Registro /> },
-            { path: '/recuperar', element: <Recuperar /> },
+            { path: '/iniciar-sesion', element: <IniciarSesion />, handle: { titulo: 'Iniciar sesión' } },
+            { path: '/registro', element: <Registro />, handle: { titulo: 'Crear cuenta' } },
+            { path: '/recuperar', element: <Recuperar />, handle: { titulo: 'Recuperar contraseña' } },
           ],
         },
         // La activación funciona con o sin sesión: llega desde el enlace del correo.
-        { path: '/activar', element: <Activar /> },
+        { path: '/activar', element: <Activar />, handle: { titulo: 'Activar cuenta' } },
       ],
     },
     {
       element: <RutaProtegida />,
+      errorElement: <PaginaError />,
       children: [
         {
           element: <Marco />,

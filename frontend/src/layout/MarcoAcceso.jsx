@@ -1,10 +1,18 @@
 import { Flame, Target } from 'lucide-react';
-import { Outlet } from 'react-router';
+import { useEffect } from 'react';
+import { Outlet, useMatches } from 'react-router';
 import InterruptorTema from '../tema/InterruptorTema';
 
 // Pantallas de acceso: en escritorio, panel de marca a la izquierda y formulario a la derecha; en
 // móvil, solo el formulario con el logo arriba.
 export default function MarcoAcceso() {
+  const coincidencias = useMatches();
+  const titulo = [...coincidencias].reverse().find((c) => c.handle?.titulo)?.handle.titulo;
+
+  useEffect(() => {
+    document.title = titulo ? `${titulo} · Rastreador de hábitos` : 'Rastreador de hábitos';
+  }, [titulo]);
+
   return (
     <div className="grid min-h-dvh lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
       <aside className="relative hidden flex-col justify-between overflow-hidden bg-emerald-900 p-10 text-emerald-50 lg:flex">
