@@ -2,6 +2,10 @@
 
 # Carpetas de compilación y dependencias restauradas
 **/bin/
+**/node_modules/
+# El frontend se compila dentro de la imagen; un build local no entra
+src/Api/RastreadorHabitos.Api/wwwroot/
+frontend/dist/
 **/obj/
 **/TestResults/
 **/*.user
