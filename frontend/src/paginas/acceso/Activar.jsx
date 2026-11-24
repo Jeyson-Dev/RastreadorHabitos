@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { CircleCheck, CircleX } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router';
 import { activarCuenta, reenviarActivacion } from '../../api/acceso';
@@ -12,32 +11,47 @@ import { useSesion } from '../../sesion/contextoSesion';
 import { pareceCorreo } from '../../utilidades/contrasena';
 import EncabezadoAcceso from './EncabezadoAcceso';
 
-// Página a la que lleva el enlace del correo. El token sirve una sola vez: la petición va por la
-// caché de consultas (una sola por token, aunque React monte dos veces en desarrollo) y sin señal
-// de cancelación, para no repetirla si el componente se desmonta a mitad.
+// El token del enlace sirve una sola vez: cada token se envía una única vez por carga de la página y
+// su resultado se reutiliza aunque React monte dos veces o se limpie la caché de consultas. Solo si
+// no hubo conexión se permite volver a intentarlo.
+const activaciones = new Map();
+
+function activarUnaVez(token) {
+  if (!activaciones.has(token)) {
+    const intento = activarCuenta(token).catch((error) => {
+      if (error?.estado === 0) activaciones.delete(token);
+      throw error;
+    });
+    activaciones.set(token, intento);
+  }
+  return activaciones.get(token);
+}
+
 export default function Activar() {
   const [parametros] = useSearchParams();
   const token = parametros.get('token')?.trim() ?? '';
   const { autenticado } = useSesion();
+  const [resultado, setResultado] = useState({ estado: token ? 'cargando' : 'sin-token' });
 
-  const activacion = useQuery({
-    queryKey: ['activacion', token],
-    queryFn: () => activarCuenta(token),
-    enabled: token.length > 0,
-    retry: false,
-    staleTime: Infinity,
-    gcTime: Infinity,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  });
+  useEffect(() => {
+    if (!token) return undefined;
+    let vigente = true;
+    activarUnaVez(token).then(
+      (datos) => vigente && setResultado({ estado: 'activada', mensaje: datos?.mensaje }),
+      (error) => vigente && setResultado({ estado: 'error', mensaje: mensajeDeError(error) }),
+    );
+    return () => {
+      vigente = false;
+    };
+  }, [token]);
 
-  if (token && activacion.isPending) return <Cargando texto="Activando tu cuenta…" />;
+  if (resultado.estado === 'cargando') return <Cargando texto="Activando tu cuenta…" />;
 
-  if (token && activacion.isSuccess) {
+  if (resultado.estado === 'activada') {
     return (
       <div className="flex flex-col gap-4">
         <CircleCheck className="size-10 text-acento" aria-hidden="true" />
-        <EncabezadoAcceso titulo="¡Cuenta activada!">{activacion.data?.mensaje ?? 'Ya puedes iniciar sesión.'}</EncabezadoAcceso>
+        <EncabezadoAcceso titulo="¡Cuenta activada!">{resultado.mensaje ?? 'Ya puedes iniciar sesión.'}</EncabezadoAcceso>
         <Link
           to={autenticado ? '/' : '/iniciar-sesion'}
           className="inline-flex h-11 items-center justify-center rounded-lg bg-acento px-5 font-medium text-sobre-acento hover:bg-acento-hover"
@@ -48,11 +62,18 @@ export default function Activar() {
     );
   }
 
-  const motivo = token ? mensajeDeError(activacion.error) : 'El enlace no trae el código de activación.';
+  const motivo = resultado.estado === 'sin-token' ? 'El enlace no trae el código de activación.' : resultado.mensaje;
   return (
     <div className="flex flex-col gap-4">
       <CircleX className="size-10 text-peligro" aria-hidden="true" />
       <EncabezadoAcceso titulo="No pudimos activar tu cuenta">{motivo}</EncabezadoAcceso>
+      <p className="text-sm text-suave">
+        Si ya la activaste antes,{' '}
+        <Link to="/iniciar-sesion" className="font-medium text-acento hover:underline">
+          inicia sesión
+        </Link>
+        . Si no, pide un enlace nuevo.
+      </p>
       <ReenvioActivacion />
     </div>
   );
@@ -65,6 +86,7 @@ function ReenvioActivacion() {
 
   async function alEnviar(evento) {
     evento.preventDefault();
+    if (enviando) return;
     if (!pareceCorreo(email)) {
       setResultado({ tipo: 'error', texto: 'Escribe el correo con el que te registraste.' });
       return;
@@ -84,13 +106,17 @@ function ReenvioActivacion() {
     <form onSubmit={alEnviar} noValidate className="flex flex-col gap-3 rounded-xl border border-borde bg-superficie p-5">
       <p className="text-sm font-medium">Pide un enlace nuevo</p>
       {resultado && <Aviso tipo={resultado.tipo}>{resultado.texto}</Aviso>}
-      <Campo etiqueta="Correo" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+      <Campo
+        etiqueta="Correo"
+        type="email"
+        autoComplete="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        error={resultado?.tipo === 'error' && !pareceCorreo(email) ? resultado.texto : undefined}
+      />
       <Boton type="submit" variante="secundario" cargando={enviando}>
         Reenviar el enlace
       </Boton>
-      <Link to="/iniciar-sesion" className="text-center text-sm font-medium text-acento hover:underline">
-        Volver a iniciar sesión
-      </Link>
     </form>
   );
 }

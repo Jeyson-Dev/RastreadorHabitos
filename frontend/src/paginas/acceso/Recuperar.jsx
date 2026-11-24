@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CircleCheck } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { restablecerContrasena, solicitarCodigoRecuperacion } from '../../api/acceso';
@@ -8,6 +8,7 @@ import Boton from '../../componentes/Boton';
 import Campo from '../../componentes/Campo';
 import CampoContrasena from '../../componentes/CampoContrasena';
 import { pareceCorreo, validarContrasena } from '../../utilidades/contrasena';
+import { enfocarPrimerInvalido } from '../../utilidades/formularios';
 import EncabezadoAcceso from './EncabezadoAcceso';
 
 // Recuperación en una pantalla y dos pasos: pedir el código por correo y escribirlo junto con la
@@ -22,12 +23,26 @@ export default function Recuperar() {
   const [aviso, setAviso] = useState(null);
   const [enviando, setEnviando] = useState(false);
   const [listo, setListo] = useState(null);
+  const titulo = useRef(null);
+  const formulario = useRef(null);
+  const primerPaso = useRef(true);
+
+  // Al cambiar de paso, el foco va al título nuevo para que se anuncie (no en la primera carga).
+  useEffect(() => {
+    if (primerPaso.current) {
+      primerPaso.current = false;
+      return;
+    }
+    titulo.current?.focus();
+  }, [paso]);
 
   async function pedirCodigo(evento) {
     evento?.preventDefault();
+    if (enviando) return;
     setAviso(null);
     if (!pareceCorreo(email)) {
       setErrores({ email: 'Escribe un correo válido, por ejemplo ana@correo.com.' });
+      enfocarPrimerInvalido(formulario.current);
       return;
     }
     setErrores({});
@@ -51,7 +66,10 @@ export default function Recuperar() {
     const errorContrasena = validarContrasena(contrasenaNueva);
     if (errorContrasena) encontrados.contrasenaNueva = errorContrasena;
     setErrores(encontrados);
-    if (Object.keys(encontrados).length > 0) return;
+    if (Object.keys(encontrados).length > 0) {
+      enfocarPrimerInvalido(formulario.current);
+      return;
+    }
 
     setEnviando(true);
     try {
@@ -84,8 +102,8 @@ export default function Recuperar() {
       <p className="numeros mb-2 text-xs font-semibold tracking-wide text-suave uppercase">Paso {paso} de 2</p>
       {paso === 1 ? (
         <>
-          <EncabezadoAcceso titulo="Recupera tu contraseña">Te enviaremos un código a tu correo para crear una nueva.</EncabezadoAcceso>
-          <form onSubmit={pedirCodigo} noValidate className="flex flex-col gap-4">
+          <EncabezadoAcceso ref={titulo} titulo="Recupera tu contraseña">Te enviaremos un código a tu correo para crear una nueva.</EncabezadoAcceso>
+          <form ref={formulario} onSubmit={pedirCodigo} noValidate className="flex flex-col gap-4">
             {aviso && <Aviso tipo={aviso.tipo}>{aviso.texto}</Aviso>}
             <Campo
               etiqueta="Correo"
@@ -104,11 +122,11 @@ export default function Recuperar() {
         </>
       ) : (
         <>
-          <EncabezadoAcceso titulo="Escribe el código">
+          <EncabezadoAcceso ref={titulo} titulo="Escribe el código">
             Si <strong className="text-texto">{email.trim()}</strong> está registrado, te llegó un código de un solo uso que vence en 30
             minutos.
           </EncabezadoAcceso>
-          <form onSubmit={restablecer} noValidate className="flex flex-col gap-4">
+          <form ref={formulario} onSubmit={restablecer} noValidate className="flex flex-col gap-4">
             {aviso && <Aviso tipo={aviso.tipo}>{aviso.texto}</Aviso>}
             <Campo
               etiqueta="Código"
@@ -133,14 +151,22 @@ export default function Recuperar() {
               Cambiar contraseña
             </Boton>
             <div className="flex justify-between text-sm">
-              <button type="button" onClick={() => pedirCodigo()} className="font-medium text-acento hover:underline">
-                Reenviar código
+              <button
+                type="button"
+                onClick={() => pedirCodigo()}
+                disabled={enviando}
+                className="font-medium text-acento hover:underline disabled:opacity-60"
+              >
+                {enviando ? 'Enviando…' : 'Reenviar código'}
               </button>
               <button
                 type="button"
                 onClick={() => {
                   setPaso(1);
                   setAviso(null);
+                  setErrores({});
+                  setCodigo('');
+                  setContrasenaNueva('');
                 }}
                 className="text-suave hover:text-texto"
               >

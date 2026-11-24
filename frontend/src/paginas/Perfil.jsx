@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { LogOut } from 'lucide-react';
 import { cambiarContrasena } from '../api/acceso';
 import { mensajeDeError } from '../api/cliente';
@@ -8,6 +8,7 @@ import CampoContrasena from '../componentes/CampoContrasena';
 import Tarjeta from '../componentes/Tarjeta';
 import { ROL_ADMINISTRADOR, useSesion } from '../sesion/contextoSesion';
 import { validarContrasena } from '../utilidades/contrasena';
+import { enfocarPrimerInvalido } from '../utilidades/formularios';
 
 const NOMBRES_PERMISO = { LIMITE_HABITOS_AMPLIADO: 'Límite de hábitos ampliado (20)' };
 
@@ -20,6 +21,7 @@ export default function Perfil() {
   const [errores, setErrores] = useState({});
   const [error, setError] = useState(null);
   const [enviando, setEnviando] = useState(false);
+  const formulario = useRef(null);
 
   async function alCambiar(evento) {
     evento.preventDefault();
@@ -30,7 +32,10 @@ export default function Perfil() {
     if (errorNueva) encontrados.contrasenaNueva = errorNueva;
     else if (contrasenaNueva === contrasenaActual) encontrados.contrasenaNueva = 'La contraseña nueva debe ser distinta de la actual.';
     setErrores(encontrados);
-    if (Object.keys(encontrados).length > 0) return;
+    if (Object.keys(encontrados).length > 0) {
+      enfocarPrimerInvalido(formulario.current);
+      return;
+    }
 
     setEnviando(true);
     try {
@@ -75,7 +80,7 @@ export default function Perfil() {
           Cambiar contraseña
         </h2>
         <p className="mb-4 text-sm text-suave">Al cambiarla se cierran todas tus sesiones y tendrás que entrar de nuevo.</p>
-        <form onSubmit={alCambiar} noValidate className="flex max-w-sm flex-col gap-4">
+        <form ref={formulario} onSubmit={alCambiar} noValidate className="flex max-w-sm flex-col gap-4">
           {error && <Aviso tipo="error">{error}</Aviso>}
           <CampoContrasena
             etiqueta="Contraseña actual"

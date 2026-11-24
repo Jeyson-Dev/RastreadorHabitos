@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { MailCheck } from 'lucide-react';
 import { Link } from 'react-router';
 import { registrarCuenta, reenviarActivacion } from '../../api/acceso';
@@ -8,6 +8,7 @@ import Boton from '../../componentes/Boton';
 import Campo from '../../componentes/Campo';
 import CampoContrasena from '../../componentes/CampoContrasena';
 import { pareceCorreo, validarContrasena } from '../../utilidades/contrasena';
+import { enfocarPrimerInvalido } from '../../utilidades/formularios';
 import EncabezadoAcceso from './EncabezadoAcceso';
 
 const LONGITUD_MAXIMA_NOMBRE = 150;
@@ -30,6 +31,8 @@ export default function Registro() {
   const [enviando, setEnviando] = useState(false);
   const [registrado, setRegistrado] = useState(null);
   const [reenvio, setReenvio] = useState(null);
+  const [reenviando, setReenviando] = useState(false);
+  const formulario = useRef(null);
 
   const cambiar = (campo) => (e) => setDatos((d) => ({ ...d, [campo]: e.target.value }));
 
@@ -38,7 +41,10 @@ export default function Registro() {
     setError(null);
     const encontrados = validar(datos);
     setErrores(encontrados);
-    if (Object.keys(encontrados).length > 0) return;
+    if (Object.keys(encontrados).length > 0) {
+      enfocarPrimerInvalido(formulario.current);
+      return;
+    }
 
     setEnviando(true);
     try {
@@ -52,11 +58,15 @@ export default function Registro() {
   }
 
   async function alReenviar() {
+    if (reenviando) return;
+    setReenviando(true);
     try {
       const respuesta = await reenviarActivacion(registrado);
       setReenvio({ tipo: 'exito', texto: respuesta?.mensaje ?? 'Te enviamos un nuevo enlace.' });
     } catch (e) {
       setReenvio({ tipo: 'error', texto: mensajeDeError(e) });
+    } finally {
+      setReenviando(false);
     }
   }
 
@@ -69,7 +79,7 @@ export default function Registro() {
           cuenta; vence en 24 horas y sirve una sola vez.
         </EncabezadoAcceso>
         {reenvio && <Aviso tipo={reenvio.tipo}>{reenvio.texto}</Aviso>}
-        <Boton variante="secundario" onClick={alReenviar}>
+        <Boton variante="secundario" onClick={alReenviar} cargando={reenviando}>
           Reenviar el enlace
         </Boton>
         <Link to="/iniciar-sesion" className="text-center text-sm font-medium text-acento hover:underline">
@@ -83,7 +93,7 @@ export default function Registro() {
     <>
       <EncabezadoAcceso titulo="Crea tu cuenta">Empieza a registrar tus hábitos hoy.</EncabezadoAcceso>
 
-      <form onSubmit={alEnviar} noValidate className="flex flex-col gap-4">
+      <form ref={formulario} onSubmit={alEnviar} noValidate className="flex flex-col gap-4">
         {error && <Aviso tipo="error">{error}</Aviso>}
         <Campo
           etiqueta="Nombre completo"

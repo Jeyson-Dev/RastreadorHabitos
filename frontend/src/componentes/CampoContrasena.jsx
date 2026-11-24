@@ -22,12 +22,12 @@ export default function CampoContrasena({ etiqueta = 'Contraseña', error, conRe
       </div>
       <div className="relative">
         <input
+          {...entrada}
           id={idCampo}
           type={visible ? 'text' : 'password'}
           aria-invalid={error ? true : undefined}
           aria-describedby={[idRequisitos, idError].filter(Boolean).join(' ') || undefined}
           className={`h-10 w-full rounded-lg border bg-superficie pr-11 pl-3 text-sm text-texto focus:border-acento focus:ring-2 focus:ring-acento/30 focus:outline-none ${error ? 'border-peligro' : 'border-borde'}`}
-          {...entrada}
         />
         <button
           type="button"

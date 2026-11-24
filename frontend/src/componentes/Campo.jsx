@@ -13,11 +13,11 @@ export default function Campo({ etiqueta, ayuda, error, id, className = '', ...e
         {etiqueta}
       </label>
       <input
+        {...entrada}
         id={idCampo}
         aria-invalid={error ? true : undefined}
         aria-describedby={[idAyuda, idError].filter(Boolean).join(' ') || undefined}
         className={`h-10 rounded-lg border bg-superficie px-3 text-sm text-texto placeholder:text-suave/70 focus:border-acento focus:outline-none focus:ring-2 focus:ring-acento/30 ${error ? 'border-peligro' : 'border-borde'}`}
-        {...entrada}
       />
       {ayuda && !error && (
         <p id={idAyuda} className="text-xs text-suave">

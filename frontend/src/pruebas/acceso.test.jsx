@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { cleanup, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { requisitosContrasena, validarContrasena } from '../utilidades/contrasena';
 import { abrir, conSesionGuardada, llamadasA, simularApi, usuarioDePrueba } from './montaje';
@@ -103,6 +103,21 @@ describe('activación desde el enlace del correo', () => {
     const llamadas = llamadasA(api, 'GET', '/api/cuentas/activar');
     expect(llamadas).toHaveLength(1);
     expect(llamadas[0].url).toBe('/api/cuentas/activar?token=ABC123');
+  });
+
+  it('volver a montar la página (por ejemplo, tras limpiar la caché) no gasta el token otra vez', async () => {
+    // Preparar
+    const api = simularApi({ '/api/cuentas/activar': [200, { mensaje: 'Cuenta activada. Ya puede iniciar sesión.' }] });
+    abrir('/activar?token=UNICO');
+    expect(await screen.findByRole('heading', { name: '¡Cuenta activada!' })).toBeInTheDocument();
+    cleanup();
+
+    // Actuar
+    abrir('/activar?token=UNICO');
+
+    // Verificar
+    expect(await screen.findByRole('heading', { name: '¡Cuenta activada!' })).toBeInTheDocument();
+    expect(llamadasA(api, 'GET', '/api/cuentas/activar')).toHaveLength(1);
   });
 
   it('con un enlace usado o vencido explica el motivo y permite pedir otro', async () => {
