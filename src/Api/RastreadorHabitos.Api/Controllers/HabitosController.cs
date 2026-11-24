@@ -39,8 +39,6 @@ public class HabitosController : ControllerBase
         return Ok(await _habitos.RegistrarCumplimientoAsync(UsuarioActual(), id, registro));
     }
 
-    // Hábitos programados para hoy con el pronóstico de la ciudad indicada. Si el servicio de clima
-    // no está disponible, se rechaza de forma controlada y el resto del módulo sigue funcionando.
     // Solo lectura: historial de registros y rachas de un hábito propio.
     [HttpGet("{id:guid}/registros")]
     public async Task<IActionResult> ConsultarRegistros(Guid id, [FromQuery] string? desde, [FromQuery] string? hasta)
@@ -48,6 +46,8 @@ public class HabitosController : ControllerBase
         return Ok(await _habitos.ConsultarRegistrosAsync(UsuarioActual(), id, desde, hasta));
     }
 
+    // Hábitos programados para hoy con el pronóstico de la ciudad indicada. Si el servicio de clima
+    // no está disponible, se rechaza de forma controlada y el resto del módulo sigue funcionando.
     [HttpGet("hoy")]
     public async Task<IActionResult> PlanDeHoy([FromQuery] string? ciudad, CancellationToken cancelacion)
     {

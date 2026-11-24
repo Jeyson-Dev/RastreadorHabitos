@@ -83,6 +83,7 @@ public class HabitosService : IHabitosService, IConsultaHabitos
         var registros = (await _context.RegistrosDiarios
                 .AsNoTracking()
                 .Where(r => ids.Contains(r.HabitoId))
+                .Select(r => new { r.HabitoId, r.Fecha, r.Cumplido })
                 .ToListAsync())
             .ToLookup(r => r.HabitoId);
 
