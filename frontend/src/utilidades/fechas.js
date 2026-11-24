@@ -64,6 +64,12 @@ export const capitalizar = (texto) => (texto ? texto[0].toUpperCase() + texto.sl
 export const nombreMes = (iso) => capitalizar(formatoMes.format(aUtc(iso)));
 export const fechaLarga = (iso) => formatoDia.format(aUtc(iso));
 
+const formatoCorto = new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+export const fechaCorta = (iso) => formatoCorto.format(aUtc(iso)).replace('.', '');
+
+// Días de «desde» a «hasta» (negativo si «hasta» es anterior).
+export const diasEntre = (desde, hasta) => Math.round((aUtc(hasta) - aUtc(desde)) / 86_400_000);
+
 // Instante UTC del servidor. Algunos llegan sin «Z» (EF devuelve DateTime sin Kind): se toman como UTC.
 export function instanteUtc(texto) {
   if (!texto) return null;
