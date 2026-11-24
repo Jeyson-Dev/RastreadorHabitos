@@ -218,10 +218,21 @@ using (var scope = app.Services.CreateScope())
 
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
+
+// El frontend compilado (frontend/ → wwwroot) se sirve en el mismo puerto: sin CORS.
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Una ruta /api que no existe responde un 404 en JSON, nunca la página del frontend.
+app.Map("/api/{**resto}", () => Results.NotFound(new { error = "No existe esa operación de la API." }));
+
+// Cualquier otra ruta sin archivo es una pantalla del frontend: la resuelve React Router.
+app.MapFallbackToFile("index.html");
 
 // Construye los endpoints ya, no en la primera petición: si alguna operación no declara su
 // exigencia de rol en ExigenciasDeRol, la API no arranca [RF-CA-05].

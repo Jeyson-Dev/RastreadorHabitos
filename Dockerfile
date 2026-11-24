@@ -1,6 +1,17 @@
-# Imagen de la aplicación (Práctica 4, sección 1.2). Dos etapas: el SDK compila y publica; la
-# imagen final solo lleva el runtime de ASP.NET y lo publicado. Ningún secreto entra en la imagen:
+# Imagen de la aplicación (Práctica 4, sección 1.2). Tres etapas: Node compila el frontend, el SDK
+# compila y publica la API con el frontend en wwwroot, y la imagen final solo lleva el runtime de
+# ASP.NET y lo publicado. Ningún secreto entra en la imagen:
 # toda la configuración llega por variables de entorno desde .env (ver docker-compose.yml).
+
+# --- Etapa 0: frontend (React + Vite) ---
+# Compila frontend/ y deja el resultado en /frontend/salida; la etapa 1 lo copia al wwwroot de la
+# API, que lo sirve en el mismo puerto. Primero las dependencias, para que queden en caché.
+FROM node:24-alpine AS frontend
+WORKDIR /frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY frontend/ ./
+RUN npm run build -- --outDir /frontend/salida --emptyOutDir
 
 # --- Etapa 1: compilación ---
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS compilacion
@@ -19,6 +30,7 @@ COPY src/Api/RastreadorHabitos.Api/RastreadorHabitos.Api.csproj src/Api/Rastread
 RUN dotnet restore src/Api/RastreadorHabitos.Api/RastreadorHabitos.Api.csproj
 
 COPY src/ src/
+COPY --from=frontend /frontend/salida src/Api/RastreadorHabitos.Api/wwwroot/
 RUN dotnet publish src/Api/RastreadorHabitos.Api/RastreadorHabitos.Api.csproj \
     -c Release -o /app/publicado --no-restore /p:UseAppHost=false
 

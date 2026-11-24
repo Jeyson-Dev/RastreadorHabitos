@@ -23,9 +23,10 @@ El primer Administrador se crea con
 ## 2. Flujo completo
 
 1. **Registro y activación.** `POST /api/cuentas/registro` → el correo de activación sale por la
-   cola → el usuario abre `GET /api/cuentas/activar?token=…`. Sin activar, iniciar sesión da `403`.
+   cola con un enlace a la página `/activar?token=…` del frontend, que llama a
+   `GET /api/cuentas/activar?token=…`. Sin activar, iniciar sesión da `403`.
 2. **Sesión.** `POST /api/sesion/iniciar` devuelve `{ token, expiraUtc }` (JWT, 8 horas). Se manda en
-   todas las peticiones: `Authorization: Bearer <token>`. `GET /api/sesion/usuario` da el `rol`
+   todas las peticiones: `Authorization: Bearer <token>`. `GET /api/sesion/usuario` da el `id`, el `rol` y los `permisos`
    (para mostrar u ocultar opciones; el servidor igual lo verifica). `POST /api/sesion/cerrar`
    invalida el token. Cinco fallos seguidos bloquean 15 minutos (`423`).
 3. **Contraseña.** Recuperar: `POST /api/contrasena/recuperar` → código por correo →
@@ -36,6 +37,9 @@ El primer Administrador se crea con
    el permiso.
 5. **Registro diario.** `POST /api/habitos/{id}/registros` con `{ cumplido }`: solo **hoy** (la fecha
    la pone el servidor) y solo si hoy es un día programado (si no, `409`). Se corrige el mismo día.
+   La **racha** cuenta días programados consecutivos cumplidos; un día programado pasado sin
+   cumplir la rompe y hoy sin registrar todavía no. `GET /api/habitos` trae la racha y el estado de
+   hoy de cada hábito; `GET /api/habitos/{id}/registros` da su historial.
 6. **Plan de hoy.** `GET /api/habitos/hoy?ciudad=…` cruza los hábitos de hoy con el pronóstico de
    WeatherAPI; sin clave o sin servicio, `503` controlado.
 7. **Metas.** `POST /api/metas` nace **Pendiente**. Avance = días cumplidos de sus hábitos entre la
@@ -71,12 +75,12 @@ Rol: **—** sin sesión · **S** cualquier usuario con sesión · **A** solo Ad
 
 | Método y ruta | Rol | Cuerpo de ejemplo | Respuestas |
 |---|---|---|---|
-| `GET /` | — | — | `200` estado de la API |
+| `GET /api/estado` | — | — | `200` estado de la API (la raíz `/` queda para el frontend) |
 | `POST /api/cuentas/registro` | — | `{ "email": "ana@correo.com", "contrasena": "Habitos2026", "nombreCompleto": "Ana Pérez" }` | `201` · `400` · `409` correo ya registrado |
 | `GET /api/cuentas/activar?token=…` | — | — | `200` · `400` enlace inválido o vencido |
 | `POST /api/cuentas/reenviar-activacion` | — | `{ "email" }` | `200` siempre igual · `400` |
 | `POST /api/sesion/iniciar` | — | `{ "email", "contrasena" }` | `200 { token, expiraUtc }` · `401` · `403` · `423` |
-| `GET /api/sesion/usuario` | S | — | `200 { email, nombreCompleto, rol }` |
+| `GET /api/sesion/usuario` | S | — | `200 { id, email, nombreCompleto, rol, permisos: [ "LIMITE_HABITOS_AMPLIADO" ] }` |
 | `POST /api/sesion/cerrar` | S | — | `200` |
 | `POST /api/contrasena/recuperar` | — | `{ "email" }` | `200` siempre igual · `400` |
 | `POST /api/contrasena/restablecer` | — | `{ "email", "codigo": "K7Q2-M9XP", "contrasenaNueva": "Nueva2026x" }` | `200` · `400` |
@@ -90,7 +94,8 @@ Rol: **—** sin sesión · **S** cualquier usuario con sesión · **A** solo Ad
 | `POST /api/solicitudes-permiso/{id}/aprobar` | A | — | `200` `Aplicada` · `403` · `404` · `409` |
 | `POST /api/solicitudes-permiso/{id}/rechazar` | A | `{ "motivo": "No corresponde." }` | `200` `Rechazada` · `400` · `403` · `404` · `409` |
 | `POST /api/habitos` | S | `{ "nombre": "Leer", "descripcion": "Antes de dormir", "dias": [1, 3, 5] }` | `201 { id, nombre, descripcion, dias, fechaCreacionUtc }` · `400` · `403` límite |
-| `GET /api/habitos` | S | — | `200` sus hábitos |
+| `GET /api/habitos` | S | — | `200` sus hábitos, cada uno con `rachaActual`, `mejorRacha`, `programadoHoy` y `cumplidoHoy` (`null` si hoy no se registró) |
+| `GET /api/habitos/{id}/registros?desde=&hasta=` | S | — | `200 { habitoId, desde, hasta, rachaActual, mejorRacha, registros: [ { habitoId, fecha, cumplido } ] }` (sin fechas: últimos 30 días) · `400` · `404` |
 | `POST /api/habitos/{id}/registros` | S | `{ "cumplido": true }` | `200 { habitoId, fecha, cumplido }` · `400` · `404` · `409` |
 | `GET /api/habitos/hoy?ciudad=Santo Domingo` | S | — | `200 { fecha, ciudad, pronostico, favorableAlAireLibre, recomendacion, pendientes, habitos }` · `400` · `503` |
 | `POST /api/metas` | S | `{ "nombre": "Leer 20 veces", "objetivoCumplimientos": 20, "fechaLimite": "2026-12-15", "habitoIds": ["<id>"] }` | `201 { id, nombre, objetivoCumplimientos, avance, fechaInicio, fechaLimite, estado, habitoIds, fechaCreacionUtc }` · `400` |
