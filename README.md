@@ -135,7 +135,7 @@ muestra `Now listening on: http://[::]:8080`.
 
 | Qué | Dirección |
 |---|---|
-| **La API** | **`http://localhost:5003`**. Al abrirla responde `{ "aplicacion": "Rastreador de hábitos con metas", "estado": "En funcionamiento", … }`; todas las rutas de este README van debajo, por ejemplo `http://localhost:5003/api/cuentas/registro` |
+| **La API** | **`http://localhost:5003`**. `http://localhost:5003/api/estado` responde `{ "aplicacion": "Rastreador de hábitos con metas", "estado": "En funcionamiento", … }`; todas las rutas de este README van debajo, por ejemplo `http://localhost:5003/api/cuentas/registro` |
 | Los correos que envía la aplicación (Mailpit) | `http://localhost:8025` |
 
 **Detener el proyecto:** `Ctrl+C` en la terminal donde corre y después `docker compose down`

@@ -71,7 +71,7 @@ Rol: **—** sin sesión · **S** cualquier usuario con sesión · **A** solo Ad
 
 | Método y ruta | Rol | Cuerpo de ejemplo | Respuestas |
 |---|---|---|---|
-| `GET /` | — | — | `200` estado de la API |
+| `GET /api/estado` | — | — | `200` estado de la API (la raíz `/` queda para el frontend) |
 | `POST /api/cuentas/registro` | — | `{ "email": "ana@correo.com", "contrasena": "Habitos2026", "nombreCompleto": "Ana Pérez" }` | `201` · `400` · `409` correo ya registrado |
 | `GET /api/cuentas/activar?token=…` | — | — | `200` · `400` enlace inválido o vencido |
 | `POST /api/cuentas/reenviar-activacion` | — | `{ "email" }` | `200` siempre igual · `400` |
