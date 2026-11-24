@@ -26,7 +26,7 @@ El primer Administrador se crea con
    cola con un enlace a la página `/activar?token=…` del frontend, que llama a
    `GET /api/cuentas/activar?token=…`. Sin activar, iniciar sesión da `403`.
 2. **Sesión.** `POST /api/sesion/iniciar` devuelve `{ token, expiraUtc }` (JWT, 8 horas). Se manda en
-   todas las peticiones: `Authorization: Bearer <token>`. `GET /api/sesion/usuario` da el `rol`
+   todas las peticiones: `Authorization: Bearer <token>`. `GET /api/sesion/usuario` da el `id`, el `rol` y los `permisos`
    (para mostrar u ocultar opciones; el servidor igual lo verifica). `POST /api/sesion/cerrar`
    invalida el token. Cinco fallos seguidos bloquean 15 minutos (`423`).
 3. **Contraseña.** Recuperar: `POST /api/contrasena/recuperar` → código por correo →
@@ -80,7 +80,7 @@ Rol: **—** sin sesión · **S** cualquier usuario con sesión · **A** solo Ad
 | `GET /api/cuentas/activar?token=…` | — | — | `200` · `400` enlace inválido o vencido |
 | `POST /api/cuentas/reenviar-activacion` | — | `{ "email" }` | `200` siempre igual · `400` |
 | `POST /api/sesion/iniciar` | — | `{ "email", "contrasena" }` | `200 { token, expiraUtc }` · `401` · `403` · `423` |
-| `GET /api/sesion/usuario` | S | — | `200 { email, nombreCompleto, rol }` |
+| `GET /api/sesion/usuario` | S | — | `200 { id, email, nombreCompleto, rol, permisos: [ "LIMITE_HABITOS_AMPLIADO" ] }` |
 | `POST /api/sesion/cerrar` | S | — | `200` |
 | `POST /api/contrasena/recuperar` | — | `{ "email" }` | `200` siempre igual · `400` |
 | `POST /api/contrasena/restablecer` | — | `{ "email", "codigo": "K7Q2-M9XP", "contrasenaNueva": "Nueva2026x" }` | `200` · `400` |

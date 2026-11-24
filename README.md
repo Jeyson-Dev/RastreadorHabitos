@@ -492,7 +492,7 @@ Administrador puede cambiar el rol de los demás desde la API.
 | `GET` | `/api/cuentas/activar?token=…` | — | `200` cuenta activada · `400` enlace inválido, usado o vencido |
 | `POST` | `/api/cuentas/reenviar-activacion` | `{ "email" }` | `200` siempre la misma respuesta · `400` correo vacío o mal formado |
 | `POST` | `/api/sesion/iniciar` | `{ "email", "contrasena" }` | `200 { "token", "expiraUtc" }` · `401` credenciales incorrectas · `403` cuenta no activa o desactivada · `423` cuenta bloqueada |
-| `GET` | `/api/sesion/usuario` | — (requiere sesión) | `200 { "email", "nombreCompleto", "rol" }` · `401` sin sesión válida |
+| `GET` | `/api/sesion/usuario` | — (requiere sesión) | `200 { "id", "email", "nombreCompleto", "rol", "permisos": [ … ] }` · `401` sin sesión válida |
 | `POST` | `/api/sesion/cerrar` | — (requiere sesión) | `200` sesión cerrada · `401` sin sesión válida |
 | `GET` | `/api/usuarios` | — (Administrador) | `200` lista con `id`, `email`, `nombreCompleto`, `rol` y `estado` |
 | `PUT` | `/api/usuarios/{id}/rol` | `{ "rol": "Administrador" \| "Estandar" }` (Administrador) | `200` rol actualizado · `400` rol inválido · `403` es el propio rol · `404` usuario inexistente |
@@ -621,7 +621,8 @@ inicio de sesión correcto, `IntentosFallidosConsecutivos` vuelve a `0`. Para no
 `UPDATE ControlAcceso.Usuarios SET BloqueadoHastaUtc = NULL WHERE Email = '<correo>';`.
 
 **3. Consulta del usuario autenticado (RF-CA-07).** `GET /api/sesion/usuario`:
-- con `Authorization: Bearer <token>` → `200` con el correo, el nombre y el rol;
+- con `Authorization: Bearer <token>` → `200` con el id, el correo, el nombre, el rol y los permisos aplicados (por ejemplo
+  `["LIMITE_HABITOS_AMPLIADO"]`);
 - sin el header, o con un token inventado o modificado → `401` «Se requiere una sesión válida.»
 
 **4. Cerrar sesión y volver a usar la credencial cerrada (RF-CA-18).**
