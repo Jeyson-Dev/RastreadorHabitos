@@ -8,6 +8,7 @@
     <ProjectReference Include="..\..\Core\RastreadorHabitos.Core.GestionPermisos\RastreadorHabitos.Core.GestionPermisos.csproj" />
     <ProjectReference Include="..\..\Core\RastreadorHabitos.Core.Documentos\RastreadorHabitos.Core.Documentos.csproj" />
     <ProjectReference Include="..\..\Core\RastreadorHabitos.Core.Reportes\RastreadorHabitos.Core.Reportes.csproj" />
+    <ProjectReference Include="..\..\Core\RastreadorHabitos.Core.Auditoria\RastreadorHabitos.Core.Auditoria.csproj" />
   </ItemGroup>
 
   <ItemGroup>

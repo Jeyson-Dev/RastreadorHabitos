@@ -5,6 +5,7 @@ using RastreadorHabitos.Api.Autenticacion;
 using RastreadorHabitos.Api.Autorizacion;
 using RastreadorHabitos.Api.Comandos;
 using RastreadorHabitos.Api.Errores;
+using RastreadorHabitos.Core.Auditoria.Data;
 using RastreadorHabitos.Core.ControlAcceso.Configuracion;
 using RastreadorHabitos.Core.ControlAcceso.Data;
 using RastreadorHabitos.Core.ControlAcceso.Services;
@@ -66,6 +67,9 @@ builder.Services.AddDbContext<HabitosDbContext>(options =>
 builder.Services.AddDbContext<DocumentosDbContext>(options =>
     options.UseSqlServer(cadenaConexion,
         sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", DocumentosDbContext.Esquema)));
+builder.Services.AddDbContext<AuditoriaDbContext>(options =>
+    options.UseSqlServer(cadenaConexion,
+        sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", AuditoriaDbContext.Esquema)));
 
 // Los enlaces de los correos se arman con esta URL y nunca con la cabecera Host de la petición.
 // Si no se configura, se usa la dirección con la que arranca la aplicación por defecto.

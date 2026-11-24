@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RastreadorHabitos.Core.Auditoria.Data;
 using RastreadorHabitos.Core.ControlAcceso.Data;
 using RastreadorHabitos.Core.ControlAcceso.Services;
 using RastreadorHabitos.Core.Documentos.Data;
@@ -18,9 +19,11 @@ public static class ComandosConsola
     public const string EnviarCorreos = "enviar-correos";
     public const string PromoverAdministrador = "promover-administrador";
 
-    // Cada pieza aplica sus propias migraciones; la base se crea si no existe [RD-09].
+    // Cada pieza aplica sus propias migraciones; la base se crea si no existe [RD-09]. Auditoría va
+    // primero: las piezas auditadas escriben en su tabla desde sus propios contextos.
     public static async Task MigrarAsync(IServiceProvider servicios)
     {
+        await servicios.GetRequiredService<AuditoriaDbContext>().Database.MigrateAsync();
         await servicios.GetRequiredService<ControlAccesoDbContext>().Database.MigrateAsync();
         await servicios.GetRequiredService<NotificacionesDbContext>().Database.MigrateAsync();
         await servicios.GetRequiredService<MetasDbContext>().Database.MigrateAsync();
