@@ -36,7 +36,7 @@ export default function Correos() {
               </div>
               <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${CHIP[c.estado] ?? 'bg-superficie-suave text-suave'}`}>{c.estado}</span>
             </div>
-            <dl className="numeros grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-suave sm:grid-cols-4">
+            <dl className="numeros grid grid-cols-1 gap-x-4 gap-y-1 text-xs break-all text-suave min-[420px]:grid-cols-2 sm:grid-cols-4">
               <div>
                 <dt className="inline">Intentos: </dt>
                 <dd className="inline text-texto">{c.intentos}</dd>

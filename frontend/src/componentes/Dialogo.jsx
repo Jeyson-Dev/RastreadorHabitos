@@ -2,7 +2,7 @@ import { useEffect, useId, useRef } from 'react';
 
 // Diálogo centrado y breve (confirmar o pedir un dato). <dialog> nativo: atrapa el foco, Escape o un
 // toque fuera lo cierran y devuelve el foco al cerrar. El foco inicial va a [data-autofocus].
-export default function Dialogo({ abierto, alCerrar, titulo, descripcion, children }) {
+export default function Dialogo({ abierto, alCerrar, titulo, descripcion, bloqueado = false, children }) {
   const dialogo = useRef(null);
   const abiertoActual = useRef(abierto);
   const idTitulo = useId();
@@ -25,7 +25,8 @@ export default function Dialogo({ abierto, alCerrar, titulo, descripcion, childr
       aria-labelledby={idTitulo}
       aria-describedby={descripcion ? idDescripcion : undefined}
       onClose={() => abiertoActual.current && alCerrar()}
-      onClick={(e) => e.target === dialogo.current && dialogo.current.close()}
+      onCancel={(e) => bloqueado && e.preventDefault()}
+      onClick={(e) => !bloqueado && e.target === dialogo.current && dialogo.current.close()}
       className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-borde bg-superficie p-0 text-texto backdrop:bg-black/40"
     >
       {abierto && (

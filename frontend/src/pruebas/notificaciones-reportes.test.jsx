@@ -102,6 +102,9 @@ describe('notificaciones', () => {
   });
 });
 
+// Reportes se carga de forma diferida (Recharts): con toda la suite en paralelo puede tardar más de 1 s.
+const ESPERA_RUTA_DIFERIDA = { timeout: 5000 };
+
 describe('reportes', () => {
   const cumplimiento = {
     reporte: 'cumplimiento-semanal',
@@ -123,7 +126,7 @@ describe('reportes', () => {
     abrir('/reportes');
 
     // Verificar
-    const tarjeta = await screen.findByRole('region', { name: 'Cumplimiento semanal' });
+    const tarjeta = await screen.findByRole('region', { name: 'Cumplimiento semanal' }, ESPERA_RUTA_DIFERIDA);
     expect(await within(tarjeta).findByText('Solo sus datos')).toBeInTheDocument();
     expect(within(tarjeta).getByRole('cell', { name: '80 %' })).toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Solicitudes de permiso por estado' })).getByText('No hay datos en este rango')).toBeInTheDocument();
@@ -138,7 +141,7 @@ describe('reportes', () => {
     });
     abrir('/reportes');
     const persona = userEvent.setup();
-    await screen.findByRole('region', { name: 'Cumplimiento semanal' });
+    await screen.findByRole('region', { name: 'Cumplimiento semanal' }, ESPERA_RUTA_DIFERIDA);
     const antes = api.mock.calls.length;
 
     // Actuar
@@ -163,7 +166,7 @@ describe('reportes', () => {
     abrir('/reportes');
 
     // Verificar
-    const tarjeta = await screen.findByRole('region', { name: 'Cumplimiento semanal' });
+    const tarjeta = await screen.findByRole('region', { name: 'Cumplimiento semanal' }, ESPERA_RUTA_DIFERIDA);
     expect(await within(tarjeta).findByText('El rango de fechas no es válido.')).toBeInTheDocument();
     expect(within(tarjeta).getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
   });

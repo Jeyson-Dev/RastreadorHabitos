@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { mensajeDeError } from '../api/cliente';
 import Aviso from './Aviso';
 import Boton from './Boton';
@@ -8,7 +8,7 @@ import Dialogo from './Dialogo';
 // blanco) que se entrega a «alConfirmar». «accion» es una mutación de TanStack Query.
 export default function Confirmar({ abierto, alCerrar, titulo, descripcion, textoBoton, peligroso, pedirMotivo, accion, alConfirmar }) {
   return (
-    <Dialogo abierto={abierto} alCerrar={alCerrar} titulo={titulo} descripcion={descripcion}>
+    <Dialogo abierto={abierto} alCerrar={alCerrar} titulo={titulo} descripcion={descripcion} bloqueado={accion.isPending}>
       {abierto && (
         <CuerpoConfirmar
           alCerrar={alCerrar}
@@ -27,6 +27,13 @@ function CuerpoConfirmar({ alCerrar, textoBoton, peligroso, pedirMotivo, accion,
   const [motivo, setMotivo] = useState('');
   const [error, setError] = useState(null);
   const idMotivo = useId();
+  const idError = useId();
+  const { reset } = accion;
+
+  // Una mutación sirve a varios objetivos: el error de uno no debe verse al abrir otro.
+  useEffect(() => {
+    reset();
+  }, [reset]);
 
   function alEnviar(evento) {
     evento.preventDefault();
@@ -54,10 +61,15 @@ function CuerpoConfirmar({ alCerrar, textoBoton, peligroso, pedirMotivo, accion,
             value={motivo}
             onChange={(e) => setMotivo(e.target.value)}
             aria-invalid={error ? true : undefined}
+            aria-describedby={error ? idError : undefined}
             data-autofocus
             className="rounded-lg border border-borde bg-superficie px-3 py-2 text-sm focus:border-acento focus:ring-2 focus:ring-acento/30 focus:outline-none"
           />
-          {error && <p className="text-xs font-medium text-peligro">{error}</p>}
+          {error && (
+            <p id={idError} role="alert" className="text-xs font-medium text-peligro">
+              {error}
+            </p>
+          )}
         </div>
       )}
       <div className="flex justify-end gap-2">

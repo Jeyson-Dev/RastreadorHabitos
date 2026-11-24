@@ -23,12 +23,15 @@ async function guardarComo(documento) {
   const blob = await descargarDocumento(documento.id);
   const url = URL.createObjectURL(blob);
   const enlace = document.createElement('a');
-  enlace.href = url;
-  enlace.download = documento.nombre;
-  document.body.append(enlace);
-  enlace.click();
-  enlace.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  try {
+    enlace.href = url;
+    enlace.download = documento.nombre;
+    document.body.append(enlace);
+    enlace.click();
+  } finally {
+    enlace.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 }
 
 // Documentos: subir, listar, descargar y eliminar (lógico). Cada uno ve los suyos; el Administrador, todos.
@@ -101,6 +104,7 @@ export default function Documentos() {
                 variante="secundario"
                 onClick={() => descargar.mutate(d)}
                 cargando={descargar.isPending && descargar.variables?.id === d.id}
+                disabled={descargar.isPending}
                 aria-label={`Descargar ${d.nombre}`}
               >
                 <Download className="size-4" aria-hidden="true" />
