@@ -120,8 +120,8 @@ Es un proyecto largo que se construye por prácticas, todas sobre el mismo dise�
 | 3 | `docs/practica3-modulo-negocio.md` | Módulo de negocio funcionando (RF-NEG-02 a 06 y 09) · suite de la máquina de estados de Meta · cuatro defectos plantados (tags `practica-3-defecto-1` a `4`) · prueba de integración con Gestión de permisos · revisión acumulada de los cinco frentes | Entregada (tag `practica-3`) |
 | 4 | `docs/practica4-contenedor-documentos-api.md` | Manejador de documentos (pieza 3: RF-DOC-01 a 05) · proyecto en contenedores con un solo comando (`Dockerfile`, `.dockerignore`, `docker-compose.yml`) · volúmenes persistentes · API externa con su clave como secreto (`.env` no versionado, `.env.example`) · revisión acumulada de los seis frentes | Entregada (tag `practica-4`) |
 | 5 | `docs/practica5-notificaciones-reportes.md` | Contexto del agente y criterios de aceptación antes de delegar (§1.1) · Notificaciones (pieza 4: RF-NOT-01 a 07) · cola de correos completa (RF-NOT-08 a 13) · Reportes con agregación (pieza 5: RF-REP-01 a 05) · revisión acumulada de los seis frentes | Entregada (tag `practica-5`) |
-| Asignación 3 | `docs/asignacion3-auditoria-delegacion.md` | Auditoría de lo construido en la Práctica 5 · al menos tres hallazgos con evidencia · un commit y una prueba de regresión por hallazgo · bitácora `docs/bitacora-asignacion-3.md` | En curso (tag `asignacion-3`) |
-| Asignación 4 | `docs/asignacion4-historial-auditoria.md` | Auditoría (pieza 6: RF-AUD-01 a 07, RF-DOC-06) · pruebas de cada evento auditado · bitácora `docs/bitacora-asignacion-4.md` con el paralelo con git | Pendiente (tag `asignacion-4`) |
+| Asignación 3 | `docs/asignacion3-auditoria-delegacion.md` | Auditoría de lo construido en la Práctica 5 · al menos tres hallazgos con evidencia · un commit y una prueba de regresión por hallazgo · bitácora `docs/bitacora-asignacion-3.md` | Entregada (tag `asignacion-3`) |
+| Asignación 4 | `docs/asignacion4-historial-auditoria.md` | Auditoría (pieza 6: RF-AUD-01 a 07, RF-DOC-06) · pruebas de cada evento auditado · bitácora `docs/bitacora-asignacion-4.md` con el paralelo con git | En curso (tag `asignacion-4`) |
 
 **Cuando llegue una práctica nueva:** agregar su transcripción literal a `docs/`, añadir su
 fila a esta tabla y adaptar el proyecto a ella **sin romper lo que exigen las prácticas
@@ -354,6 +354,7 @@ ninguna clase de ese tipo, pregunta antes de decidir la carpeta.
   delegado en la Práctica 5, correcciones con su prueba y bitácora).
 - `docs/asignacion4-historial-auditoria.md`: enunciado de la Asignación 4 (historial de
   auditoría, sus pruebas y la bitácora con el paralelo con git).
+- `docs/bitacora-asignacion-4.md` y `docs/como-funciona-la-app.md`: bitácora de la Asignación 4 e inventario de endpoints para el frontend.
 - `docs/requerimientos-core.md`: Requerimientos del Core (RD-XX, RF-XX y entidades mínimas), igual
   para todos los proyectos.
 - `docs/diseno-componentes-detalle.md`: detalle del diseño de componentes (fronteras, interfaces,
