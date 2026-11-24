@@ -5,6 +5,9 @@ import { useSesion } from './contextoSesion';
 export default function RutaPublica() {
   const { autenticado } = useSesion();
   const ubicacion = useLocation();
-  if (autenticado) return <Navigate to={ubicacion.state?.desde ?? '/'} replace />;
+  const desde = ubicacion.state?.desde;
+  // Solo rutas internas de la app: nunca «//otro-sitio» ni direcciones absolutas.
+  const destino = typeof desde === 'string' && desde.startsWith('/') && !desde.startsWith('//') ? desde : '/';
+  if (autenticado) return <Navigate to={destino} replace />;
   return <Outlet />;
 }

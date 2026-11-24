@@ -8,6 +8,16 @@ afterEach(() => {
   localStorage.clear();
 });
 
+// jsdom no implementa <dialog> (showModal y close); basta con abrir y cerrar.
+if (typeof HTMLDialogElement !== 'undefined' && !HTMLDialogElement.prototype.showModal) {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.open = false;
+  };
+}
+
 // jsdom no implementa matchMedia; las pruebas del tema lo reemplazan cuando lo necesitan.
 if (!window.matchMedia) {
   window.matchMedia = (consulta) => ({

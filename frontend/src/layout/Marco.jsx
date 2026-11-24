@@ -1,19 +1,34 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Bell } from 'lucide-react';
-import { Link, Outlet, useMatches } from 'react-router';
+import { Link, Outlet, useLocation, useMatches } from 'react-router';
 import InterruptorTema from '../tema/InterruptorTema';
 import BarraInferior from './BarraInferior';
 import BarraLateral from './BarraLateral';
 
 // Marco de las pantallas con sesión: barra lateral (escritorio) o inferior (móvil), encabezado con
-// el título de la sección, avisos y tema, y el contenido. El título sale del «handle» de la ruta.
+// el título de la sección, avisos y tema, y el contenido. El título sale del «handle» de la ruta y
+// es el único h1: las páginas dentro del marco empiezan en h2.
 export default function Marco() {
   const coincidencias = useMatches();
   const titulo = [...coincidencias].reverse().find((c) => c.handle?.titulo)?.handle.titulo ?? '';
 
+  const { pathname } = useLocation();
+  const contenido = useRef(null);
+  const primeraVez = useRef(true);
+
   useEffect(() => {
     document.title = titulo ? `${titulo} · Rastreador de hábitos` : 'Rastreador de hábitos';
   }, [titulo]);
+
+  // Al cambiar de sección, el foco pasa al contenido para que el lector de pantalla lo anuncie
+  // (no en la primera carga, para no saltarse el encabezado).
+  useEffect(() => {
+    if (primeraVez.current) {
+      primeraVez.current = false;
+      return;
+    }
+    contenido.current?.focus({ preventScroll: true });
+  }, [pathname]);
 
   return (
     <div className="min-h-dvh">
@@ -40,7 +55,7 @@ export default function Marco() {
           <InterruptorTema />
         </header>
 
-        <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-24 md:px-8 md:pb-10">
+        <main id="contenido" ref={contenido} tabIndex={-1} aria-label={titulo || undefined} className="outline-none mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-24 md:px-8 md:pb-10">
           <Outlet />
         </main>
       </div>

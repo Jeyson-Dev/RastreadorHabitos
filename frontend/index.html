@@ -6,16 +6,9 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" type="image/svg+xml" href="/icono.svg" />
     <title>Rastreador de hábitos</title>
-    <script>
-      // Aplica el tema antes de pintar, para que no parpadee al cargar.
-      (function () {
-        var guardado = null;
-        try { guardado = localStorage.getItem('rh.tema'); } catch (e) {}
-        var oscuro = guardado === 'oscuro' ||
-          ((guardado === null || guardado === 'sistema') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        document.documentElement.classList.toggle('dark', oscuro);
-      })();
-    </script>
+    <!-- Aplica el tema antes de pintar (sin parpadeo). Es un archivo y no un script en línea para que
+         una política CSP no necesite 'unsafe-inline'. -->
+    <script src="/tema.js"></script>
   </head>
   <body class="bg-fondo text-texto antialiased">
     <div id="raiz"></div>

@@ -1,6 +1,6 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Ellipsis, LogOut, X } from 'lucide-react';
-import { NavLink } from 'react-router';
+import { NavLink, useLocation } from 'react-router';
 import { useSesion } from '../sesion/contextoSesion';
 import EnlaceNavegacion from './EnlaceNavegacion';
 import { RUTAS_BARRA_INFERIOR, SECCION_PERFIL, SECCIONES_ADMINISTRACION, SECCIONES_PRINCIPALES } from './navegacion';
@@ -13,6 +13,18 @@ export default function BarraInferior() {
   const fijas = SECCIONES_PRINCIPALES.filter((s) => RUTAS_BARRA_INFERIOR.includes(s.a));
   const resto = SECCIONES_PRINCIPALES.filter((s) => !RUTAS_BARRA_INFERIOR.includes(s.a));
   const cerrar = () => dialogo.current?.close();
+  const { pathname } = useLocation();
+
+  // Se cierra al navegar y al pasar a escritorio (donde la barra inferior no existe).
+  useEffect(() => {
+    dialogo.current?.close();
+  }, [pathname]);
+  useEffect(() => {
+    const escritorio = window.matchMedia('(min-width: 48rem)');
+    const alCambiar = (evento) => evento.matches && dialogo.current?.close();
+    escritorio.addEventListener('change', alCambiar);
+    return () => escritorio.removeEventListener('change', alCambiar);
+  }, []);
 
   return (
     <>
