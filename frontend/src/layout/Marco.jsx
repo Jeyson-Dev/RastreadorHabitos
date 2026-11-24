@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Bell } from 'lucide-react';
 import { Link, Outlet, useLocation, useMatches } from 'react-router';
+import { useNoLeidas } from '../paginas/notificaciones/consultas';
 import InterruptorTema from '../tema/InterruptorTema';
 import BarraInferior from './BarraInferior';
 import BarraLateral from './BarraLateral';
@@ -13,6 +14,7 @@ export default function Marco() {
   const titulo = [...coincidencias].reverse().find((c) => c.handle?.titulo)?.handle.titulo ?? '';
 
   const { pathname } = useLocation();
+  const noLeidas = useNoLeidas();
   const contenido = useRef(null);
   const primeraVez = useRef(true);
 
@@ -46,11 +48,16 @@ export default function Marco() {
           <h1 className="flex-1 truncate text-lg font-semibold">{titulo}</h1>
           <Link
             to="/notificaciones"
-            className="inline-flex size-10 items-center justify-center rounded-lg text-suave hover:bg-superficie-suave hover:text-texto"
-            aria-label="Notificaciones"
+            className="relative inline-flex size-10 items-center justify-center rounded-lg text-suave hover:bg-superficie-suave hover:text-texto"
+            aria-label={noLeidas ? `Notificaciones, ${noLeidas} sin leer` : 'Notificaciones'}
             title="Notificaciones"
           >
             <Bell className="size-5" aria-hidden="true" />
+            {noLeidas > 0 && (
+              <span className="numeros absolute top-1 right-1 inline-flex min-w-4 items-center justify-center rounded-full bg-peligro px-1 text-[10px] leading-4 font-semibold text-white dark:text-zinc-950" aria-hidden="true">
+                {noLeidas > 9 ? '9+' : noLeidas}
+              </span>
+            )}
           </Link>
           <InterruptorTema />
         </header>

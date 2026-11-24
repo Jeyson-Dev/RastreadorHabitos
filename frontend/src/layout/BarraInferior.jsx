@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Ellipsis, LogOut, X } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router';
+import { useNoLeidas } from '../paginas/notificaciones/consultas';
 import { useSesion } from '../sesion/contextoSesion';
 import EnlaceNavegacion from './EnlaceNavegacion';
 import { RUTAS_BARRA_INFERIOR, SECCION_PERFIL, SECCIONES_ADMINISTRACION, SECCIONES_PRINCIPALES } from './navegacion';
@@ -10,6 +11,7 @@ import { RUTAS_BARRA_INFERIOR, SECCION_PERFIL, SECCIONES_ADMINISTRACION, SECCION
 export default function BarraInferior() {
   const { esAdministrador, cerrarSesion } = useSesion();
   const dialogo = useRef(null);
+  const noLeidas = useNoLeidas();
   const fijas = SECCIONES_PRINCIPALES.filter((s) => RUTAS_BARRA_INFERIOR.includes(s.a));
   const resto = SECCIONES_PRINCIPALES.filter((s) => !RUTAS_BARRA_INFERIOR.includes(s.a));
   const cerrar = () => dialogo.current?.close();
@@ -42,8 +44,18 @@ export default function BarraInferior() {
                   `flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium ${isActive ? 'text-acento' : 'text-suave'}`
                 }
               >
-                <Icono className="size-5" aria-hidden="true" />
-                <span className="max-w-full truncate px-1">{etiqueta === 'Notificaciones' ? 'Avisos' : etiqueta}</span>
+                <span className="relative">
+                  <Icono className="size-5" aria-hidden="true" />
+                  {a === '/notificaciones' && noLeidas > 0 && (
+                    <span className="numeros absolute -top-1.5 -right-2 min-w-4 rounded-full bg-peligro px-1 text-center text-[10px] leading-4 font-semibold text-white dark:text-zinc-950">
+                      {noLeidas > 9 ? '9+' : noLeidas}
+                    </span>
+                  )}
+                </span>
+                <span className="max-w-full truncate px-1">
+                  {etiqueta === 'Notificaciones' ? 'Avisos' : etiqueta}
+                  {a === '/notificaciones' && noLeidas > 0 && <span className="sr-only">, {noLeidas} sin leer</span>}
+                </span>
               </NavLink>
             </li>
           ))}
