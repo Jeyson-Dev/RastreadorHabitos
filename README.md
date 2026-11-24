@@ -230,6 +230,25 @@ servidor SMTP real (`Smtp__Host=smtp.gmail.com`, `Smtp__Puerto=587`, `Smtp__Usar
 cuenta en `Smtp__Usuario` y `Smtp__Remitente`, y su contraseña de aplicación en
 `Smtp__Contrasena`) y se vuelve a levantar.
 
+## Frontend
+
+La interfaz web (React + Vite + Tailwind CSS) vive en `frontend/`. **No hace falta instalar nada
+para usarla:** `docker compose up --build` la compila dentro de la imagen (etapa de Node del
+`Dockerfile`) y la API la sirve en el mismo puerto, **`http://localhost:5003`**. Las rutas `/api/…`
+siguen siendo la API; cualquier otra dirección (`/`, `/metas`, `/activar?token=…`) es una pantalla
+del frontend.
+
+| Qué | Cómo |
+|---|---|
+| Usarla | `http://localhost:5003` con el proyecto levantado |
+| Desarrollarla con recarga en caliente | Con la API corriendo (Docker o `dotnet run`): `cd frontend`, `npm install` y `npm run dev` → `http://localhost:5173`. Vite reenvía `/api` a `http://localhost:5003` (otra dirección con la variable `VITE_URL_API`) |
+| Sus pruebas | `cd frontend`, `npm install` y `npm test` (Vitest + Testing Library, sin levantar la API) |
+| Compilarla fuera de Docker | `cd frontend` y `npm run build`: escribe en `src/Api/RastreadorHabitos.Api/wwwroot/`, que no se versiona |
+
+El token de sesión se guarda en el navegador y se envía como `Authorization: Bearer`. El frontend
+oculta las pantallas de administración a quien no es Administrador, pero **la autorización real la
+decide la API** en cada petición.
+
 ## API externa
 
 | | |
