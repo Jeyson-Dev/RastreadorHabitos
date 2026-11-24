@@ -249,6 +249,10 @@ El token de sesión se guarda en el navegador y se envía como `Authorization: B
 oculta las pantallas de administración a quien no es Administrador, pero **la autorización real la
 decide la API** en cada petición.
 
+La API responde con cabeceras de seguridad en todas las respuestas: `Content-Security-Policy` (solo
+scripts propios), `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer` y
+`X-Frame-Options: DENY`.
+
 ## API externa
 
 | | |

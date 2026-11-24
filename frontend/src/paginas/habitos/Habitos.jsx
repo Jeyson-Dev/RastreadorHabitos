@@ -67,7 +67,6 @@ export default function Habitos() {
                 type="button"
                 onClick={() => setIdDetalle(habito.id)}
                 aria-describedby={`tira-${habito.id}`}
-                aria-label={`${habito.nombre}: ${describirDias(habito.dias)}, racha de ${habito.rachaActual} y mejor de ${habito.mejorRacha}. Ver detalle`}
                 className="flex w-full flex-col gap-3 px-4 py-4 text-left hover:bg-superficie-suave sm:px-5"
               >
                 <span className="flex items-start justify-between gap-3">

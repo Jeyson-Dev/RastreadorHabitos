@@ -67,7 +67,7 @@ El primer Administrador se crea con
 - `200`/`201` bien · `400` dato inválido · `401` sin sesión o token inválido (ir al inicio de sesión)
   · `403` sin permiso o regla que lo impide · `404` no existe o es de otro usuario · `409` conflicto de
   estado · `423` bloqueada · `503` servicio externo caído.
-- Instantes en UTC con `Z`; días `AAAA-MM-DD` en hora local del servidor; ids GUID.
+- Instantes en UTC; algunos llegan sin `Z` (por ejemplo `fechaCreacionUtc` de los hábitos leídos de la base) y deben tomarse como UTC; días `AAAA-MM-DD` en hora local del servidor; ids GUID.
 
 ## 4. Inventario de endpoints
 
@@ -112,7 +112,7 @@ Rol: **—** sin sesión · **S** cualquier usuario con sesión · **A** solo Ad
 | `GET /api/correos?estado=Fallido` | A | — | `200 [ { id, destinatario, asunto, estado, intentos, fechaCreacionUtc, fechaUltimoIntentoUtc, fechaEnvioUtc, ultimoError } ]` · `400` |
 | `GET /api/reportes/solicitudes-por-estado?desde=…&hasta=…` | S | — | `200 { reporte, pregunta, desde, hasta, alcance, filas: [ { grupo: "2026-11", valores: { Pendiente, Aprobada, Aplicada, Rechazada, Total } } ] }` · `400` |
 | `GET /api/reportes/cumplimiento-semanal?desde=…&hasta=…` | S | — | `200`, `grupo` = lunes de la semana; `valores`: `diasProgramados`, `diasCumplidos`, `porcentajeCumplimiento` · `400` |
-| `GET /api/auditoria?usuarioId=&entidad=&desde=&hasta=` | A | — | `200 { total, registros: [ { id, usuarioId, accion, entidad, entidadId, fechaUtc, valorAnterior, valorNuevo } ] }` · `400` |
+| `GET /api/auditoria?usuarioId=&entidad=&desde=&hasta=` | A | — | `200 { total, registros: [ { id, usuarioId, accion, entidad, entidadId, fechaUtc, valorAnterior, valorNuevo } ] }` (los dos valores son objetos JSON, no texto) · `400` |
 
 Estados de la meta: `Pendiente`, `EnProgreso`, `Completada` (terminal), `Fallida`. Tipos de
 notificación: `SolicitudPermisoCreada`, `SolicitudPermisoAprobada`, `SolicitudPermisoRechazada`,

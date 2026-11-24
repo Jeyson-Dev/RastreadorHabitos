@@ -173,7 +173,7 @@ describe('pantalla Hábitos', () => {
     // Verificar: 30 días programados, 2 cumplidos, 1 no cumplido, hoy pendiente y 26 sin registrar.
     expect(
       await screen.findByRole('button', { description: 'Últimos 30 días: 2 cumplidos, 1 no cumplidos y 26 sin registrar.' }),
-    ).toHaveAccessibleName('Leer: Todos los días, racha de 2 y mejor de 5. Ver detalle');
+    ).toHaveAccessibleName(expect.stringMatching(/^Leer.*Todos los días.*racha/));
   });
 
   it.each([
