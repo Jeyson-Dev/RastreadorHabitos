@@ -4,7 +4,7 @@ import Cargando from '../../componentes/Cargando';
 import EstadoError from '../../componentes/EstadoError';
 import EstadoVacio from '../../componentes/EstadoVacio';
 import Tarjeta from '../../componentes/Tarjeta';
-import { diaLocalDe, fechaLarga } from '../../utilidades/fechas';
+import { capitalizar, diaLocalDe, fechaLarga } from '../../utilidades/fechas';
 import BotonesRegistro from './BotonesRegistro';
 import { useHabitos } from './consultas';
 import Racha from './Racha';
@@ -36,7 +36,7 @@ export default function Hoy() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h2 className="text-sm font-medium text-suave capitalize">{fechaLarga(diaLocalDe(new Date()))}</h2>
+      <h2 className="text-sm font-medium text-suave">{capitalizar(fechaLarga(diaLocalDe(new Date())))}</h2>
 
       <div className="grid gap-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <Tarjeta aria-labelledby="titulo-progreso" className="flex flex-col justify-center gap-3">

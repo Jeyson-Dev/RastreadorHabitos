@@ -58,7 +58,10 @@ export function sumarMeses(iso, meses) {
 const formatoMes = new Intl.DateTimeFormat('es', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 const formatoDia = new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 
-export const nombreMes = (iso) => formatoMes.format(aUtc(iso));
+// Solo la primera letra en mayúscula («Lunes, 23 de noviembre»); CSS capitalize pondría todas.
+export const capitalizar = (texto) => (texto ? texto[0].toUpperCase() + texto.slice(1) : texto);
+
+export const nombreMes = (iso) => capitalizar(formatoMes.format(aUtc(iso)));
 export const fechaLarga = (iso) => formatoDia.format(aUtc(iso));
 
 // Instante UTC del servidor. Algunos llegan sin «Z» (EF devuelve DateTime sin Kind): se toman como UTC.

@@ -38,7 +38,7 @@ export default function CalendarioMes({ habito, hoy }) {
         >
           <ChevronLeft className="size-5" aria-hidden="true" />
         </button>
-        <p className="font-medium capitalize" aria-live="polite">
+        <p className="font-medium" aria-live="polite">
           {nombreMes(mes)}
         </p>
         <button
