@@ -20,6 +20,7 @@ export default function Reportes() {
   const [borrador, setBorrador] = useState(rango);
   const [errorRango, setErrorRango] = useState(null);
   const solicitudes = useReporte(REPORTES.solicitudes, rango);
+  const conAnio = rango.desde.slice(0, 4) !== rango.hasta.slice(0, 4);
   const cumplimiento = useReporte(REPORTES.cumplimiento, rango);
 
   function elegir(id) {
@@ -85,13 +86,13 @@ export default function Reportes() {
         titulo="Cumplimiento semanal"
         consulta={cumplimiento}
         sinDatos="Registra tus hábitos para ver qué porcentaje de los días programados cumples cada semana."
-        grafica={cumplimiento.data && <GraficaCumplimiento filas={cumplimiento.data.filas} />}
+        grafica={cumplimiento.data && <GraficaCumplimiento filas={cumplimiento.data.filas} conAnio={conAnio} />}
         tabla={
           cumplimiento.data && (
             <Tabla
               columnas={['Semana del', 'Días programados', 'Días cumplidos', 'Cumplimiento']}
               filas={cumplimiento.data.filas.map((f) => [
-                etiquetaGrupo(f.grupo),
+                etiquetaGrupo(f.grupo, conAnio),
                 f.valores.diasProgramados,
                 f.valores.diasCumplidos,
                 `${Math.round(f.valores.porcentajeCumplimiento)} %`,
@@ -105,13 +106,13 @@ export default function Reportes() {
         titulo="Solicitudes de permiso por estado"
         consulta={solicitudes}
         sinDatos="Aquí verás cuántas solicitudes de permiso hubo cada mes y en qué estado quedaron."
-        grafica={solicitudes.data && <GraficaSolicitudes filas={solicitudes.data.filas} />}
+        grafica={solicitudes.data && <GraficaSolicitudes filas={solicitudes.data.filas} conAnio={conAnio} />}
         tabla={
           solicitudes.data && (
             <Tabla
               columnas={['Mes', ...SERIES_SOLICITUDES.map((s) => s.texto), 'Total']}
               filas={solicitudes.data.filas.map((f) => [
-                etiquetaGrupo(f.grupo),
+                etiquetaGrupo(f.grupo, conAnio),
                 ...SERIES_SOLICITUDES.map((s) => f.valores[s.clave] ?? 0),
                 f.valores.Total ?? 0,
               ])}
@@ -136,8 +137,8 @@ function Tabla({ columnas, filas }) {
         </tr>
       </thead>
       <tbody>
-        {filas.map((fila) => (
-          <tr key={fila[0]} className="border-b border-borde/60 last:border-0">
+        {filas.map((fila, i) => (
+          <tr key={`${i}-${fila[0]}`} className="border-b border-borde/60 last:border-0">
             {fila.map((celda, i) =>
               i === 0 ? (
                 <th key={i} scope="row" className="py-2 pr-4 font-medium">

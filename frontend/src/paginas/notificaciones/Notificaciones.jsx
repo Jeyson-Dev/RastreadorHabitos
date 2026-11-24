@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { BellOff, CircleCheck, CircleX, KeyRound, Mail, Target } from 'lucide-react';
 import { Link } from 'react-router';
 import { mensajeDeError } from '../../api/cliente';
@@ -31,6 +31,7 @@ export default function Notificaciones() {
   const bandeja = useBandeja(soloNoLeidas);
   const marcar = useMarcarLeida();
   const { esAdministrador } = useSesion();
+  const tituloBandeja = useRef(null);
 
   let contenido;
   if (bandeja.isPending) contenido = <Cargando texto="Cargando tus notificaciones…" />;
@@ -71,7 +72,7 @@ export default function Notificaciones() {
                   {!n.leida && (
                     <button
                       type="button"
-                      onClick={() => marcar.mutate(n.id)}
+                      onClick={() => marcar.mutate(n.id, { onSuccess: () => soloNoLeidas && tituloBandeja.current?.focus() })}
                       disabled={marcando}
                       className="font-medium text-texto underline-offset-2 hover:underline disabled:opacity-60"
                       aria-label={`Marcar como leída: ${titulo}`}
@@ -92,7 +93,7 @@ export default function Notificaciones() {
     <div className="flex flex-col gap-6">
       <PreferenciaCorreo />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-semibold">
+        <h2 ref={tituloBandeja} tabIndex={-1} className="font-semibold outline-none">
           Bandeja{' '}
           {bandeja.data?.noLeidas > 0 && <span className="numeros text-sm font-normal text-suave">· {bandeja.data.noLeidas} sin leer</span>}
         </h2>
@@ -159,9 +160,9 @@ function PreferenciaCorreo() {
           aria-describedby="ayuda-correo"
           disabled={actualizar.isPending}
           onClick={() => actualizar.mutate(!activo)}
-          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${activo ? 'bg-acento' : 'bg-zinc-300 dark:bg-zinc-600'}`}
+          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border-2 transition-colors focus-visible:ring-2 focus-visible:ring-acento focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60 ${activo ? 'border-acento bg-acento' : 'border-zinc-500 bg-zinc-200 dark:border-zinc-400 dark:bg-zinc-700'}`}
         >
-          <span className={`inline-block size-5 rounded-full bg-white shadow transition-transform ${activo ? 'translate-x-6' : 'translate-x-1'}`} />
+          <span className={`inline-block size-5 rounded-full bg-white shadow transition-transform ${activo ? 'translate-x-5' : 'translate-x-0.5'}`} />
         </button>
       )}
     </div>

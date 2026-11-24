@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   actualizarPreferencias,
   CLAVES_NOTIFICACIONES,
@@ -14,6 +14,7 @@ export function useBandeja(soloNoLeidas) {
   return useQuery({
     queryKey: CLAVES_NOTIFICACIONES.bandeja(soloNoLeidas),
     queryFn: ({ signal }) => listarNotificaciones(soloNoLeidas, signal),
+    placeholderData: keepPreviousData,
   });
 }
 

@@ -1,4 +1,4 @@
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Legend, Rectangle, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { etiquetaGrupo, SERIES_SOLICITUDES } from './rangos';
 
 const EJE = { stroke: 'var(--texto-suave)', fontSize: 12, tickLine: false, axisLine: false };
@@ -36,8 +36,13 @@ function Leyenda({ payload }) {
 }
 
 // Solicitudes por estado y mes: barras apiladas con 2 px de separación entre segmentos.
-export function GraficaSolicitudes({ filas }) {
-  const datos = filas.map((f) => ({ grupo: etiquetaGrupo(f.grupo), ...f.valores }));
+export function GraficaSolicitudes({ filas, conAnio }) {
+  // El extremo redondeado va en el segmento superior con valor de cada mes, no en una serie fija.
+  const datos = filas.map((f) => ({
+    grupo: etiquetaGrupo(f.grupo, conAnio),
+    ...f.valores,
+    tope: [...SERIES_SOLICITUDES].reverse().find((s) => (f.valores[s.clave] ?? 0) > 0)?.clave,
+  }));
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={datos} margin={{ top: 8, right: 8, left: -16, bottom: 0 }} accessibilityLayer>
@@ -46,7 +51,7 @@ export function GraficaSolicitudes({ filas }) {
         <YAxis allowDecimals={false} {...EJE} />
         <Tooltip cursor={CURSOR} content={<CajaTooltip />} />
         <Legend content={<Leyenda />} />
-        {SERIES_SOLICITUDES.map((s, i) => (
+        {SERIES_SOLICITUDES.map((s) => (
           <Bar
             key={s.clave}
             dataKey={s.clave}
@@ -56,7 +61,7 @@ export function GraficaSolicitudes({ filas }) {
             stroke="var(--superficie)"
             strokeWidth={2}
             maxBarSize={48}
-            radius={i === SERIES_SOLICITUDES.length - 1 ? [4, 4, 0, 0] : 0}
+            shape={(props) => <Rectangle {...props} radius={props.payload?.tope === s.clave ? [4, 4, 0, 0] : 0} />}
           />
         ))}
       </BarChart>
@@ -65,8 +70,8 @@ export function GraficaSolicitudes({ filas }) {
 }
 
 // Cumplimiento semanal: una serie (porcentaje de días programados cumplidos), sin leyenda.
-export function GraficaCumplimiento({ filas }) {
-  const datos = filas.map((f) => ({ grupo: etiquetaGrupo(f.grupo), ...f.valores }));
+export function GraficaCumplimiento({ filas, conAnio }) {
+  const datos = filas.map((f) => ({ grupo: etiquetaGrupo(f.grupo, conAnio), ...f.valores }));
   const formato = (valor, fila) => `${Math.round(valor)} % (${fila.diasCumplidos} de ${fila.diasProgramados} días)`;
   return (
     <ResponsiveContainer width="100%" height="100%">

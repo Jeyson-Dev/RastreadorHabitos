@@ -47,7 +47,7 @@ export default function BarraInferior() {
                 <span className="relative">
                   <Icono className="size-5" aria-hidden="true" />
                   {a === '/notificaciones' && noLeidas > 0 && (
-                    <span className="numeros absolute -top-1.5 -right-2 min-w-4 rounded-full bg-peligro px-1 text-center text-[10px] leading-4 font-semibold text-white dark:text-zinc-950">
+                    <span aria-hidden="true" className="numeros absolute -top-1.5 -right-2 min-w-4 rounded-full bg-peligro px-1 text-center text-[10px] leading-4 font-semibold text-white dark:text-zinc-950">
                       {noLeidas > 9 ? '9+' : noLeidas}
                     </span>
                   )}

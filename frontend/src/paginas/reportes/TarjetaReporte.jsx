@@ -9,7 +9,11 @@ import Tarjeta from '../../componentes/Tarjeta';
 export default function TarjetaReporte({ id, titulo, consulta, sinDatos, grafica, tabla }) {
   const datos = consulta.data;
   return (
-    <Tarjeta aria-labelledby={id} className="flex flex-col gap-4">
+    <Tarjeta
+      aria-labelledby={id}
+      aria-busy={consulta.isFetching || undefined}
+      className={`flex flex-col gap-4 transition-opacity ${consulta.isPlaceholderData ? 'opacity-60' : ''}`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h2 id={id} className="font-semibold">

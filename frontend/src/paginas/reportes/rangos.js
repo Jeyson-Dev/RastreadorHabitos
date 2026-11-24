@@ -16,11 +16,14 @@ export function rangoPredefinido(id, hoy = diaLocalDe(new Date())) {
 // Etiquetas de los grupos que devuelve la API: «2026-11» (mes) o «2026-11-16» (lunes de la semana).
 const formatoMes = new Intl.DateTimeFormat('es', { month: 'short', year: '2-digit', timeZone: 'UTC' });
 const formatoDia = new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const formatoDiaConAnio = new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short', year: '2-digit', timeZone: 'UTC' });
 
-export function etiquetaGrupo(grupo) {
+// Con «conAnio», las semanas llevan el año (rangos que cruzan de año).
+export function etiquetaGrupo(grupo, conAnio = false) {
   const [anio, mes, dia] = grupo.split('-').map(Number);
   const fecha = new Date(Date.UTC(anio, mes - 1, dia ?? 1));
-  return (dia ? formatoDia : formatoMes).format(fecha).replace('.', '');
+  const formato = dia ? (conAnio ? formatoDiaConAnio : formatoDia) : formatoMes;
+  return formato.format(fecha).replaceAll('.', '');
 }
 
 // Estados de una solicitud en orden fijo de la paleta categórica (validada en claro y oscuro con la
