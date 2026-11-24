@@ -37,7 +37,11 @@ export function simularApi(rutas) {
 export function llamadasA(falso, metodo, ruta) {
   return falso.mock.calls
     .filter(([url, opciones = {}]) => String(url).split('?')[0] === ruta && (opciones.method ?? 'GET') === metodo)
-    .map(([url, opciones = {}]) => ({ url: String(url), cuerpo: opciones.body ? JSON.parse(opciones.body) : undefined, opciones }));
+    .map(([url, opciones = {}]) => ({
+      url: String(url),
+      cuerpo: typeof opciones.body === 'string' ? JSON.parse(opciones.body) : opciones.body,
+      opciones,
+    }));
 }
 
 export function conSesionGuardada(expiraUtc = EN_OCHO_HORAS()) {
