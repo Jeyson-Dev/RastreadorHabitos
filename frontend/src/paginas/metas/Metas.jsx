@@ -104,7 +104,7 @@ export default function Metas() {
         )}
       </div>
       {completada && <Aviso tipo="exito">¡Completaste «{completada}»!</Aviso>}
-      {creada && <Aviso tipo="exito">Creaste la meta «{creada}». Empieza Pendiente hasta el primer cumplimiento.</Aviso>}
+      {creada && <Aviso tipo="exito">Creaste la meta «{creada}».</Aviso>}
       {contenido}
 
       <PanelLateral abierto={creando} alCerrar={cerrarCrear} titulo="Nueva meta">
