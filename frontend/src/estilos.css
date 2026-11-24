@@ -26,6 +26,12 @@
   --info-suave: #f0f9ff;
   --aviso: #a16207;
   --aviso-suave: #fefce8;
+  /* Series de gráficas: paleta categórica validada (skill dataviz) en orden fijo, claro y oscuro. */
+  --serie-1: #2a78d6;
+  --serie-2: #eb6834;
+  --serie-3: #1baf7a;
+  --serie-4: #eda100;
+  --rejilla: #e4e4e7;
 }
 
 .dark {
@@ -46,6 +52,11 @@
   --info-suave: #082f49;
   --aviso: #facc15;
   --aviso-suave: #422006;
+  --serie-1: #3987e5;
+  --serie-2: #d95926;
+  --serie-3: #199e70;
+  --serie-4: #c98500;
+  --rejilla: #3f3f46;
 }
 
 @theme inline {
