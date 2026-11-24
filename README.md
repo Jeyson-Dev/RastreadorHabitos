@@ -135,7 +135,7 @@ muestra `Now listening on: http://[::]:8080`.
 
 | Qué | Dirección |
 |---|---|
-| **La API** | **`http://localhost:5003`**. Al abrirla responde `{ "aplicacion": "Rastreador de hábitos con metas", "estado": "En funcionamiento", … }`; todas las rutas de este README van debajo, por ejemplo `http://localhost:5003/api/cuentas/registro` |
+| **La API** | **`http://localhost:5003`**. `http://localhost:5003/api/estado` responde `{ "aplicacion": "Rastreador de hábitos con metas", "estado": "En funcionamiento", … }`; todas las rutas de este README van debajo, por ejemplo `http://localhost:5003/api/cuentas/registro` |
 | Los correos que envía la aplicación (Mailpit) | `http://localhost:8025` |
 
 **Detener el proyecto:** `Ctrl+C` en la terminal donde corre y después `docker compose down`
@@ -229,6 +229,25 @@ Para recibir los correos en un buzón real en lugar de Mailpit, se ponen en `.en
 servidor SMTP real (`Smtp__Host=smtp.gmail.com`, `Smtp__Puerto=587`, `Smtp__UsarSsl=true`, la
 cuenta en `Smtp__Usuario` y `Smtp__Remitente`, y su contraseña de aplicación en
 `Smtp__Contrasena`) y se vuelve a levantar.
+
+## Frontend
+
+La interfaz web (React + Vite + Tailwind CSS) vive en `frontend/`. **No hace falta instalar nada
+para usarla:** `docker compose up --build` la compila dentro de la imagen (etapa de Node del
+`Dockerfile`) y la API la sirve en el mismo puerto, **`http://localhost:5003`**. Las rutas `/api/…`
+siguen siendo la API; cualquier otra dirección (`/`, `/metas`, `/activar?token=…`) es una pantalla
+del frontend.
+
+| Qué | Cómo |
+|---|---|
+| Usarla | `http://localhost:5003` con el proyecto levantado |
+| Desarrollarla con recarga en caliente | Con la API corriendo (Docker o `dotnet run`): `cd frontend`, `npm install` y `npm run dev` → `http://localhost:5173`. Vite reenvía `/api` a `http://localhost:5003` (otra dirección con la variable `VITE_URL_API`) |
+| Sus pruebas | `cd frontend`, `npm install` y `npm test` (Vitest + Testing Library, sin levantar la API) |
+| Compilarla fuera de Docker | `cd frontend` y `npm run build`: escribe en `src/Api/RastreadorHabitos.Api/wwwroot/`, que no se versiona |
+
+El token de sesión se guarda en el navegador y se envía como `Authorization: Bearer`. El frontend
+oculta las pantallas de administración a quien no es Administrador, pero **la autorización real la
+decide la API** en cada petición.
 
 ## API externa
 
@@ -492,7 +511,7 @@ Administrador puede cambiar el rol de los demás desde la API.
 | `GET` | `/api/cuentas/activar?token=…` | — | `200` cuenta activada · `400` enlace inválido, usado o vencido |
 | `POST` | `/api/cuentas/reenviar-activacion` | `{ "email" }` | `200` siempre la misma respuesta · `400` correo vacío o mal formado |
 | `POST` | `/api/sesion/iniciar` | `{ "email", "contrasena" }` | `200 { "token", "expiraUtc" }` · `401` credenciales incorrectas · `403` cuenta no activa o desactivada · `423` cuenta bloqueada |
-| `GET` | `/api/sesion/usuario` | — (requiere sesión) | `200 { "email", "nombreCompleto", "rol" }` · `401` sin sesión válida |
+| `GET` | `/api/sesion/usuario` | — (requiere sesión) | `200 { "id", "email", "nombreCompleto", "rol", "permisos": [ … ] }` · `401` sin sesión válida |
 | `POST` | `/api/sesion/cerrar` | — (requiere sesión) | `200` sesión cerrada · `401` sin sesión válida |
 | `GET` | `/api/usuarios` | — (Administrador) | `200` lista con `id`, `email`, `nombreCompleto`, `rol` y `estado` |
 | `PUT` | `/api/usuarios/{id}/rol` | `{ "rol": "Administrador" \| "Estandar" }` (Administrador) | `200` rol actualizado · `400` rol inválido · `403` es el propio rol · `404` usuario inexistente |
@@ -539,7 +558,9 @@ SELECT Email, CorreoConfirmado, CuentaHabilitada FROM ControlAcceso.Usuarios;
 el correo y la contraseña correctos → `403` «La cuenta no está activa. Revise su correo para
 activarla.»
 
-**3. Abrir el enlace recibido (RF-CA-16).** → «Cuenta activada. Ya puede iniciar sesión.» El
+**3. Abrir el enlace recibido (RF-CA-16).** El enlace abre la página `/activar?token=…` del
+frontend, que llama a `GET /api/cuentas/activar?token=…` (la misma operación puede llamarse
+directo con el token del enlace) → «Cuenta activada. Ya puede iniciar sesión.» El
 usuario pasa a `CorreoConfirmado = 1`. Iniciar sesión ahora → `200` con el `token`.
 
 **4. Abrir el enlace por segunda vez (RF-CA-16).** → `400` «El enlace de activación no es
@@ -619,7 +640,8 @@ inicio de sesión correcto, `IntentosFallidosConsecutivos` vuelve a `0`. Para no
 `UPDATE ControlAcceso.Usuarios SET BloqueadoHastaUtc = NULL WHERE Email = '<correo>';`.
 
 **3. Consulta del usuario autenticado (RF-CA-07).** `GET /api/sesion/usuario`:
-- con `Authorization: Bearer <token>` → `200` con el correo, el nombre y el rol;
+- con `Authorization: Bearer <token>` → `200` con el id, el correo, el nombre, el rol y los permisos aplicados (por ejemplo
+  `["LIMITE_HABITOS_AMPLIADO"]`);
 - sin el header, o con un token inventado o modificado → `401` «Se requiere una sesión válida.»
 
 **4. Cerrar sesión y volver a usar la credencial cerrada (RF-CA-18).**
@@ -894,8 +916,9 @@ de la semana son números: `1` = lunes … `7` = domingo.
 | # | Funcionalidad | Método y ruta | Cuerpo | Respuesta |
 |---|---|---|---|---|
 | F1 | Crear un hábito | `POST /api/habitos` | `{ "nombre", "descripcion" (opcional), "dias": [1, …, 7] }` | `201` el hábito · `400` dato inválido · `403` límite de hábitos alcanzado |
-| F2 | Listar mis hábitos | `GET /api/habitos` | — | `200` lista con `id`, `nombre`, `descripcion`, `dias`, `fechaCreacionUtc` |
+| F2 | Listar mis hábitos | `GET /api/habitos` | — | `200` lista con `id`, `nombre`, `descripcion`, `dias`, `fechaCreacionUtc`, `rachaActual`, `mejorRacha`, `programadoHoy` y `cumplidoHoy` (`null` si hoy no se registró) |
 | F3 | Registrar el cumplimiento de hoy | `POST /api/habitos/{id}/registros` | `{ "cumplido": true \| false }` | `200 { "habitoId", "fecha", "cumplido" }` · `400` sin `cumplido` · `404` hábito inexistente o de otro usuario · `409` hoy no es un día programado |
+| F3b | Consultar el historial y las rachas de un hábito (solo lectura) | `GET /api/habitos/{id}/registros?desde=&hasta=` | — | `200 { "habitoId", "desde", "hasta", "rachaActual", "mejorRacha", "registros": [ { "habitoId", "fecha", "cumplido" } ] }`; sin fechas, los últimos 30 días hasta hoy · `400` fecha mal formada, rango invertido o de más de 366 días · `404` hábito inexistente o de otro usuario |
 | F4 | Crear una meta | `POST /api/metas` | `{ "nombre", "objetivoCumplimientos", "fechaLimite", "habitoIds": [ … ] }` | `201` la meta, en `Pendiente` · `400` dato inválido |
 | F5 | Consultar mis metas | `GET /api/metas` y `GET /api/metas/{id}` | — | `200` la meta (o la lista) con su `avance` y su `estado` al día · `404` meta inexistente o de otro usuario |
 | F6 | Completar una meta | `POST /api/metas/{id}/completar` | — | `200` la meta en `Completada` · `404` · `409` transición no permitida o condición no cumplida |
