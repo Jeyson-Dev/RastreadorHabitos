@@ -1,4 +1,5 @@
 import { Flame, Trophy } from 'lucide-react';
+import EstadoError from '../../componentes/EstadoError';
 import { describirDias } from '../../utilidades/fechas';
 import BotonesRegistro from './BotonesRegistro';
 import CalendarioMes from './CalendarioMes';
@@ -47,7 +48,15 @@ export default function DetalleHabito({ habito }) {
         <p className="rounded-xl bg-superficie-suave p-4 text-sm text-suave">Hoy no está programado.</p>
       )}
 
-      {hoy && <CalendarioMes habito={habito} hoy={hoy} />}
+      {hoy ? (
+        <CalendarioMes habito={habito} hoy={hoy} />
+      ) : historial.isError ? (
+        <EstadoError error={historial.error} alReintentar={historial.refetch} titulo="No se pudo cargar el historial" />
+      ) : (
+        <div className="h-64 animate-pulse rounded-xl bg-superficie-suave" role="status">
+          <span className="sr-only">Cargando el historial…</span>
+        </div>
+      )}
       <LeyendaDias />
     </div>
   );

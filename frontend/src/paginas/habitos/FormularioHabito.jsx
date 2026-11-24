@@ -60,7 +60,7 @@ export default function FormularioHabito({ alCrear }) {
         onChange={(e) => setNombre(e.target.value)}
         error={errores.nombre}
         maxLength={MAX_NOMBRE}
-        autoFocus
+        data-autofocus
       />
       <div className="flex flex-col gap-1.5">
         <label htmlFor={idDescripcion} className="text-sm font-medium">

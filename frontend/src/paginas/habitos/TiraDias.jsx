@@ -6,7 +6,7 @@ const DIAS_TIRA = 30;
 
 // Últimos 30 días de un hábito como una tira de puntos. Para lectores de pantalla se resume en una
 // frase; cada punto lleva su fecha y estado como título.
-export default function TiraDias({ habito }) {
+export default function TiraDias({ habito, idResumen }) {
   const historial = useRegistros(habito.id);
 
   if (historial.isPending) {
@@ -27,15 +27,20 @@ export default function TiraDias({ habito }) {
   const resumen = `Últimos ${dias.length} días: ${contar('cumplido')} cumplidos, ${contar('no-cumplido')} no cumplidos y ${contar('sin-registro')} sin registrar.`;
 
   return (
-    <div role="img" aria-label={resumen} className="grid grid-cols-[repeat(30,minmax(0,1fr))] gap-[3px]">
-      {dias.map(({ dia, estado }) => (
+    <>
+      <span id={idResumen} className="sr-only">
+        {resumen}
+      </span>
+      <div aria-hidden="true" className="grid gap-[3px]" style={{ gridTemplateColumns: `repeat(${dias.length}, minmax(0, 1fr))` }}>
+        {dias.map(({ dia, estado }) => (
         <span
           key={dia}
           title={`${fechaLarga(dia)}: ${ESTADOS_DIA[estado].texto}`}
           className={`aspect-square max-w-3 rounded-full ${ESTADOS_DIA[estado].clase}`}
         />
-      ))}
-    </div>
+        ))}
+      </div>
+    </>
   );
 }
 

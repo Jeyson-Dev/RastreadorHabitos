@@ -67,11 +67,8 @@ export default function CalendarioMes({ habito, hoy }) {
           {dias.map((dia) => {
             const estado = historial.isPending ? 'fuera' : estadoDelDia(dia, contexto);
             return (
-              <li
-                key={dia}
-                aria-label={`${fechaLarga(dia)}: ${ESTADOS_DIA[estado].texto}`}
-                className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg"
-              >
+              <li key={dia} className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg">
+                <span className="sr-only">{`${fechaLarga(dia)}: ${ESTADOS_DIA[estado].texto}`}</span>
                 <span className={`numeros text-xs ${dia === hoy ? 'font-bold text-texto' : 'text-suave'}`} aria-hidden="true">
                   {Number(dia.slice(8))}
                 </span>

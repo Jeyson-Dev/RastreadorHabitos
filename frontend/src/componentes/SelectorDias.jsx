@@ -18,7 +18,6 @@ export default function SelectorDias({ valor, alCambiar, error, idError }) {
               onClick={() => alternar(numero)}
               aria-pressed={elegido}
               aria-label={nombre}
-              title={nombre}
               className={`inline-flex size-10 items-center justify-center rounded-full border text-sm font-semibold transition-colors ${
                 elegido ? 'border-acento bg-acento text-sobre-acento' : 'border-borde bg-superficie text-suave hover:text-texto'
               }`}

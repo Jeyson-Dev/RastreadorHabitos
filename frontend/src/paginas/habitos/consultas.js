@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CLAVES_HABITOS, consultarRegistros, crearHabito, listarHabitos, registrarCumplimiento } from '../../api/habitos';
 
 export function useHabitos() {
@@ -10,6 +10,7 @@ export function useRegistros(id, { desde, hasta } = {}) {
     queryKey: CLAVES_HABITOS.registros(id, desde, hasta),
     queryFn: ({ signal }) => consultarRegistros(id, { desde, hasta }, signal),
     enabled: Boolean(id),
+    placeholderData: keepPreviousData,
   });
 }
 

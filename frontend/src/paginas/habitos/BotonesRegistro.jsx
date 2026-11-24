@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, X } from 'lucide-react';
 import { mensajeDeError } from '../../api/cliente';
 import Boton from '../../componentes/Boton';
@@ -9,17 +9,35 @@ import { useRegistrarCumplimiento } from './consultas';
 export default function BotonesRegistro({ habito }) {
   const registrar = useRegistrarCumplimiento();
   const [cambiando, setCambiando] = useState(false);
+  const botonCambiar = useRef(null);
+  const enfocarCambiar = useRef(false);
   const registrado = habito.cumplidoHoy !== null && habito.cumplidoHoy !== undefined;
   const enviando = registrar.isPending ? registrar.variables?.cumplido : null;
 
+  // Tras registrar, los botones se reemplazan por el estado: el foco pasa a «Cambiar» para no perderse.
+  useEffect(() => {
+    if (enfocarCambiar.current && botonCambiar.current) {
+      enfocarCambiar.current = false;
+      botonCambiar.current.focus();
+    }
+  });
+
   function marcar(cumplido) {
-    registrar.mutate({ id: habito.id, cumplido }, { onSuccess: () => setCambiando(false) });
+    registrar.mutate(
+      { id: habito.id, cumplido },
+      {
+        onSuccess: () => {
+          enfocarCambiar.current = true;
+          setCambiando(false);
+        },
+      },
+    );
   }
 
   return (
     <div className="flex flex-col items-end gap-1.5">
       {registrado && !cambiando ? (
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-2 text-sm" role="status">
           {habito.cumplidoHoy ? (
             <span className="inline-flex items-center gap-1 font-medium text-acento">
               <Check className="size-4" aria-hidden="true" />
@@ -35,6 +53,7 @@ export default function BotonesRegistro({ habito }) {
             ·
           </span>
           <button
+            ref={botonCambiar}
             type="button"
             onClick={() => setCambiando(true)}
             className="text-suave underline-offset-2 hover:text-texto hover:underline"

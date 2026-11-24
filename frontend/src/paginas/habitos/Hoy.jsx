@@ -46,16 +46,19 @@ export default function Hoy() {
           <p className="numeros text-3xl font-semibold">
             {cumplidos} <span className="text-base font-normal text-suave">de {deHoy.length} cumplidos</span>
           </p>
+          {deHoy.length > 0 && (
           <div
             role="progressbar"
             aria-label="Hábitos cumplidos hoy"
             aria-valuemin={0}
             aria-valuemax={deHoy.length}
             aria-valuenow={cumplidos}
+            aria-valuetext={`${cumplidos} de ${deHoy.length}`}
             className="h-2.5 overflow-hidden rounded-full bg-superficie-suave"
           >
             <div className="h-full rounded-full bg-acento transition-[width] duration-500" style={{ width: `${porcentaje}%` }} />
           </div>
+          )}
           <p className="text-sm text-suave">
             {deHoy.length === 0
               ? 'Hoy no tienes hábitos programados.'

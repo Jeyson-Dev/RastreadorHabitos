@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronRight, ListChecks, Plus } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import Aviso from '../../componentes/Aviso';
@@ -22,6 +22,12 @@ export default function Habitos() {
   const [idDetalle, setIdDetalle] = useState(null);
   const [creado, setCreado] = useState(null);
   const creando = parametros.get('nuevo') === '1';
+
+  useEffect(() => {
+    if (!creado) return undefined;
+    const temporizador = setTimeout(() => setCreado(null), 5000);
+    return () => clearTimeout(temporizador);
+  }, [creado]);
 
   const abrirCrear = () => setParametros({ nuevo: '1' }, { replace: true });
   const cerrarCrear = () => setParametros({}, { replace: true });
@@ -54,6 +60,7 @@ export default function Habitos() {
               <button
                 type="button"
                 onClick={() => setIdDetalle(habito.id)}
+                aria-describedby={`tira-${habito.id}`}
                 aria-label={`${habito.nombre}: ${describirDias(habito.dias)}, racha de ${habito.rachaActual} y mejor de ${habito.mejorRacha}. Ver detalle`}
                 className="flex w-full flex-col gap-3 px-4 py-4 text-left hover:bg-superficie-suave sm:px-5"
               >
@@ -68,7 +75,7 @@ export default function Habitos() {
                     <ChevronRight className="size-4 text-suave" aria-hidden="true" />
                   </span>
                 </span>
-                <TiraDias habito={habito} />
+                <TiraDias habito={habito} idResumen={`tira-${habito.id}`} />
               </button>
             </li>
           ))}

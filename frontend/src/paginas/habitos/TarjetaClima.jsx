@@ -52,7 +52,11 @@ export default function TarjetaClima() {
 
   let cuerpo;
   if (plan.isPending) {
-    cuerpo = <div className="h-16 animate-pulse rounded-lg bg-superficie-suave" aria-label="Cargando el clima" />;
+    cuerpo = (
+      <div className="h-16 animate-pulse rounded-lg bg-superficie-suave" role="status">
+        <span className="sr-only">Cargando el clima…</span>
+      </div>
+    );
   } else if (plan.isError) {
     const sinServicio = plan.error?.estado === 503 || plan.error?.estado === 0;
     cuerpo = (
