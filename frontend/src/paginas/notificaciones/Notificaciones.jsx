@@ -44,7 +44,7 @@ export default function Notificaciones() {
     );
   } else {
     contenido = (
-      <ul className="flex flex-col divide-y divide-borde overflow-hidden rounded-xl border border-borde bg-superficie">
+      <ul className="flex flex-col divide-y divide-borde overflow-hidden vidrio rounded-[1.25rem]">
         {bandeja.data.notificaciones.map((n) => {
           const { icono: Icono, clase, titulo } = PRESENTACION[n.tipo] ?? { icono: Mail, clase: 'text-suave', titulo: 'Aviso' };
           const enlace = destino(n.tipo, esAdministrador);
@@ -131,7 +131,7 @@ function PreferenciaCorreo() {
   const activo = actualizar.isPending ? actualizar.variables : preferencias.data?.correoActivo;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-borde bg-superficie p-4 sm:p-5">
+    <div className="flex flex-wrap items-center justify-between gap-3 vidrio rounded-[1.25rem] p-4 sm:p-5">
       <div className="flex min-w-0 flex-col gap-0.5">
         <p id="titulo-correo" className="text-sm font-medium">
           Recibir también por correo
@@ -160,7 +160,7 @@ function PreferenciaCorreo() {
           aria-describedby="ayuda-correo"
           disabled={actualizar.isPending}
           onClick={() => actualizar.mutate(!activo)}
-          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border-2 transition-colors focus-visible:ring-2 focus-visible:ring-acento focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60 ${activo ? 'border-acento bg-acento' : 'border-zinc-500 bg-zinc-200 dark:border-zinc-400 dark:bg-zinc-700'}`}
+          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border-2 transition-colors focus-visible:ring-2 focus-visible:ring-acento focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60 ${activo ? 'border-acento bg-acento' : 'border-suave bg-superficie-suave'}`}
         >
           <span className={`inline-block size-5 rounded-full bg-white shadow transition-transform ${activo ? 'translate-x-5' : 'translate-x-0.5'}`} />
         </button>

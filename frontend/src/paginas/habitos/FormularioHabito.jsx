@@ -8,7 +8,7 @@ import { enfocarInicial, enfocarPrimerInvalido } from '../../utilidades/formular
 import { PERMISO_LIMITE_AMPLIADO } from '../../api/solicitudes';
 import { useSesion } from '../../sesion/contextoSesion';
 import AvisoLimite from './AvisoLimite';
-import { useCrearHabito } from './consultas';
+import { useCrearHabito, useEditarHabito } from './consultas';
 
 const MAX_NOMBRE = 100;
 const MAX_DESCRIPCION = 500;
@@ -24,14 +24,18 @@ function validarHabito({ nombre, descripcion, dias }) {
   return errores;
 }
 
-export default function FormularioHabito({ alCrear }) {
-  const crear = useCrearHabito();
+// Crea un hábito o, con «habito», edita uno existente (PUT reemplaza nombre, descripción y días).
+export default function FormularioHabito({ alCrear, habito, alGuardar }) {
+  const crearHabito = useCrearHabito();
+  const editar = useEditarHabito();
+  const editando = Boolean(habito);
+  const crear = editando ? editar : crearHabito;
   const { tienePermiso } = useSesion();
   const ampliado = tienePermiso(PERMISO_LIMITE_AMPLIADO);
   const limite = ampliado ? 20 : 10;
-  const [nombre, setNombre] = useState('');
-  const [descripcion, setDescripcion] = useState('');
-  const [dias, setDias] = useState([]);
+  const [nombre, setNombre] = useState(habito?.nombre ?? '');
+  const [descripcion, setDescripcion] = useState(habito?.descripcion ?? '');
+  const [dias, setDias] = useState(habito?.dias ?? []);
   const [errores, setErrores] = useState({});
   const formulario = useRef(null);
 
@@ -50,16 +54,18 @@ export default function FormularioHabito({ alCrear }) {
       enfocarPrimerInvalido(formulario.current);
       return;
     }
-    crear.mutate(
-      { nombre: nombre.trim(), descripcion: descripcion.trim(), dias },
-      { onSuccess: (habito) => alCrear?.(habito) },
-    );
+    const datos = { nombre: nombre.trim(), descripcion: descripcion.trim(), dias };
+    if (editando) {
+      editar.mutate({ id: habito.id, ...datos }, { onSuccess: (guardado) => alGuardar?.(guardado) });
+    } else {
+      crearHabito.mutate(datos, { onSuccess: (creado) => alCrear?.(creado) });
+    }
   }
 
   return (
     <form ref={formulario} onSubmit={alEnviar} noValidate className="flex flex-col gap-5">
-      {crear.isError && crear.error?.estado !== 403 && <Aviso tipo="error">{mensajeDeError(crear.error)}</Aviso>}
-      {crear.error?.estado === 403 && (
+      {crear.isError && (editando || crear.error?.estado !== 403) &&<Aviso tipo="error">{mensajeDeError(crear.error)}</Aviso>}
+      {!editando && crear.error?.estado === 403 && (
         <>
           <Aviso tipo="error" titulo="Llegaste al límite de hábitos">
             {mensajeDeError(crear.error)}
@@ -88,13 +94,13 @@ export default function FormularioHabito({ alCrear }) {
           maxLength={MAX_DESCRIPCION}
           aria-invalid={errores.descripcion ? true : undefined}
           placeholder="Antes de dormir"
-          className="rounded-lg border border-borde bg-superficie px-3 py-2 text-sm focus:border-acento focus:ring-2 focus:ring-acento/30 focus:outline-none"
+          className="rounded-xl border border-borde bg-superficie/80 px-3 py-2 text-sm focus:border-acento focus:ring-2 focus:ring-acento/30 focus:outline-none"
         />
         {errores.descripcion && <p className="text-xs font-medium text-peligro">{errores.descripcion}</p>}
       </div>
       <SelectorDias valor={dias} alCambiar={setDias} error={errores.dias} idError={idErrorDias} />
       <Boton type="submit" cargando={crear.isPending} tamano="lg" className="w-full">
-        Crear hábito
+        {editando ? 'Guardar cambios' : 'Crear hábito'}
       </Boton>
     </form>
   );

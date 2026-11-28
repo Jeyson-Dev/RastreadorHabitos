@@ -2,9 +2,9 @@ import { diaLocalDe, diaSemana, instanteUtc } from '../../utilidades/fechas';
 
 // Estado de un día en el historial de un hábito.
 export const ESTADOS_DIA = {
-  cumplido: { texto: 'cumplido', clase: 'bg-acento' },
+  cumplido: { texto: 'cumplido', clase: 'bg-exito' },
   'no-cumplido': { texto: 'no cumplido', clase: 'bg-peligro' },
-  'sin-registro': { texto: 'sin registrar', clase: 'bg-zinc-300 dark:bg-zinc-600' },
+  'sin-registro': { texto: 'sin registrar', clase: 'bg-suave/35' },
   pendiente: { texto: 'pendiente (hoy)', clase: 'bg-transparent ring-2 ring-inset ring-acento' },
   'no-programado': { texto: 'no programado', clase: 'bg-transparent ring-1 ring-inset ring-borde' },
   'fuera': { texto: 'sin datos', clase: 'bg-transparent' },

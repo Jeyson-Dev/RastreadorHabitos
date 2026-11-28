@@ -7,7 +7,7 @@ const CURSOR = { fill: 'var(--superficie-suave)' };
 function CajaTooltip({ active, payload, label, formato }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-borde bg-superficie px-3 py-2 text-xs shadow-sm">
+    <div className="rounded-xl border border-borde bg-superficie/80 px-3 py-2 text-xs shadow-sm">
       <p className="mb-1 font-medium text-texto">{label}</p>
       <ul className="flex flex-col gap-0.5">
         {payload.map((p) => (

@@ -55,7 +55,7 @@ export default function Auditoria() {
   else if (historial.data.registros.length === 0) contenido = <EstadoVacio icono={History} titulo="No hay registros con esos filtros" />;
   else {
     contenido = (
-      <ul className={`flex flex-col divide-y divide-borde overflow-hidden rounded-xl border border-borde bg-superficie ${historial.isPlaceholderData ? 'opacity-60' : ''}`}>
+      <ul className={`flex flex-col divide-y divide-borde overflow-hidden vidrio rounded-[1.25rem] ${historial.isPlaceholderData ? 'opacity-60' : ''}`}>
         {historial.data.registros.map((r) => (
           <li key={r.id} className="flex flex-col gap-1.5 px-4 py-3.5 sm:px-5">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -91,7 +91,7 @@ export default function Auditoria() {
 
   return (
     <div className="flex flex-col gap-5">
-      <form onSubmit={aplicar} noValidate className="flex flex-wrap items-end gap-3 rounded-xl border border-borde bg-superficie p-4">
+      <form onSubmit={aplicar} noValidate className="flex flex-wrap items-end gap-3 vidrio rounded-[1.25rem] p-4">
         <label className="flex min-w-48 flex-1 flex-col gap-1 text-xs font-medium text-suave">
           Usuario
           <select {...campo('usuarioId')} className={estiloCampo}>

@@ -63,7 +63,7 @@ function CuerpoConfirmar({ alCerrar, textoBoton, peligroso, pedirMotivo, accion,
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? idError : undefined}
             data-autofocus
-            className="rounded-lg border border-borde bg-superficie px-3 py-2 text-sm focus:border-acento focus:ring-2 focus:ring-acento/30 focus:outline-none"
+            className="rounded-xl border border-borde bg-superficie/80 px-3 py-2 text-sm focus:border-acento focus:ring-2 focus:ring-acento/30 focus:outline-none"
           />
           {error && (
             <p id={idError} role="alert" className="text-xs font-medium text-peligro">

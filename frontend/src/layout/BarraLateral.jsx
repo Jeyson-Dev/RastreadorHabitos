@@ -9,10 +9,10 @@ export default function BarraLateral() {
   const { usuario, esAdministrador, cerrarSesion } = useSesion();
 
   return (
-    <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-borde bg-superficie md:flex">
-      <Link to="/" className="flex h-16 items-center gap-2.5 px-5 font-semibold">
-        <img src="/icono.svg" alt="" className="size-7" />
-        Rastreador de hábitos
+    <aside className="vidrio-fuerte fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-vidrio-borde bg-vidrio md:flex">
+      <Link to="/" className="flex h-16 items-center gap-2.5 px-5">
+        <img src="/icono.svg" alt="" className="size-8 drop-shadow-[0_4px_10px_rgb(168_74_38/0.35)]" />
+        <span className="titulo text-lg leading-tight font-semibold">Rastreador de hábitos</span>
       </Link>
 
       <nav aria-label="Principal" className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-2">
@@ -40,15 +40,20 @@ export default function BarraLateral() {
         )}
       </nav>
 
-      <div className="flex items-center gap-3 border-t border-borde p-3">
-        <Link to="/perfil" className="flex min-w-0 flex-1 flex-col rounded-lg px-2 py-1.5 hover:bg-superficie-suave">
-          <span className="truncate text-sm font-medium">{usuario?.nombreCompleto}</span>
-          <span className="truncate text-xs text-suave">{usuario?.email}</span>
+      <div className="flex items-center gap-3 border-t border-vidrio-borde p-3">
+        <Link to="/perfil" className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-2 py-1.5 transition-colors hover:bg-superficie-suave/70">
+          <span className="titulo inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-acento-suave font-semibold text-acento" aria-hidden="true">
+            {usuario?.nombreCompleto?.trim().charAt(0).toUpperCase() || '·'}
+          </span>
+          <span className="flex min-w-0 flex-col">
+            <span className="truncate text-sm font-medium">{usuario?.nombreCompleto}</span>
+            <span className="truncate text-xs text-suave">{usuario?.email}</span>
+          </span>
         </Link>
         <button
           type="button"
           onClick={() => cerrarSesion()}
-          className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-suave hover:bg-superficie-suave hover:text-texto"
+          className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl text-suave transition-colors hover:bg-superficie-suave/70 hover:text-texto"
           aria-label="Cerrar sesión"
           title="Cerrar sesión"
         >

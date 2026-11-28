@@ -14,6 +14,16 @@ export const listarHabitos = (senal) => pedir('/api/habitos', { senal });
 export const crearHabito = ({ nombre, descripcion, dias }) =>
   pedir('/api/habitos', { metodo: 'POST', cuerpo: { nombre, descripcion: descripcion || null, dias } });
 
+export const editarHabito = (id, { nombre, descripcion, dias }) =>
+  pedir(`/api/habitos/${encodeURIComponent(id)}`, { metodo: 'PUT', cuerpo: { nombre, descripcion: descripcion || null, dias } });
+
+// Archivar conserva historial y racha y libera un lugar del límite; restaurar lo vuelve a ocupar.
+export const archivarHabito = (id) => pedir(`/api/habitos/${encodeURIComponent(id)}/archivar`, { metodo: 'POST' });
+export const restaurarHabito = (id) => pedir(`/api/habitos/${encodeURIComponent(id)}/restaurar`, { metodo: 'POST' });
+
+// Borra el hábito y sus registros; las metas que lo incluían descartan el vínculo.
+export const eliminarHabito = (id) => pedir(`/api/habitos/${encodeURIComponent(id)}`, { metodo: 'DELETE' });
+
 export const registrarCumplimiento = (id, cumplido) =>
   pedir(`/api/habitos/${encodeURIComponent(id)}/registros`, { metodo: 'POST', cuerpo: { cumplido } });
 

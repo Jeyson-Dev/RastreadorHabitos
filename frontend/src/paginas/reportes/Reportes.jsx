@@ -40,7 +40,7 @@ export default function Reportes() {
 
   return (
     <div className="flex flex-col gap-6">
-      <form onSubmit={aplicarPersonalizado} noValidate className="flex flex-wrap items-end gap-3 rounded-xl border border-borde bg-superficie p-4">
+      <form onSubmit={aplicarPersonalizado} noValidate className="flex flex-wrap items-end gap-3 vidrio rounded-[1.25rem] p-4">
         <div role="group" aria-label="Rango rápido" className="inline-flex flex-wrap rounded-lg border border-borde p-0.5">
           {RANGOS.map((r) => (
             <button

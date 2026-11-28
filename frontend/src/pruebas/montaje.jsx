@@ -10,7 +10,9 @@ import { crearRutas } from '../rutas';
 
 export const EN_OCHO_HORAS = () => new Date(Date.now() + 8 * 3600 * 1000).toISOString();
 
+// Un 204 (como DELETE en la API real) no lleva cuerpo.
 export function json(estado, cuerpo) {
+  if (estado === 204) return new Response(null, { status: 204 });
   return new Response(JSON.stringify(cuerpo), { status: estado, headers: { 'Content-Type': 'application/json' } });
 }
 

@@ -18,5 +18,8 @@ export const crearMeta = ({ nombre, objetivoCumplimientos, fechaLimite, habitoId
 
 export const completarMeta = (id) => pedir(`/api/metas/${encodeURIComponent(id)}/completar`, { metodo: 'POST' });
 
+// Borra la meta en cualquier estado (no es una transición); sus hábitos no cambian.
+export const eliminarMeta = (id) => pedir(`/api/metas/${encodeURIComponent(id)}`, { metodo: 'DELETE' });
+
 export const reactivarMeta = (id, nuevaFechaLimite) =>
   pedir(`/api/metas/${encodeURIComponent(id)}/reactivar`, { metodo: 'POST', cuerpo: { nuevaFechaLimite } });

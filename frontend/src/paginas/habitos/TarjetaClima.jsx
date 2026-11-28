@@ -95,8 +95,8 @@ export default function TarjetaClima() {
   return (
     <Tarjeta aria-labelledby="titulo-clima" className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
-        <h3 id="titulo-clima" className="inline-flex items-center gap-1.5 text-sm font-medium">
-          <MapPin className="size-4 text-suave" aria-hidden="true" />
+        <h3 id="titulo-clima" className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
+          <MapPin className="size-4 shrink-0 text-suave" aria-hidden="true" />
           <span className="truncate">{plan.data?.ciudad ? `${plan.data.ciudad}${plan.data.pais ? `, ${plan.data.pais}` : ''}` : ciudad}</span>
         </h3>
         {!editando && (
@@ -124,7 +124,7 @@ export default function TarjetaClima() {
               onChange={(e) => setBorrador(e.target.value)}
               maxLength={MAX_CIUDAD}
               aria-invalid={errorCiudad ? true : undefined}
-              className="h-9 min-w-0 flex-1 rounded-lg border border-borde bg-superficie px-3 text-sm focus:border-acento focus:ring-2 focus:ring-acento/30 focus:outline-none"
+              className="h-9 min-w-0 flex-1 rounded-xl border border-borde bg-superficie/80 px-3 text-sm focus:border-acento focus:ring-2 focus:ring-acento/30 focus:outline-none"
               autoFocus
             />
             <button type="submit" className="h-9 rounded-lg bg-acento px-3 text-sm font-medium text-sobre-acento hover:bg-acento-hover">

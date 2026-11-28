@@ -103,7 +103,7 @@ function ReenvioActivacion() {
   }
 
   return (
-    <form onSubmit={alEnviar} noValidate className="flex flex-col gap-3 rounded-xl border border-borde bg-superficie p-5">
+    <form onSubmit={alEnviar} noValidate className="flex flex-col gap-3 vidrio rounded-[1.25rem] p-5">
       <p className="text-sm font-medium">Pide un enlace nuevo</p>
       {resultado && <Aviso tipo={resultado.tipo}>{resultado.texto}</Aviso>}
       <Campo

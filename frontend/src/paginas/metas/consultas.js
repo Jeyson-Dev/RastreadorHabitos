@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CLAVES_METAS, completarMeta, crearMeta, listarMetas, reactivarMeta } from '../../api/metas';
+import { CLAVES_METAS, completarMeta, crearMeta, eliminarMeta, listarMetas, reactivarMeta } from '../../api/metas';
 
-export function useMetas() {
-  return useQuery({ queryKey: CLAVES_METAS.lista, queryFn: ({ signal }) => listarMetas(signal) });
+export function useMetas({ enabled = true } = {}) {
+  return useQuery({ queryKey: CLAVES_METAS.lista, queryFn: ({ signal }) => listarMetas(signal), enabled });
 }
 
 // Cada cambio recarga la lista: el servidor recalcula avance y estado al consultar.
@@ -13,4 +13,5 @@ function useMutacionMeta(mutationFn) {
 
 export const useCrearMeta = () => useMutacionMeta(crearMeta);
 export const useCompletarMeta = () => useMutacionMeta((id) => completarMeta(id));
+export const useEliminarMeta = () => useMutacionMeta((id) => eliminarMeta(id));
 export const useReactivarMeta = () => useMutacionMeta(({ id, nuevaFechaLimite }) => reactivarMeta(id, nuevaFechaLimite));

@@ -5,11 +5,12 @@ import { ESTADOS_META } from '../../api/metas';
 import Aviso from '../../componentes/Aviso';
 import Boton from '../../componentes/Boton';
 import Cargando from '../../componentes/Cargando';
+import Confirmar from '../../componentes/Confirmar';
 import EstadoError from '../../componentes/EstadoError';
 import EstadoVacio from '../../componentes/EstadoVacio';
 import PanelLateral from '../../componentes/PanelLateral';
 import { useHabitos } from '../habitos/consultas';
-import { useMetas } from './consultas';
+import { useEliminarMeta, useMetas } from './consultas';
 import FormularioMeta from './FormularioMeta';
 import ReactivarMeta from './ReactivarMeta';
 import TarjetaMeta from './TarjetaMeta';
@@ -25,16 +26,20 @@ export default function Metas() {
   const [aReactivar, setAReactivar] = useState(null);
   const [creada, setCreada] = useState(null);
   const [completada, setCompletada] = useState(null);
+  const [aEliminar, setAEliminar] = useState(null);
+  const [eliminada, setEliminada] = useState(null);
+  const eliminar = useEliminarMeta();
   const creando = parametros.get('nueva') === '1';
 
   useEffect(() => {
-    if (!creada && !completada) return undefined;
+    if (!creada && !completada && !eliminada) return undefined;
     const temporizador = setTimeout(() => {
       setCreada(null);
       setCompletada(null);
+      setEliminada(null);
     }, 6000);
     return () => clearTimeout(temporizador);
-  }, [creada, completada]);
+  }, [creada, completada, eliminada]);
 
   const abrirCrear = () => setParametros({ nueva: '1' }, { replace: true });
   const cerrarCrear = () => setParametros({}, { replace: true });
@@ -65,7 +70,7 @@ export default function Metas() {
       .sort((a, b) => (a.estado === b.estado ? porFechaLimite(a, b) : a.estado === ESTADOS_META.EnProgreso ? -1 : 1));
     const fallidas = metas.data.filter((m) => m.estado === ESTADOS_META.Fallida).sort(porFechaLimite);
     const completadas = metas.data.filter((m) => m.estado === ESTADOS_META.Completada).sort((a, b) => porFechaLimite(b, a));
-    const tarjeta = (meta) => <TarjetaMeta key={meta.id} meta={meta} nombresHabitos={nombresDe(meta)} alReactivar={setAReactivar} alCompletar={setCompletada} />;
+    const tarjeta = (meta) => <TarjetaMeta key={meta.id} meta={meta} nombresHabitos={nombresDe(meta)} alReactivar={setAReactivar} alCompletar={setCompletada} alEliminar={setAEliminar} />;
 
     contenido = (
       <div className="flex flex-col gap-8">
@@ -95,7 +100,7 @@ export default function Metas() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-semibold">Tus metas</h2>
+        <h2 className="text-2xl font-semibold">Tus metas</h2>
         {metas.data?.length > 0 && (
           <Boton onClick={abrirCrear}>
             <Plus className="size-4" aria-hidden="true" />
@@ -105,6 +110,7 @@ export default function Metas() {
       </div>
       {completada && <Aviso tipo="exito">¡Completaste «{completada}»!</Aviso>}
       {creada && <Aviso tipo="exito">Creaste la meta «{creada}».</Aviso>}
+      {eliminada && <Aviso tipo="exito">Eliminaste la meta «{eliminada}».</Aviso>}
       {contenido}
 
       <PanelLateral abierto={creando} alCerrar={cerrarCrear} titulo="Nueva meta">
@@ -123,6 +129,23 @@ export default function Metas() {
         )}
       </PanelLateral>
       <ReactivarMeta meta={aReactivar} alCerrar={() => setAReactivar(null)} />
+      <Confirmar
+        abierto={Boolean(aEliminar)}
+        alCerrar={() => setAEliminar(null)}
+        titulo={`¿Eliminar la meta «${aEliminar?.nombre ?? ''}»?`}
+        descripcion="La meta deja de existir; sus hábitos y sus registros no cambian. No se puede deshacer."
+        textoBoton="Eliminar meta"
+        peligroso
+        accion={eliminar}
+        alConfirmar={() =>
+          eliminar.mutate(aEliminar.id, {
+            onSuccess: () => {
+              setEliminada(aEliminar.nombre);
+              setAEliminar(null);
+            },
+          })
+        }
+      />
     </div>
   );
 }
