@@ -284,8 +284,12 @@ está en `docs/maquina-de-estados.md`):
 - Límite de hábitos: 10, o 20 con el permiso `LIMITE_HABITOS_AMPLIADO`, que Hábitos consulta solo
   a Control de acceso (`tienePermiso`).
 - Hábitos y Metas guardan solo el `UsuarioId` del dueño, sin relación con las tablas de Control
-  de acceso. Todavía no existen `CategoriaHabito`, `HistorialEstadoMeta`, archivar, rachas ni
-  hábitos cuantitativos: se construyen cuando una práctica los pida.
+  de acceso. Las rachas se calculan al consultar (no se guardan). Un hábito se edita, se archiva
+  (conserva historial y racha, no cuenta para el límite ni se registra), se restaura o se elimina con
+  sus registros; una meta se elimina en cualquier estado y descarta al leerla el vínculo con un hábito
+  eliminado (reglas 2 y 3 de `docs/diseno-componentes-detalle.md`). Todavía no existen
+  `CategoriaHabito`, `HistorialEstadoMeta` ni hábitos cuantitativos: se construyen cuando una
+  práctica o el usuario los pida.
 
 **Docker (Práctica 4).** El proyecto corre con `docker compose up --build` tras copiar
 `.env.example` a `.env`. La composición tiene cuatro servicios: `app`, `sqlserver`, `enviador`
