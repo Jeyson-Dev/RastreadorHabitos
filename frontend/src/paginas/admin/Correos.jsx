@@ -26,7 +26,7 @@ export default function Correos() {
   else if (correos.data.length === 0) contenido = <EstadoVacio icono={Mail} titulo="No hay correos con ese estado" />;
   else {
     contenido = (
-      <ul className="flex flex-col divide-y divide-borde overflow-hidden rounded-xl border border-borde bg-superficie">
+      <ul className="flex flex-col divide-y divide-borde overflow-hidden vidrio rounded-[1.25rem]">
         {correos.data.map((c) => (
           <li key={c.id} className="flex flex-col gap-2 px-4 py-4 sm:px-5">
             <div className="flex flex-wrap items-start justify-between gap-2">

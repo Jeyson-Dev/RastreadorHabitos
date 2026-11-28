@@ -33,12 +33,12 @@ export default function PanelLateral({ abierto, alCerrar, titulo, children }) {
       aria-labelledby={idTitulo}
       onClose={alCerrarDialogo}
       onClick={(e) => e.target === dialogo.current && cerrar()}
-      className="mt-auto mb-0 max-h-[90dvh] w-full max-w-none flex-col rounded-t-2xl border border-borde bg-superficie p-0 text-texto backdrop:bg-black/40 open:flex md:mt-0 md:mr-0 md:ml-auto md:h-dvh md:max-h-none md:w-[28rem] md:rounded-none md:border-y-0 md:border-r-0"
+      className="panel-lateral mt-auto mb-0 max-h-[90dvh] w-full max-w-none flex-col rounded-t-3xl border border-vidrio-borde bg-vidrio-fuerte vidrio-fuerte p-0 text-texto shadow-suave open:flex md:mt-0 md:mr-0 md:ml-auto md:h-dvh md:max-h-none md:w-[28rem] md:rounded-l-3xl md:rounded-r-none md:border-y-0 md:border-r-0"
     >
       {abierto && (
         <>
-          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-borde px-5 py-4">
-            <h2 id={idTitulo} className="truncate text-lg font-semibold">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-vidrio-borde px-5 py-4">
+            <h2 id={idTitulo} className="truncate text-xl font-semibold">
               {titulo}
             </h2>
             <button

@@ -47,7 +47,7 @@ export default function Solicitudes() {
     );
   } else {
     contenido = (
-      <ul className="flex flex-col divide-y divide-borde overflow-hidden rounded-xl border border-borde bg-superficie">
+      <ul className="flex flex-col divide-y divide-borde overflow-hidden vidrio rounded-[1.25rem]">
         {pendientes.data.map((s) => {
           const propia = s.solicitanteId === usuario?.id;
           return (

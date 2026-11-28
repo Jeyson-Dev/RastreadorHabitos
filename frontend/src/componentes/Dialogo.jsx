@@ -27,12 +27,12 @@ export default function Dialogo({ abierto, alCerrar, titulo, descripcion, bloque
       onClose={() => abiertoActual.current && alCerrar()}
       onCancel={(e) => bloqueado && e.preventDefault()}
       onClick={(e) => !bloqueado && e.target === dialogo.current && dialogo.current.close()}
-      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-borde bg-superficie p-0 text-texto backdrop:bg-black/40"
+      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-3xl border border-vidrio-borde bg-vidrio-fuerte vidrio-fuerte p-0 text-texto shadow-suave"
     >
       {abierto && (
         <div className="flex flex-col gap-4 p-6">
           <div className="flex flex-col gap-1">
-            <h2 id={idTitulo} className="text-lg font-semibold">
+            <h2 id={idTitulo} className="text-xl font-semibold">
               {titulo}
             </h2>
             {descripcion && (

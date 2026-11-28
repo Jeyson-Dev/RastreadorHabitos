@@ -5,58 +5,124 @@
 
 @theme {
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  /* Títulos y números grandes: serifa cálida con eje óptico. */
+  --font-titulo: 'Fraunces Variable', ui-serif, Georgia, serif;
 }
 
-/* Tokens del diseño: superficies neutras (zinc), acento esmeralda y colores de estado. */
+/*
+ * Dirección cálida: crema y terracota, con ámbar (rachas), oliva (cumplido) y azul (información)
+ * para que la paleta no dependa de un solo tono. Contrastes de texto ≥ 4.5:1 sobre fondo y superficie.
+ * Las superficies son translúcidas (vidrio) sobre un fondo ambiental con degradados suaves.
+ */
 :root {
-  --fondo: #fafafa;
+  --fondo: #faf5ef;
   --superficie: #ffffff;
-  --superficie-suave: #f4f4f5;
-  --borde: #e4e4e7;
-  --texto: #18181b;
-  --texto-suave: #52525b;
-  --acento: #047857;
-  --acento-hover: #065f46;
-  --acento-suave: #ecfdf5;
+  --superficie-suave: #f4ebe1;
+  --borde: #e9dccd;
+  --texto: #2a1a10;
+  --texto-suave: #6e5646;
+  --acento: #a84a26;
+  --acento-hover: #8a3a1c;
+  --acento-suave: #fdeee5;
   --sobre-acento: #ffffff;
+  --exito: #4f7a28;
+  --exito-suave: #eef5e4;
   --racha: #b45309;
-  --peligro: #be123c;
-  --peligro-suave: #fff1f2;
-  --info: #0369a1;
-  --info-suave: #f0f9ff;
-  --aviso: #a16207;
-  --aviso-suave: #fefce8;
+  --peligro: #b42344;
+  --peligro-suave: #fdecef;
+  --info: #2f6690;
+  --info-suave: #eaf3fa;
+  --aviso: #8a5a00;
+  --aviso-suave: #fdf4de;
+
+  /* Vidrio: superficies translúcidas con desenfoque. */
+  --vidrio: rgb(255 255 255 / 0.64);
+  --vidrio-fuerte: rgb(255 255 255 / 0.82);
+  --vidrio-borde: rgb(255 255 255 / 0.75);
+  --sombra: 0 1px 2px rgb(74 38 16 / 0.05), 0 12px 32px -14px rgb(120 58 24 / 0.22);
+  --sombra-acento: 0 8px 20px -8px rgb(168 74 38 / 0.55);
+  --ambiente-1: rgb(214 118 74 / 0.22);
+  --ambiente-2: rgb(240 178 76 / 0.18);
+  --ambiente-3: rgb(132 168 96 / 0.16);
+
+  /* Identidad automática de cada hábito: fondo suave y tinta con contraste ≥ 4.5:1. */
+  --h1-fondo: #fbe3d6;
+  --h1-tinta: #9a3f1c;
+  --h2-fondo: #fcedc9;
+  --h2-tinta: #7c4f06;
+  --h3-fondo: #e5efd3;
+  --h3-tinta: #44601a;
+  --h4-fondo: #d3efe6;
+  --h4-tinta: #1a6150;
+  --h5-fondo: #dbe8f7;
+  --h5-tinta: #2b5a96;
+  --h6-fondo: #e9e2f6;
+  --h6-tinta: #573b96;
+  --h7-fondo: #f8dde7;
+  --h7-tinta: #932c53;
+  --h8-fondo: #efe4d6;
+  --h8-tinta: #634b35;
+
   /* Series de gráficas: paleta categórica validada (skill dataviz) en orden fijo, claro y oscuro. */
   --serie-1: #2a78d6;
   --serie-2: #eb6834;
   --serie-3: #1baf7a;
   --serie-4: #eda100;
-  --rejilla: #e4e4e7;
+  --rejilla: #e9dccd;
 }
 
 .dark {
-  --fondo: #09090b;
-  --superficie: #18181b;
-  --superficie-suave: #27272a;
-  --borde: #3f3f46;
-  --texto: #fafafa;
-  --texto-suave: #a1a1aa;
-  --acento: #34d399;
-  --acento-hover: #6ee7b7;
-  --acento-suave: #022c22;
-  --sobre-acento: #022c22;
+  --fondo: #17110d;
+  --superficie: #221a14;
+  --superficie-suave: #2e241c;
+  --borde: #3f3228;
+  --texto: #f6ede4;
+  --texto-suave: #c2ae9d;
+  --acento: #f29a72;
+  --acento-hover: #f7b393;
+  --acento-suave: #3b2117;
+  --sobre-acento: #2a120a;
+  --exito: #9ccc6a;
+  --exito-suave: #22301a;
   --racha: #fbbf24;
   --peligro: #fb7185;
-  --peligro-suave: #4c0519;
-  --info: #38bdf8;
-  --info-suave: #082f49;
-  --aviso: #facc15;
-  --aviso-suave: #422006;
+  --peligro-suave: #4a1020;
+  --info: #7cc0ec;
+  --info-suave: #10283a;
+  --aviso: #f2c14e;
+  --aviso-suave: #3a2a08;
+
+  --vidrio: rgb(38 28 21 / 0.58);
+  --vidrio-fuerte: rgb(38 28 21 / 0.82);
+  --vidrio-borde: rgb(255 255 255 / 0.08);
+  --sombra: 0 1px 2px rgb(0 0 0 / 0.3), 0 16px 40px -18px rgb(0 0 0 / 0.7);
+  --sombra-acento: 0 8px 22px -8px rgb(242 154 114 / 0.45);
+  --ambiente-1: rgb(214 108 62 / 0.2);
+  --ambiente-2: rgb(200 140 50 / 0.12);
+  --ambiente-3: rgb(110 150 80 / 0.1);
+
+  --h1-fondo: #3d2318;
+  --h1-tinta: #f4a582;
+  --h2-fondo: #3a2b0c;
+  --h2-tinta: #f5c76a;
+  --h3-fondo: #25301a;
+  --h3-tinta: #b5d68a;
+  --h4-fondo: #12302a;
+  --h4-tinta: #7fd6bd;
+  --h5-fondo: #152536;
+  --h5-tinta: #93bdf0;
+  --h6-fondo: #261f3a;
+  --h6-tinta: #c2adf0;
+  --h7-fondo: #3a1726;
+  --h7-tinta: #f19aba;
+  --h8-fondo: #2f261d;
+  --h8-tinta: #d8c0a3;
+
   --serie-1: #3987e5;
   --serie-2: #d95926;
   --serie-3: #199e70;
   --serie-4: #c98500;
-  --rejilla: #3f3f46;
+  --rejilla: #3f3228;
 }
 
 @theme inline {
@@ -70,6 +136,8 @@
   --color-acento-hover: var(--acento-hover);
   --color-acento-suave: var(--acento-suave);
   --color-sobre-acento: var(--sobre-acento);
+  --color-exito: var(--exito);
+  --color-exito-suave: var(--exito-suave);
   --color-racha: var(--racha);
   --color-peligro: var(--peligro);
   --color-peligro-suave: var(--peligro-suave);
@@ -77,6 +145,11 @@
   --color-info-suave: var(--info-suave);
   --color-aviso: var(--aviso);
   --color-aviso-suave: var(--aviso-suave);
+  --color-vidrio: var(--vidrio);
+  --color-vidrio-fuerte: var(--vidrio-fuerte);
+  --color-vidrio-borde: var(--vidrio-borde);
+  --shadow-suave: var(--sombra);
+  --shadow-acento: var(--sombra-acento);
 }
 
 @layer base {
@@ -85,6 +158,16 @@
   }
   html.dark {
     color-scheme: dark;
+  }
+  body {
+    background-color: var(--fondo);
+  }
+  h1,
+  h2,
+  .titulo {
+    font-family: var(--font-titulo);
+    font-optical-sizing: auto;
+    letter-spacing: -0.01em;
   }
   /* Foco visible y consistente para teclado en toda la app. */
   :focus-visible {
@@ -97,11 +180,93 @@
   }
 }
 
+@layer components {
+  /* Fondo ambiental fijo: degradados suaves detrás del vidrio, sin imágenes. */
+  .fondo-ambiente {
+    background:
+      radial-gradient(60rem 40rem at -10% -10%, var(--ambiente-1), transparent 60%),
+      radial-gradient(50rem 36rem at 110% 0%, var(--ambiente-2), transparent 60%),
+      radial-gradient(56rem 40rem at 50% 115%, var(--ambiente-3), transparent 60%),
+      var(--fondo);
+  }
+  /* Superficie de vidrio: translúcida, con desenfoque, borde claro y sombra cálida. */
+  .vidrio {
+    background-color: var(--vidrio);
+    border: 1px solid var(--vidrio-borde);
+    box-shadow: var(--sombra), inset 0 1px 0 rgb(255 255 255 / 0.35);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    backdrop-filter: blur(18px) saturate(1.4);
+  }
+  .dark .vidrio {
+    box-shadow: var(--sombra), inset 0 1px 0 rgb(255 255 255 / 0.05);
+  }
+  .vidrio-fuerte {
+    background-color: var(--vidrio-fuerte);
+    -webkit-backdrop-filter: blur(22px) saturate(1.5);
+    backdrop-filter: blur(22px) saturate(1.5);
+  }
+  /* Esqueleto de carga con brillo que recorre la superficie. */
+  .esqueleto {
+    background: linear-gradient(100deg, var(--superficie-suave) 30%, var(--vidrio-fuerte) 50%, var(--superficie-suave) 70%);
+    background-size: 200% 100%;
+    animation: brillo 1.4s ease-in-out infinite;
+  }
+}
+
+/* Entrada de diálogos y paneles nativos: el <dialog> sigue manejando foco y Escape. */
+dialog[open] {
+  animation: aparecer 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+dialog[open].panel-lateral {
+  animation: subir 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (min-width: 48rem) {
+  dialog[open].panel-lateral {
+    animation-name: deslizar;
+  }
+}
+dialog::backdrop {
+  background: rgb(30 16 8 / 0.35);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  animation: atenuar 0.25s ease-out;
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+}
+@keyframes subir {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes deslizar {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes atenuar {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes brillo {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Sin movimiento: se quitan las transformaciones y solo quedan fundidos breves. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

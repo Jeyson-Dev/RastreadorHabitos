@@ -58,7 +58,7 @@ export default function Usuarios() {
   else if (visibles.length === 0) contenido = <EstadoVacio icono={Users} titulo="Ningún usuario coincide con la búsqueda" />;
   else {
     contenido = (
-      <ul className="flex flex-col divide-y divide-borde overflow-hidden rounded-xl border border-borde bg-superficie">
+      <ul className="flex flex-col divide-y divide-borde overflow-hidden vidrio rounded-[1.25rem]">
         {visibles.map((u) => {
           const soyYo = u.id === yo?.id;
           const esAdmin = u.rol === ROLES.Administrador;
@@ -102,7 +102,7 @@ export default function Usuarios() {
             type="search"
             value={filtro}
             onChange={(e) => setFiltro(e.target.value)}
-            className="h-9 rounded-lg border border-borde bg-superficie px-3 text-sm text-texto focus:border-acento focus:ring-2 focus:ring-acento/30 focus:outline-none"
+            className="h-9 rounded-xl border border-borde bg-superficie/80 px-3 text-sm text-texto focus:border-acento focus:ring-2 focus:ring-acento/30 focus:outline-none"
           />
         </label>
       </div>

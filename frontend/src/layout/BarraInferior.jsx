@@ -32,7 +32,7 @@ export default function BarraInferior() {
     <>
       <nav
         aria-label="Principal"
-        className="fixed inset-x-0 bottom-0 z-20 border-t border-borde bg-superficie/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-vidrio-borde bg-vidrio-fuerte vidrio-fuerte pb-[env(safe-area-inset-bottom)] md:hidden"
       >
         <ul className="grid grid-cols-5">
           {fijas.map(({ a, etiqueta, icono: Icono, fin }) => (
@@ -47,7 +47,7 @@ export default function BarraInferior() {
                 <span className="relative">
                   <Icono className="size-5" aria-hidden="true" />
                   {a === '/notificaciones' && noLeidas > 0 && (
-                    <span aria-hidden="true" className="numeros absolute -top-1.5 -right-2 min-w-4 rounded-full bg-peligro px-1 text-center text-[10px] leading-4 font-semibold text-white dark:text-zinc-950">
+                    <span aria-hidden="true" className="numeros absolute -top-1.5 -right-2 min-w-4 rounded-full bg-peligro px-1 text-center text-[10px] leading-4 font-semibold text-white dark:text-[#2a0a12]">
                       {noLeidas > 9 ? '9+' : noLeidas}
                     </span>
                   )}
@@ -77,7 +77,7 @@ export default function BarraInferior() {
         ref={dialogo}
         aria-labelledby="titulo-mas"
         onClick={(e) => e.target === dialogo.current && cerrar()}
-        className="mt-auto mb-0 w-full max-w-none rounded-t-2xl border border-borde bg-superficie p-0 text-texto backdrop:bg-black/40 md:hidden"
+        className="panel-lateral mt-auto mb-0 w-full max-w-none rounded-t-3xl border border-vidrio-borde bg-vidrio-fuerte vidrio-fuerte p-0 text-texto shadow-suave md:hidden"
       >
         <div className="flex items-center justify-between border-b border-borde px-4 py-3">
           <h2 id="titulo-mas" className="font-semibold">
@@ -96,7 +96,7 @@ export default function BarraInferior() {
           <ul className="flex flex-col gap-0.5">
             {[...resto, SECCION_PERFIL].map((seccion) => (
               <li key={seccion.a}>
-                <EnlaceNavegacion seccion={seccion} alElegir={cerrar} />
+                <EnlaceNavegacion seccion={seccion} alElegir={cerrar} grupo="mas" />
               </li>
             ))}
           </ul>
@@ -106,7 +106,7 @@ export default function BarraInferior() {
               <ul className="flex flex-col gap-0.5">
                 {SECCIONES_ADMINISTRACION.map((seccion) => (
                   <li key={seccion.a}>
-                    <EnlaceNavegacion seccion={seccion} alElegir={cerrar} />
+                    <EnlaceNavegacion seccion={seccion} alElegir={cerrar} grupo="mas" />
                   </li>
                 ))}
               </ul>

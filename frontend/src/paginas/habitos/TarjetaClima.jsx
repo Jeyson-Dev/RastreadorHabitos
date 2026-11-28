@@ -124,7 +124,7 @@ export default function TarjetaClima() {
               onChange={(e) => setBorrador(e.target.value)}
               maxLength={MAX_CIUDAD}
               aria-invalid={errorCiudad ? true : undefined}
-              className="h-9 min-w-0 flex-1 rounded-lg border border-borde bg-superficie px-3 text-sm focus:border-acento focus:ring-2 focus:ring-acento/30 focus:outline-none"
+              className="h-9 min-w-0 flex-1 rounded-xl border border-borde bg-superficie/80 px-3 text-sm focus:border-acento focus:ring-2 focus:ring-acento/30 focus:outline-none"
               autoFocus
             />
             <button type="submit" className="h-9 rounded-lg bg-acento px-3 text-sm font-medium text-sobre-acento hover:bg-acento-hover">

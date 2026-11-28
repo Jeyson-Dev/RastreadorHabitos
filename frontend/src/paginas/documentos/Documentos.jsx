@@ -85,7 +85,7 @@ export default function Documentos() {
     );
   } else {
     contenido = (
-      <ul className="flex flex-col divide-y divide-borde overflow-hidden rounded-xl border border-borde bg-superficie">
+      <ul className="flex flex-col divide-y divide-borde overflow-hidden vidrio rounded-[1.25rem]">
         {documentos.data.map((d) => (
           <li key={d.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-5">
             <div className="flex min-w-0 items-center gap-3">
