@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Check, RotateCcw } from 'lucide-react';
+import { Check, RotateCcw, Trash2 } from 'lucide-react';
 import { mensajeDeError } from '../../api/cliente';
 import { ESTADOS_META } from '../../api/metas';
 import BarraAvance from '../../componentes/BarraAvance';
 import Boton from '../../componentes/Boton';
+import MenuAcciones from '../../componentes/MenuAcciones';
 import { diaLocalDe, diasEntre, fechaCorta } from '../../utilidades/fechas';
 import ChipEstado from './ChipEstado';
 import { PRESENTACION_ESTADO } from './presentacion';
@@ -20,7 +21,7 @@ function textoPlazo(meta, hoy) {
 // Tarjeta de una meta: estado, avance, plazo y la única acción posible según la máquina de estados.
 // Completar exige estar En progreso con avance ≥ objetivo (Pendiente → Completada está prohibida);
 // una Fallida se reactiva con una fecha nueva. El servidor vuelve a validar todo.
-export default function TarjetaMeta({ meta, nombresHabitos, alReactivar, alCompletar }) {
+export default function TarjetaMeta({ meta, nombresHabitos, alReactivar, alCompletar, alEliminar }) {
   const completar = useCompletarMeta();
   const [confirmando, setConfirmando] = useState(false);
   const hoy = diaLocalDe(new Date());
@@ -66,12 +67,20 @@ export default function TarjetaMeta({ meta, nombresHabitos, alReactivar, alCompl
   }
 
   return (
-    <article aria-labelledby={`meta-${meta.id}`} className="flex flex-col gap-3 rounded-xl border border-borde bg-superficie p-4 sm:p-5">
+    <article aria-labelledby={`meta-${meta.id}`} className="flex flex-col gap-3 vidrio rounded-[1.25rem] p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
-        <h3 id={`meta-${meta.id}`} className="font-medium">
+        <h3 id={`meta-${meta.id}`} className="titulo text-lg font-semibold">
           {meta.nombre}
         </h3>
-        <ChipEstado estado={meta.estado} />
+        <div className="flex shrink-0 items-center gap-1">
+          <ChipEstado estado={meta.estado} />
+          {alEliminar && (
+            <MenuAcciones
+              etiqueta={`Acciones de ${meta.nombre}`}
+              acciones={[{ etiqueta: 'Eliminar', icono: Trash2, alElegir: () => alEliminar(meta), peligroso: true }]}
+            />
+          )}
+        </div>
       </div>
       <div className="flex flex-col gap-1.5">
         <BarraAvance
