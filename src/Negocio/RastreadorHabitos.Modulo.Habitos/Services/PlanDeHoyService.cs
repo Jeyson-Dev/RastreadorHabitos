@@ -45,12 +45,13 @@ public class PlanDeHoyService : IPlanDeHoyService
         };
 
         // Hábitos del usuario programados para hoy y lo que ya registró hoy. «Hoy» es la fecha
-        // local del servidor, igual que en el registro diario.
+        // local del servidor, igual que en el registro diario. Los archivados no se registran, así
+        // que no forman parte del plan (regla 3 del diseño).
         var hoy = DateOnly.FromDateTime(_reloj.GetLocalNow().DateTime);
         var diaHoy = DiasSemana.De(hoy);
         var habitos = await _context.Habitos
             .AsNoTracking()
-            .Where(h => h.UsuarioId == usuarioId && h.Dias.Any(d => d.DiaSemana == diaHoy))
+            .Where(h => h.UsuarioId == usuarioId && h.FechaArchivadoUtc == null && h.Dias.Any(d => d.DiaSemana == diaHoy))
             .OrderBy(h => h.FechaCreacionUtc)
             .Select(h => new HabitoDeHoyDto
             {

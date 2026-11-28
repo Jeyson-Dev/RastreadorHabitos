@@ -51,9 +51,10 @@ public class MetricasHabitosService : IMetricasHabitos
             .ToDictionaryAsync(g => g.Semana, g => g.Cumplidos);
 
         // Días programados por semana: salen del calendario de cada hábito (sus días de la semana
-        // desde que se creó), no de sus registros. Se leen los hábitos, no los registros.
+        // desde que se creó y hasta el día en que se archivó, si se archivó), no de sus registros.
+        // Se leen los hábitos, no los registros.
         var calendario = await habitos
-            .Select(hb => new { hb.FechaCreacionUtc, Dias = hb.Dias.Select(d => d.DiaSemana).ToList() })
+            .Select(hb => new { hb.FechaCreacionUtc, hb.FechaArchivadoUtc, Dias = hb.Dias.Select(d => d.DiaSemana).ToList() })
             .ToListAsync();
 
         var programadosPorSemana = new Dictionary<int, int>();
@@ -61,7 +62,8 @@ public class MetricasHabitosService : IMetricasHabitos
         {
             var creado = DiaLocal(habito.FechaCreacionUtc);
             var primero = desde is { } d && d > creado ? d : creado;
-            for (var dia = primero; dia <= fin; dia = dia.AddDays(1))
+            var ultimo = habito.FechaArchivadoUtc is { } archivado && DiaLocal(archivado) < fin ? DiaLocal(archivado) : fin;
+            for (var dia = primero; dia <= ultimo; dia = dia.AddDays(1))
             {
                 if (habito.Dias.Contains(DiasSemana.De(dia)))
                 {

@@ -49,6 +49,13 @@ public class MetasController : ControllerBase
         return Ok(await _metas.ReactivarAsync(UsuarioActual(), id, reactivacion));
     }
 
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Eliminar(Guid id)
+    {
+        await _metas.EliminarAsync(UsuarioActual(), id);
+        return NoContent();
+    }
+
     // Id de quien hace la petición, que Control de acceso ya autenticó; el negocio no autentica.
     private Guid UsuarioActual() =>
         Guid.Parse(User.FindFirst(OpcionesSesion.ClaimUsuario)!.Value);

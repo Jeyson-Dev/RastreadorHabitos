@@ -920,14 +920,18 @@ de la semana son números: `1` = lunes … `7` = domingo.
 | # | Funcionalidad | Método y ruta | Cuerpo | Respuesta |
 |---|---|---|---|---|
 | F1 | Crear un hábito | `POST /api/habitos` | `{ "nombre", "descripcion" (opcional), "dias": [1, …, 7] }` | `201` el hábito · `400` dato inválido · `403` límite de hábitos alcanzado |
-| F2 | Listar mis hábitos | `GET /api/habitos` | — | `200` lista con `id`, `nombre`, `descripcion`, `dias`, `fechaCreacionUtc`, `rachaActual`, `mejorRacha`, `programadoHoy` y `cumplidoHoy` (`null` si hoy no se registró) |
+| F2 | Listar mis hábitos | `GET /api/habitos` | — | `200` lista con `id`, `nombre`, `descripcion`, `dias`, `fechaCreacionUtc`, `archivado`, `fechaArchivadoUtc` (`null` si está activo), `rachaActual`, `mejorRacha`, `programadoHoy` y `cumplidoHoy` (`null` si hoy no se registró) |
 | F3 | Registrar el cumplimiento de hoy | `POST /api/habitos/{id}/registros` | `{ "cumplido": true \| false }` | `200 { "habitoId", "fecha", "cumplido" }` · `400` sin `cumplido` · `404` hábito inexistente o de otro usuario · `409` hoy no es un día programado |
 | F3b | Consultar el historial y las rachas de un hábito (solo lectura) | `GET /api/habitos/{id}/registros?desde=&hasta=` | — | `200 { "habitoId", "desde", "hasta", "rachaActual", "mejorRacha", "registros": [ { "habitoId", "fecha", "cumplido" } ] }`; sin fechas, los últimos 30 días hasta hoy · `400` fecha mal formada, rango invertido o de más de 366 días · `404` hábito inexistente o de otro usuario |
 | F4 | Crear una meta | `POST /api/metas` | `{ "nombre", "objetivoCumplimientos", "fechaLimite", "habitoIds": [ … ] }` | `201` la meta, en `Pendiente` · `400` dato inválido |
 | F5 | Consultar mis metas | `GET /api/metas` y `GET /api/metas/{id}` | — | `200` la meta (o la lista) con su `avance` y su `estado` al día · `404` meta inexistente o de otro usuario |
 | F6 | Completar una meta | `POST /api/metas/{id}/completar` | — | `200` la meta en `Completada` · `404` · `409` transición no permitida o condición no cumplida |
 | F7 | Reactivar una meta Fallida | `POST /api/metas/{id}/reactivar` | `{ "nuevaFechaLimite" }` | `200` la meta en `EnProgreso` con la fecha nueva · `400` sin fecha · `404` · `409` transición no permitida o condición no cumplida |
-| — | Plan de hoy (Práctica 4, usa la [API externa](#api-externa)) | `GET /api/habitos/hoy?ciudad=<ciudad>` | — | `200` el plan · `400` sin ciudad o ciudad no encontrada · `503` servicio de clima no disponible |
+| F8 | Editar un hábito | `PUT /api/habitos/{id}` | `{ "nombre", "descripcion" (opcional), "dias": [1, …, 7] }` (reemplaza los tres) | `200` el hábito · `400` dato inválido · `404` hábito inexistente o de otro usuario |
+| F9 | Archivar y restaurar un hábito | `POST /api/habitos/{id}/archivar` y `POST /api/habitos/{id}/restaurar` | — | `200` el hábito con `archivado` en `true` o `false` · `403` al restaurar con el límite de hábitos lleno · `404` · `409` ya estaba archivado, o no lo estaba |
+| F10 | Eliminar un hábito | `DELETE /api/habitos/{id}` | — | `204` · `404` hábito inexistente o de otro usuario |
+| F11 | Eliminar una meta | `DELETE /api/metas/{id}` | — | `204` · `404` meta inexistente o de otro usuario |
+| — | Plan de hoy (Práctica 4, usa la [API externa](#api-externa)) | `GET /api/habitos/hoy?ciudad=<ciudad>` | — | `200` el plan, sin los hábitos archivados · `400` sin ciudad o ciudad no encontrada · `503` servicio de clima no disponible |
 
 Cada meta se devuelve como
 `{ "id", "nombre", "objetivoCumplimientos", "avance", "fechaInicio", "fechaLimite", "estado", "habitoIds", "fechaCreacionUtc" }`.
@@ -1003,6 +1007,35 @@ todas las metas de E. Con el token de A, `GET /api/metas/M1` → `404`.
 **F6 — Completar una meta.** Ver las transiciones 2 y prohibidas 1 y 4 de abajo.
 
 **F7 — Reactivar una meta Fallida.** Ver la transición 5 y la prohibida 4 de abajo.
+
+**F8 — Editar un hábito.** `PUT /api/habitos/H1` con
+`{ "nombre": "Leer 30 minutos", "descripcion": "Antes de dormir", "dias": [1, 3, 5] }` → `200` con
+los datos nuevos; `GET /api/habitos` los muestra. Los mismos rechazos de F1 (`400`): `nombre`
+ausente, `""` o `"   "`, `dias` vacío o con un día fuera de 1 a 7. Con el token de A sobre H1 → `404`
+y H1 no cambia.
+
+**F9 — Archivar y restaurar un hábito.** Archivar conserva el historial y las rachas, no cuenta para
+el límite de 10 (o 20) hábitos, no se puede registrar y no aparece en el plan de hoy (reglas 2 y 3 de
+`docs/diseno-componentes-detalle.md`).
+- `POST /api/habitos/H1/archivar` → `200` con `"archivado": true` y `fechaArchivadoUtc`. Repetirlo →
+  `409` «El hábito ya está archivado.»
+- Registrar H1 (F3) → `409` «El hábito está archivado. Restáurelo para registrar su cumplimiento.»
+- Su `rachaActual` queda como estaba el día en que se archivó, aunque pasen días sin registrar.
+- Con 10 hábitos activos, archivar uno deja crear otro (F1 → `201`). Restaurar con 10 activos →
+  `403` «Alcanzó el límite de 10 hábitos…» y sigue archivado.
+- `POST /api/habitos/H1/restaurar` → `200` con `"archivado": false`. Repetirlo → `409` «El hábito
+  no está archivado.»
+- En el reporte de [cumplimiento semanal](#reportes), los días posteriores al archivo no cuentan como
+  programados.
+
+**F10 — Eliminar un hábito.** `DELETE /api/habitos/H2` → `204`. El hábito, sus días y sus registros
+diarios se borran de la base (`SELECT … FROM Habitos.RegistrosDiarios WHERE HabitoId = 'H2'` no
+devuelve filas). Las metas que lo incluían descartan el vínculo al consultarlas: `GET /api/metas/M1`
+ya no lo trae en `habitoIds` y su `avance` deja de contar esos registros. Con el token de A → `404`.
+
+**F11 — Eliminar una meta.** `DELETE /api/metas/M1` → `204`, en cualquier estado (incluido
+`Completada`): no es una transición de la máquina de estados, la meta deja de existir. Sus hábitos y
+sus registros no cambian. Después, `GET /api/metas/M1` → `404`. Con el token de A → `404`.
 
 ### Máquina de estados de la Meta
 

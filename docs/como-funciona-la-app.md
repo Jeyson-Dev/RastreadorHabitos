@@ -34,7 +34,8 @@ El primer Administrador se crea con
    todas las sesiones: el frontend vuelve al inicio de sesión.
 4. **Hábitos.** `POST /api/habitos` con sus días (`1` lunes … `7` domingo). Hasta **10**, o **20** con
    el permiso `LIMITE_HABITOS_AMPLIADO`; al llegar al límite responde `403` y el frontend ofrece pedir
-   el permiso.
+   el permiso. Se editan (`PUT`), se **archivan** (no cuentan para el límite, no se registran, no salen
+   en el plan de hoy y conservan su racha), se restauran o se eliminan con sus registros.
 5. **Registro diario.** `POST /api/habitos/{id}/registros` con `{ cumplido }`: solo **hoy** (la fecha
    la pone el servidor) y solo si hoy es un día programado (si no, `409`). Se corrige el mismo día.
    La **racha** cuenta días programados consecutivos cumplidos; un día programado pasado sin
@@ -94,7 +95,10 @@ Rol: **—** sin sesión · **S** cualquier usuario con sesión · **A** solo Ad
 | `POST /api/solicitudes-permiso/{id}/aprobar` | A | — | `200` `Aplicada` · `403` · `404` · `409` |
 | `POST /api/solicitudes-permiso/{id}/rechazar` | A | `{ "motivo": "No corresponde." }` | `200` `Rechazada` · `400` · `403` · `404` · `409` |
 | `POST /api/habitos` | S | `{ "nombre": "Leer", "descripcion": "Antes de dormir", "dias": [1, 3, 5] }` | `201 { id, nombre, descripcion, dias, fechaCreacionUtc }` · `400` · `403` límite |
-| `GET /api/habitos` | S | — | `200` sus hábitos, cada uno con `rachaActual`, `mejorRacha`, `programadoHoy` y `cumplidoHoy` (`null` si hoy no se registró) |
+| `GET /api/habitos` | S | — | `200` sus hábitos, archivados incluidos, cada uno con `archivado`, `fechaArchivadoUtc`, `rachaActual`, `mejorRacha`, `programadoHoy` y `cumplidoHoy` (`null` si hoy no se registró) |
+| `PUT /api/habitos/{id}` | S | `{ "nombre": "Leer 30 minutos", "descripcion": null, "dias": [1, 3, 5] }` | `200` el hábito · `400` · `404` |
+| `POST /api/habitos/{id}/archivar` · `POST /api/habitos/{id}/restaurar` | S | — | `200` el hábito · `403` restaurar con el límite lleno · `404` · `409` ya archivado o no archivado |
+| `DELETE /api/habitos/{id}` | S | — | `204` (borra sus registros; sus metas descartan el vínculo) · `404` |
 | `GET /api/habitos/{id}/registros?desde=&hasta=` | S | — | `200 { habitoId, desde, hasta, rachaActual, mejorRacha, registros: [ { habitoId, fecha, cumplido } ] }` (sin fechas: últimos 30 días) · `400` · `404` |
 | `POST /api/habitos/{id}/registros` | S | `{ "cumplido": true }` | `200 { habitoId, fecha, cumplido }` · `400` · `404` · `409` |
 | `GET /api/habitos/hoy?ciudad=Santo Domingo` | S | — | `200 { fecha, ciudad, pronostico, favorableAlAireLibre, recomendacion, pendientes, habitos }` · `400` · `503` |
@@ -102,6 +106,7 @@ Rol: **—** sin sesión · **S** cualquier usuario con sesión · **A** solo Ad
 | `GET /api/metas` · `GET /api/metas/{id}` | S | — | `200` con avance y estado al día · `404` |
 | `POST /api/metas/{id}/completar` | S | — | `200` · `404` · `409` |
 | `POST /api/metas/{id}/reactivar` | S | `{ "nuevaFechaLimite": "2026-12-31" }` | `200` · `400` · `404` · `409` |
+| `DELETE /api/metas/{id}` | S | — | `204` en cualquier estado · `404` |
 | `POST /api/documentos` | S | `multipart/form-data`, campo `archivo` | `201 { id, nombre, tipo, tamanoBytes, fechaSubidaUtc, subidoPorId }` · `400` |
 | `GET /api/documentos` | S | — | `200` |
 | `GET /api/documentos/{id}/descarga` | S | — | `200` el archivo · `403` · `404` |

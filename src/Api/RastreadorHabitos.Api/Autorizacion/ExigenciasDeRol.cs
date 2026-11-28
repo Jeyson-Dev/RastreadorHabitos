@@ -57,12 +57,17 @@ public static class ExigenciasDeRol
         ["Habitos.RegistrarCumplimiento"] = Exigencia.EstandarOAdministrador,
         ["Habitos.ConsultarRegistros"] = Exigencia.EstandarOAdministrador,
         ["Habitos.PlanDeHoy"] = Exigencia.EstandarOAdministrador,
+        ["Habitos.Editar"] = Exigencia.EstandarOAdministrador,
+        ["Habitos.Archivar"] = Exigencia.EstandarOAdministrador,
+        ["Habitos.Restaurar"] = Exigencia.EstandarOAdministrador,
+        ["Habitos.Eliminar"] = Exigencia.EstandarOAdministrador,
 
         ["Metas.Crear"] = Exigencia.EstandarOAdministrador,
         ["Metas.Listar"] = Exigencia.EstandarOAdministrador,
         ["Metas.Obtener"] = Exigencia.EstandarOAdministrador,
         ["Metas.Completar"] = Exigencia.EstandarOAdministrador,
         ["Metas.Reactivar"] = Exigencia.EstandarOAdministrador,
+        ["Metas.Eliminar"] = Exigencia.EstandarOAdministrador,
 
         // Manejador de documentos: sesión válida y uno de los dos roles, verificado en cada
         // petición contra el rol vigente [RD-06]. Qué documentos ve cada uno lo decide la pieza.
