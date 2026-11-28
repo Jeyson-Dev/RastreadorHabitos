@@ -67,7 +67,7 @@ export default function TarjetaMeta({ meta, nombresHabitos, alReactivar, alCompl
   }
 
   return (
-    <article aria-labelledby={`meta-${meta.id}`} className="flex flex-col gap-3 vidrio rounded-[1.25rem] p-4 sm:p-5">
+    <article aria-labelledby={`meta-${meta.id}`} className="relative has-[[aria-expanded=true]]:z-20 flex flex-col gap-3 vidrio rounded-[1.25rem] p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <h3 id={`meta-${meta.id}`} className="titulo text-lg font-semibold">
           {meta.nombre}

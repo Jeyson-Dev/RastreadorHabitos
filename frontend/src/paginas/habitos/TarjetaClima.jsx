@@ -95,8 +95,8 @@ export default function TarjetaClima() {
   return (
     <Tarjeta aria-labelledby="titulo-clima" className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
-        <h3 id="titulo-clima" className="inline-flex items-center gap-1.5 text-sm font-medium">
-          <MapPin className="size-4 text-suave" aria-hidden="true" />
+        <h3 id="titulo-clima" className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
+          <MapPin className="size-4 shrink-0 text-suave" aria-hidden="true" />
           <span className="truncate">{plan.data?.ciudad ? `${plan.data.ciudad}${plan.data.pais ? `, ${plan.data.pais}` : ''}` : ciudad}</span>
         </h3>
         {!editando && (

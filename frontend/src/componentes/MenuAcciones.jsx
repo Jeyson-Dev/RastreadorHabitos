@@ -59,6 +59,7 @@ export default function MenuAcciones({ etiqueta, acciones }) {
       >
         <Ellipsis className="size-5" aria-hidden="true" />
       </button>
+      {/* Opaco a propósito: un backdrop-filter dentro de otra superficie de vidrio no desenfoca. */}
       <AnimatePresence>
         {abierto && (
           <m.ul
@@ -71,7 +72,7 @@ export default function MenuAcciones({ etiqueta, acciones }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: reducir ? 1 : tokensMovimiento.escala.sutil }}
             transition={reducir ? { duration: tokensMovimiento.duracion.rapida } : resortes.instante}
-            className="vidrio vidrio-fuerte absolute top-full right-0 z-30 mt-1.5 flex min-w-48 origin-top-right flex-col rounded-2xl bg-vidrio-fuerte p-1.5"
+            className="absolute top-full right-0 z-30 mt-1.5 flex min-w-48 origin-top-right flex-col rounded-2xl border border-borde bg-superficie p-1.5 shadow-suave"
           >
             {acciones.map(({ etiqueta: texto, icono: Icono, alElegir, peligroso }) => (
               <li key={texto} role="none">

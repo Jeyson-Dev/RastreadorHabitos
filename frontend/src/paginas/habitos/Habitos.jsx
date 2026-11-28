@@ -114,7 +114,7 @@ export default function Habitos() {
         ) : (
           <m.ul {...contenedor} className="flex flex-col gap-2.5">
             {activos.map((habito) => (
-              <m.li key={habito.id} variants={elemento.variants} className="vidrio flex items-start gap-1 rounded-[1.25rem] p-1.5 pr-2">
+              <m.li key={habito.id} variants={elemento.variants} className="relative has-[[aria-expanded=true]]:z-20 vidrio flex items-start gap-1 rounded-[1.25rem] p-1.5 pr-2">
                 <button
                   type="button"
                   onClick={() => setIdDetalle(habito.id)}
@@ -152,7 +152,7 @@ export default function Habitos() {
             </summary>
             <ul className="mt-3 flex flex-col gap-2">
               {archivados.map((habito) => (
-                <li key={habito.id} className="vidrio flex items-center gap-3 rounded-2xl px-4 py-3 opacity-90">
+                <li key={habito.id} className="relative has-[[aria-expanded=true]]:z-20 vidrio flex items-center gap-3 rounded-2xl px-4 py-3">
                   <IconoHabito habito={habito} tamano="sm" />
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="truncate font-medium">{habito.nombre}</span>

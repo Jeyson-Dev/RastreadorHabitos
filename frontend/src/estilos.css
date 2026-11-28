@@ -97,9 +97,9 @@
   --vidrio-borde: rgb(255 255 255 / 0.08);
   --sombra: 0 1px 2px rgb(0 0 0 / 0.3), 0 16px 40px -18px rgb(0 0 0 / 0.7);
   --sombra-acento: 0 8px 22px -8px rgb(242 154 114 / 0.45);
-  --ambiente-1: rgb(214 108 62 / 0.2);
-  --ambiente-2: rgb(200 140 50 / 0.12);
-  --ambiente-3: rgb(110 150 80 / 0.1);
+  --ambiente-1: rgb(214 108 62 / 0.34);
+  --ambiente-2: rgb(214 150 52 / 0.22);
+  --ambiente-3: rgb(110 150 80 / 0.18);
 
   --h1-fondo: #3d2318;
   --h1-tinta: #f4a582;
@@ -184,9 +184,9 @@
   /* Fondo ambiental fijo: degradados suaves detrás del vidrio, sin imágenes. */
   .fondo-ambiente {
     background:
-      radial-gradient(60rem 40rem at -10% -10%, var(--ambiente-1), transparent 60%),
-      radial-gradient(50rem 36rem at 110% 0%, var(--ambiente-2), transparent 60%),
-      radial-gradient(56rem 40rem at 50% 115%, var(--ambiente-3), transparent 60%),
+      radial-gradient(50rem 34rem at 28% -6%, var(--ambiente-1), transparent 65%),
+      radial-gradient(44rem 32rem at 92% 18%, var(--ambiente-2), transparent 65%),
+      radial-gradient(56rem 36rem at 60% 108%, var(--ambiente-3), transparent 65%),
       var(--fondo);
   }
   /* Superficie de vidrio: translúcida, con desenfoque, borde claro y sombra cálida. */
