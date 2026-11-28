@@ -85,6 +85,7 @@ public class MetasService : IMetasService
             .Where(m => m.UsuarioId == usuarioId)
             .OrderBy(m => m.FechaCreacionUtc)
             .ToListAsync();
+        await DescartarVinculosHuerfanosAsync(usuarioId, metas);
 
         var resultado = new List<MetaDto>();
         foreach (var meta in metas)
@@ -126,6 +127,13 @@ public class MetasService : IMetasService
         await AvisarSiCambioAsync(meta, anterior);
 
         return await ActualizarYDescribirAsync(meta, hoy);
+    }
+
+    public async Task EliminarAsync(Guid usuarioId, Guid metaId)
+    {
+        var meta = await BuscarAsync(usuarioId, metaId);
+        _context.Metas.Remove(meta);
+        await _context.SaveChangesAsync();
     }
 
     // Busca la meta y aplica las transiciones del sistema antes de que el dueño actúe sobre ella.
@@ -191,11 +199,33 @@ public class MetasService : IMetasService
         _habitos.ContarCumplidosAsync(meta.Habitos.Select(h => h.HabitoId).ToList(), meta.FechaInicio, meta.FechaLimite);
 
     // Una meta de otro usuario se trata como inexistente: no revela que existe.
-    private async Task<Meta> BuscarAsync(Guid usuarioId, Guid metaId) =>
-        await _context.Metas
-            .Include(m => m.Habitos)
-            .FirstOrDefaultAsync(m => m.Id == metaId && m.UsuarioId == usuarioId)
-        ?? throw new RechazoMetasException(TipoRechazoMetas.NoEncontrado, "No existe una meta con ese id.");
+    private async Task<Meta> BuscarAsync(Guid usuarioId, Guid metaId)
+    {
+        var meta = await _context.Metas
+                       .Include(m => m.Habitos)
+                       .FirstOrDefaultAsync(m => m.Id == metaId && m.UsuarioId == usuarioId)
+                   ?? throw new RechazoMetasException(TipoRechazoMetas.NoEncontrado, "No existe una meta con ese id.");
+        await DescartarVinculosHuerfanosAsync(usuarioId, [meta]);
+        return meta;
+    }
+
+    // Si el dueño eliminó un hábito, sus metas descartan el vínculo: solo quedan los hábitos que
+    // siguen existiendo (sección 3 del diseño). Hábitos no conoce Metas, por eso se resuelve aquí,
+    // al leer, y se guarda junto con el resto de los cambios de la meta.
+    private async Task DescartarVinculosHuerfanosAsync(Guid usuarioId, IReadOnlyCollection<Meta> metas)
+    {
+        var vinculados = metas.SelectMany(m => m.Habitos).Select(h => h.HabitoId).Distinct().ToList();
+        if (vinculados.Count == 0)
+        {
+            return;
+        }
+
+        var existentes = (await _habitos.FiltrarDelUsuarioAsync(usuarioId, vinculados)).ToHashSet();
+        foreach (var meta in metas)
+        {
+            meta.Habitos.RemoveAll(h => !existentes.Contains(h.HabitoId));
+        }
+    }
 
     private DateOnly Hoy() => DateOnly.FromDateTime(_reloj.GetLocalNow().DateTime);
 

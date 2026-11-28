@@ -19,4 +19,8 @@ public interface IMetasService
 
     // Fallida → En progreso, con una fecha límite nueva posterior a hoy.
     Task<MetaDto> ReactivarAsync(Guid usuarioId, Guid metaId, ReactivacionMetaDto reactivacion);
+
+    // Borra una meta propia, en cualquier estado, con sus vínculos a hábitos. No es una transición:
+    // la meta deja de existir y sus hábitos y registros siguen igual.
+    Task EliminarAsync(Guid usuarioId, Guid metaId);
 }

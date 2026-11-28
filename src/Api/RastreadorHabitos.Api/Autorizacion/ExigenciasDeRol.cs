@@ -67,6 +67,7 @@ public static class ExigenciasDeRol
         ["Metas.Obtener"] = Exigencia.EstandarOAdministrador,
         ["Metas.Completar"] = Exigencia.EstandarOAdministrador,
         ["Metas.Reactivar"] = Exigencia.EstandarOAdministrador,
+        ["Metas.Eliminar"] = Exigencia.EstandarOAdministrador,
 
         // Manejador de documentos: sesión válida y uno de los dos roles, verificado en cada
         // petición contra el rol vigente [RD-06]. Qué documentos ve cada uno lo decide la pieza.
