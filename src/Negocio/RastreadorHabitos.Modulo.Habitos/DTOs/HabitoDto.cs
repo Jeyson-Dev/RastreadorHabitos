@@ -10,6 +10,8 @@ public class HabitoDto
     public string? Descripcion { get; set; }
     public List<int> Dias { get; set; } = [];
     public DateTime FechaCreacionUtc { get; set; }
+    public bool Archivado { get; set; }
+    public DateTime? FechaArchivadoUtc { get; set; }
 
     // Estado de hoy y rachas, calculados al consultar (no se guardan).
     public int RachaActual { get; set; }
@@ -26,7 +28,11 @@ public class HabitoDto
         Nombre = habito.Nombre,
         Descripcion = habito.Descripcion,
         Dias = habito.Dias.Select(d => d.DiaSemana).Order().ToList(),
-        FechaCreacionUtc = habito.FechaCreacionUtc,
+        // La base devuelve las fechas sin indicar que son UTC: se marcan para que siempre salgan con
+        // la misma forma (…Z) [RD-11].
+        FechaCreacionUtc = DateTime.SpecifyKind(habito.FechaCreacionUtc, DateTimeKind.Utc),
+        Archivado = habito.Archivado,
+        FechaArchivadoUtc = habito.FechaArchivadoUtc is { } archivado ? DateTime.SpecifyKind(archivado, DateTimeKind.Utc) : null,
         RachaActual = rachas.Actual,
         MejorRacha = rachas.Mejor,
         ProgramadoHoy = habito.Dias.Any(d => d.DiaSemana == DiasSemana.De(hoy)),

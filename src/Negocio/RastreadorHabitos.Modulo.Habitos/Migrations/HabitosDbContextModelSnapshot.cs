@@ -33,6 +33,9 @@ namespace RastreadorHabitos.Modulo.Habitos.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<DateTime?>("FechaArchivadoUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("FechaCreacionUtc")
                         .HasColumnType("datetime2");
 

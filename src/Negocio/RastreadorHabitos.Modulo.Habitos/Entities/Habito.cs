@@ -12,6 +12,12 @@ public class Habito
     public string? Descripcion { get; set; }
     public DateTime FechaCreacionUtc { get; set; } = DateTime.UtcNow;
 
+    // null mientras está activo. Archivado conserva su historial y sus rachas, no cuenta para el
+    // límite y no se registra (regla 3 del diseño).
+    public DateTime? FechaArchivadoUtc { get; set; }
+
+    public bool Archivado => FechaArchivadoUtc is not null;
+
     public List<HabitoDia> Dias { get; set; } = [];
     public List<RegistroDiario> Registros { get; set; } = [];
 }

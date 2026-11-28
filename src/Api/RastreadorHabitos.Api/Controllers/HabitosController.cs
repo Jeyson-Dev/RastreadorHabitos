@@ -33,6 +33,31 @@ public class HabitosController : ControllerBase
         return Ok(await _habitos.ListarAsync(UsuarioActual()));
     }
 
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Editar(Guid id, [FromBody] EdicionHabitoDto edicion)
+    {
+        return Ok(await _habitos.EditarAsync(UsuarioActual(), id, edicion));
+    }
+
+    [HttpPost("{id:guid}/archivar")]
+    public async Task<IActionResult> Archivar(Guid id)
+    {
+        return Ok(await _habitos.ArchivarAsync(UsuarioActual(), id));
+    }
+
+    [HttpPost("{id:guid}/restaurar")]
+    public async Task<IActionResult> Restaurar(Guid id)
+    {
+        return Ok(await _habitos.RestaurarAsync(UsuarioActual(), id));
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Eliminar(Guid id)
+    {
+        await _habitos.EliminarAsync(UsuarioActual(), id);
+        return NoContent();
+    }
+
     [HttpPost("{id:guid}/registros")]
     public async Task<IActionResult> RegistrarCumplimiento(Guid id, [FromBody] RegistroCumplimientoDto registro)
     {

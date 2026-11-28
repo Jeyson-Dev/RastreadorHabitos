@@ -57,6 +57,10 @@ public static class ExigenciasDeRol
         ["Habitos.RegistrarCumplimiento"] = Exigencia.EstandarOAdministrador,
         ["Habitos.ConsultarRegistros"] = Exigencia.EstandarOAdministrador,
         ["Habitos.PlanDeHoy"] = Exigencia.EstandarOAdministrador,
+        ["Habitos.Editar"] = Exigencia.EstandarOAdministrador,
+        ["Habitos.Archivar"] = Exigencia.EstandarOAdministrador,
+        ["Habitos.Restaurar"] = Exigencia.EstandarOAdministrador,
+        ["Habitos.Eliminar"] = Exigencia.EstandarOAdministrador,
 
         ["Metas.Crear"] = Exigencia.EstandarOAdministrador,
         ["Metas.Listar"] = Exigencia.EstandarOAdministrador,
