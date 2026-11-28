@@ -9,6 +9,8 @@
   <!-- Sin referencias a otros proyectos: Auditoría no conoce a ninguna pieza ni al negocio [RD-03]. -->
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.12" />
+    <!-- Llega por Microsoft.Data.SqlClient; se fija una versión sin las vulnerabilidades GHSA-846f-f764-76mx y GHSA-2fmv-rv2c-59x7. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.15" />
   </ItemGroup>
 
 </Project>
